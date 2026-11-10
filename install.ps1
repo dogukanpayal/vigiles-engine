@@ -49,5 +49,5 @@ Copy-Item (Join-Path $sourceCore "hooks.json") $hooksDest -Force
 Write-Host "`n==========================================================" -ForegroundColor Green
 Write-Host "✅ KURULUM BASARIYLA TAMAMLANDI!" -ForegroundColor Green
 Write-Host "   Antigravity sohbetinde artik dilediginiz projede:" -ForegroundColor Yellow
-Write-Host "   '/veteran' yazarak 20 elemanli fabrikayi baslatabilirsiniz." -ForegroundColor White
+Write-Host "   '/vigiles' yazarak 20 elemanli fabrikayi baslatabilirsiniz." -ForegroundColor White
 Write-Host "==========================================================" -ForegroundColor Green

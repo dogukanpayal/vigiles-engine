@@ -164,11 +164,11 @@ Bu komut, `core/` altındaki tüm yetenekleri, şablonları ve güvenlik kancala
 Bilgisayarınızdaki herhangi bir klasörde Antigravity'yi açın ve sohbete şunu yazın:
 
 ```text
-/veteran
+/vigiles
 ```
 veya
 ```text
-Veteran modunda çalışmaya başla.
+Vigiles modunda çalışmaya başla.
 ```
 
 Baş Mimar anında `DURUM.md` ve `KURALLAR.md` sözleşmelerini açacak ve 20 elemanlı fabrika görevinizi kurşungeçirmez olarak üretecektir!

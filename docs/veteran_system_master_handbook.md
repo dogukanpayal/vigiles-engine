@@ -146,7 +146,7 @@ Workspace (c:\Users\Dogukan\Desktop\Antigravity Improvement\)
 Sistemi gelecekteki herhangi bir projenizde devreye almak için:
 
 1. **Yetenek Çağrısı:**  
-   Sohbete doğrudan `/veteran` yazın veya *"Veteran modunu başlat"* deyin.
+   Sohbete doğrudan `/vigiles` yazın veya *"Vigiles modunu başlat"* deyin.
 2. **Otomatik Kurulum:**  
    Baş Mimar projede `DURUM.md` ve `KURALLAR.md` dosyalarını otomatik olarak açar.
 3. **Canlı İzleme:**  
