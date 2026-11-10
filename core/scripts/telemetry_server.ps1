@@ -190,11 +190,11 @@ while ($listener.IsListening) {
         # 5. GET / veya /index.html veya /live
         if ($rawUrl -eq "/" -or $rawUrl -eq "/index.html" -or $rawUrl -eq "/live") {
             $candidates = [System.Collections.Generic.List[string]]::new()
+            $candidates.Add($globalTemplateHtml)
+            $candidates.Add($workspaceHtmlFallback)
             if (-not [string]::IsNullOrWhiteSpace($ArtifactDir)) {
                 $candidates.Add((Join-Path $ArtifactDir "live_mission_control.html"))
             }
-            $candidates.Add($globalTemplateHtml)
-            $candidates.Add($workspaceHtmlFallback)
 
             $foundPath = $null
             foreach ($cp in $candidates) {

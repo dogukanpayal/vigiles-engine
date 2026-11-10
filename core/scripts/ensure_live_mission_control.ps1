@@ -164,23 +164,28 @@ if (-not $serverRunning) {
     } catch {}
 }
 
-# 5. Tarayicida Canli Operasyon Merkezini Ac (Oturumda yalnizca bir kez)
+# 5. Antigravity Dahili Webview / Artifact Panelini Hazirla (Harici tarayici calistirilmaz)
 if (-not [string]::IsNullOrWhiteSpace($artifactDir)) {
     $launchMarker = Join-Path $artifactDir ".live_mission_launched"
     if (-not (Test-Path $launchMarker)) {
         try {
             New-Item -ItemType File -Path $launchMarker -Force | Out-Null
-            Start-Process "http://localhost:9999/"
         } catch {}
     }
 }
 
 # 6. Modeli Bilgilendir (Net ve sifir gecikmeli direktif)
+$destHtmlForward = if (-not [string]::IsNullOrWhiteSpace($artifactDir)) {
+    (Join-Path $artifactDir "live_mission_control.html").Replace('\', '/')
+} else { "" }
+
+$sysMsgText = "[CANLI OPERASYON MERKEZI DEVREDE]: Port 9999 SSE aktif. live_mission_control.html hazirlandi. Artifact dosya yolu: file:///$destHtmlForward. Harici isletim sistemi tarayicisi acilmaz. Sayfayi ASLA chat output'u icine embed etmeyin (<agent-embed> kullanmayin). Antigravity'nin side paneli uzerindeki dahili browser'da acilmasi icin dogrudan http://localhost:9999/ baglantisini ve artifact linkini verin. Kesinlikle dosya taramasi veya okumasi yapmayin."
+
 $response = @{
     injectSteps = @(
         @{
             systemMessage = @{
-                systemMessage = "[CANLI OPERASYON MERKEZI DEVREDE]: Canli Operasyon Merkezi Port 9999 ve tarayicida aninda baslatildi. live_mission_control.html hazirlandi. Herhangi bir dosya aramasi veya dogrulama yapmaniza gerek YOKTUR; dogrudan sonuca odaklanin ve yanit verin."
+                systemMessage = $sysMsgText
             }
         }
     )
