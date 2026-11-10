@@ -79,17 +79,19 @@ Her elemanın görevi ve sorumluluk sınırı kesindir. Kimse başkasının işi
 19. **🩺 CANLI HATA DEDEKTİFİ (Sentry / Telemetri Can Simidi - MCP)**:
     - Canlıdaki log veya Sentry MCP akışını dinler. Bir hata patladığında hatayı, stack trace'i ve ilgili dosyayı yakalar.
     - Hatayı çözen bir TDD testi yazar, kodu onarır ve Yargıç onayına sunar.
-20. **🔀 GİT & PUSH DENETLEYİCİSİ (Sıfır Otomatik Push & /push Komutu)**:
-    - **SIFIR OTOMATİK PUSH İLKESİ**:
-      * Sistem veya alt ajanlar **ASLA kullanıcıdan habersiz veya otonom olarak `git push` yapamaz.**
-      * Görev başarıyla tamamlandığında, testler geçtiğinde ve commit'ler atıldığında sistem durur ve kullanıcıya haber verir:
-        > 🚀 **GitHub'a Pushlamaya Hazır!**  
-        > Yapılan değişiklikler yerel olarak güvenle commitlendi ve testlerden geçti.  
-        > Değişiklikleri GitHub'a göndermek için **/push** komutunu yazabilirsiniz.
-    - **/push Slash Komutu**:
-      * Kullanıcı `/push` yazdığında veya "pushla" talimatı verdiğinde push denetleyicisi (`git_push_manager.ps1`) devreye girer, kontrolleri yapar ve GitHub'a aktarımı gerçekleştirir.
-    - **PR Modu (İsteğe Bağlı)**:
-      * Kullanıcı `/vigiles --pr` dediğinde veya "PR aç" talimatı verdiğinde devreye girer. Temiz bir `feat/...` branch'i açar ve PR hazırlar.
+20. **🔀 GİT & DEPLOY FABRİKASI (Sıfır Otomatik Git & Tek Komutla /push Pipeline)**:
+    - **SIFIR OTOMATİK GİT İLKESİ**:
+      * Sistem veya alt ajanlar geliştirme sırasında **ASLA otomatik olarak `git add`, `git commit` veya `git push` YAPMAZ.**
+      * Kodlar, testler ve dokümanlar yerel çalışma dizininde (working directory) hazır bekletilir.
+      * Tüm testler geçtiğinde ve Bağımsız Yargıç onay verdiğinde sistem durur ve kullanıcıya haber verir:
+        > 🚀 **Çalışma Tamamlandı ve Doğrulandı!**  
+        > Değişiklikleri Git'e kaydedip (add + commit) GitHub'a göndermek (push) için **/push** komutunu yazabilirsiniz.
+    - **/push ile Tek Komutta 3'lü Pipeline**:
+      * Kullanıcı `/push` komutunu verdiğinde (veya "pushla" talimatı girdiğinde) Git Dağıtım Yöneticisi (`git_push_manager.ps1`) devreye girer:
+        1. `git add -A` (tüm dosyaları sahneye alır)
+        2. `git commit -m "..."` (Conventional Commit oluşturur)
+        3. `git push origin <branch>` (GitHub'a aktarır)
+      * Bu sayede tüm Git süreci tek bir komutla ve tamamen sizin kontrolünüzde icra edilir.
 
 ---
 
@@ -127,7 +129,7 @@ Her elemanın görevi ve sorumluluk sınırı kesindir. Kimse başkasının işi
                                │
                                ├──> [16. CANLI DENEME TAHTASI] ──> [SİZ: Canlı Onay]
                                │
-                               └──> [20. GİT & PUSH KONTROLÜ] (Pushlamaya Hazır Bildirimi ──> Kullanıcı /push ile Onaylar)
+                               └──> [20. GİT & DEPLOY KONTROLÜ] (Hazır Bildirimi ──> Kullanıcı /push ile add+commit+push Tetikler)
 ```
 
 ---
@@ -141,5 +143,5 @@ Her elemanın görevi ve sorumluluk sınırı kesindir. Kimse başkasının işi
    - Bahsedilen tüm dosyalar `file:///` markdown linkleri ile clickable formatta verilir.
 3. **Güvenlikten Taviz Yok**:
    - Gizli Veri Muhafızı uyarısı alan hiçbir kod commit edilemez veya onaylanamaz.
-4. **Sıfır Otomatik Push ve /push Yetkisi**:
-   - Sistem veya alt ajanlar ASLA kendi kendine GitHub'a pushlama (`git push`) yapamaz. İş bittiğinde kullanıcıya "GitHub'a Pushlamaya Hazır" bildirimi sunulur; push işlemi yalnızca kullanıcının `/push` komutuyla icra edilir.
+4. **Sıfır Otomatik Git ve /push Yetkisi**:
+   - Sistem asla kendi kendine `git add`, `git commit` veya `git push` yapamaz. İş bittiğinde kullanıcıya "Dağıtıma Hazır" bildirimi sunulur; 3 adımlı Git pipeline'ı (`add -> commit -> push`) yalnızca kullanıcının `/push` komutuyla icra edilir.

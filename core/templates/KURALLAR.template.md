@@ -43,4 +43,4 @@
 
 * [KURAL-001]: Tüm kullanıcı form butonlarında çift tıklama ve race condition'ları önlemek için minimum 300ms debounce uygulanmalıdır.
 * [KURAL-002]: Dış dünyaya açık tüm API endpoint'lerinde gelen veriler controller/handler sınırında katı şema doğrulaması (Zod/Pydantic) ile filtrelenmelidir.
-* [KURAL-007]: Sıfır Otomatik Push Prensibi: Sistem veya alt ajanlar ASLA otonom olarak 'git push' yapamaz. İşlem bittiğinde kullanıcıya 'GitHub'a pushlamaya hazır' bildirimi verilir; pushlama yalnızca kullanıcının '/push' komutuyla yürütülür.
+* [KURAL-007]: Sıfır Otomatik Git Prensibi (Tam Manuel Pipeline): Sistem veya alt ajanlar geliştirme sırasında ASLA kendi inisiyatifiyle 'git add', 'git commit' veya 'git push' yapamaz. Tüm kodlar çalışma dizininde hazır bekletilir. İşlem ve testler bittiğinde kullanıcıya 'Dağıtıma hazır' bildirimi verilir. 'git add', 'git commit' ve 'git push' işlemleri YALNIZCA kullanıcının '/push' komutunu çalıştırmasıyla tek seferde icra edilir.

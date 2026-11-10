@@ -1,5 +1,5 @@
 # Test-GitPushManager.ps1
-# Unit & Integration Tests for git_push_manager.ps1
+# Unit & Integration Tests for git_push_manager.ps1 (Add -> Commit -> Push Pipeline)
 
 $ErrorActionPreference = "Continue"
 
@@ -10,7 +10,7 @@ if (-not (Test-Path $scriptPath)) {
 }
 
 Write-Host "==========================================================" -ForegroundColor Cyan
-Write-Host "TEST: Git Push Yoneticisi Birim Testleri" -ForegroundColor Yellow
+Write-Host "TEST: Git Pipeline (Add/Commit/Push) Birim Testleri" -ForegroundColor Yellow
 Write-Host "==========================================================" -ForegroundColor Cyan
 
 $passed = 0
@@ -20,7 +20,7 @@ $total = 0
 $total++
 Write-Host -NoNewline "Test 1: Mevcut Depoda -DryRun Testi ... "
 $dryRunOut = (& powershell -NoProfile -File $scriptPath -DryRun 2>&1 | Out-String)
-if ($dryRunOut -match "Uzak depo zaten guncel|DRY-RUN") {
+if ($dryRunOut -match "Uzak depo zaten guncel|DRY-RUN|Pushlanacak Commitler") {
     Write-Host "[GECTI OK]" -ForegroundColor Green
     $passed++
 } else {
@@ -46,9 +46,9 @@ try {
     Remove-Item -Path $tempNonGit -Recurse -Force -ErrorAction SilentlyContinue
 }
 
-# Test 3: Izole Gecici Repo ve Remote Simulasyonu
+# Test 3: Izole Repo uzerinde Tek Komutla (Add -> Commit -> Push) Uctan Uca Test
 $total++
-Write-Host -NoNewline "Test 3: Izole Gecici Repo ve Remote Simulasyonu ... "
+Write-Host -NoNewline "Test 3: Uctan Uca Pipeline (Add -> Commit -> Push) ... "
 $tempBare = Join-Path $env:TEMP ("bare_" + [System.Guid]::NewGuid().ToString().Substring(0,8))
 $tempClone = Join-Path $env:TEMP ("clone_" + [System.Guid]::NewGuid().ToString().Substring(0,8))
 try {
@@ -64,24 +64,25 @@ try {
     & git config user.name "Vigiles Tester"
     & git remote add origin $tempBare
 
-    # Ilk commit
-    "init" | Set-Content "file.txt"
-    & git add file.txt
-    & git commit -m "chore: initial commit" | Out-Null
+    # Dosya olusturuldu ama add veya commit YAPILMADI (Dirty state)
+    "Hello Vigiles Pipeline" | Set-Content "pipeline_test.txt"
 
-    # Push yoneticisi ile calistir
-    $pushOut = (& powershell -NoProfile -File $scriptPath 2>&1 | Out-String)
-    if ($pushOut -match "GitHub'a basariyla pushlandi|BASARILI") {
-        # Ikinci cagri: Zaten guncel olmali
-        $secondOut = (& powershell -NoProfile -File $scriptPath 2>&1 | Out-String)
-        if ($secondOut -match "Uzak depo zaten guncel") {
+    # Pipeline yoneticisini calistir (Tek komutla add + commit + push yapmali)
+    $pushOut = (& powershell -NoProfile -File $scriptPath -CommitMessage "feat: test all-in-one pipeline" 2>&1 | Out-String)
+    if ($pushOut -match "Pipeline tamamlandi|BASARILI") {
+        # Bare repo uzerinde commit ulasti mi kontrol et
+        Push-Location $tempBare
+        $bareLog = (& git log --all --oneline 2>&1 | Out-String)
+        Pop-Location
+
+        if ($bareLog -match "feat: test all-in-one pipeline") {
             Write-Host "[GECTI OK]" -ForegroundColor Green
             $passed++
         } else {
-            Write-Host "[BASARISIZ]: Ikinci cagri 'zaten guncel' demedi: $secondOut" -ForegroundColor Red
+            Write-Host "[BASARISIZ]: Commit bare repoya ulasmadi: $bareLog" -ForegroundColor Red
         }
     } else {
-        Write-Host "[BASARISIZ]: Ilk push basarisiz: $pushOut" -ForegroundColor Red
+        Write-Host "[BASARISIZ]: Pipeline calismadi: $pushOut" -ForegroundColor Red
     }
 } finally {
     Pop-Location

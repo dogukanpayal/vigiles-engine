@@ -1,60 +1,49 @@
 ---
 name: push
 description: >-
-  Pushes local Git commits to the remote repository (GitHub) safely upon explicit user command.
-  Verifies branch, pending commits, dirty tree status, runs pre-push checks, and delivers
-  clean execution feedback. Triggered when the user types /push or asks to push to GitHub.
+  Executes the unified Git pipeline (git add + git commit + git push) safely upon explicit user command.
+  Verifies branch, stages changes, creates commit, runs pre-push checks, and pushes to GitHub with clean feedback.
+  Triggered when the user types /push or asks to push to GitHub.
 ---
 
-# 🚀 Vigiles Engine - Git Push Protokolü (/push)
+# 🚀 Vigiles Engine - Birleşik Git Dağıtım Protokolü (/push)
 
-Bu yetenek (skill), kullanıcının Antigravity sohbetinde **/push** yazmasıyla veya açıkça "GitHub'a pushla" talimatı vermesiyle tetiklenir.
+Bu yetenek (skill), kullanıcının Antigravity sohbetinde **/push** (veya `/push "commit mesajı"`) yazmasıyla ya da açıkça "GitHub'a pushla" talimatı vermesiyle tetiklenir.
 
 ---
 
-## 🛡️ 1. Sıfır Otomatik Push İlkesi (Zero Auto-Push)
+## 🛡️ 1. Sıfır Otomatik Git İlkesi (Tam Manuel Tetikleme)
 
-1. **Otonom Push Yasağı:**
-   - Vigiles Engine ve alt ajanları hiçbir şart altında **kullanıcıdan habersiz veya otonom olarak `git push` çalıştıramaz.**
-   - Tüm geliştirme, TDD testleri ve Bağımsız Yargıç onayı bittiğinde sistem durur ve kullanıcıya şu bildirimi verir:
-     > 🚀 **GitHub'a Pushlamaya Hazır!**  
-     > Tüm değişiklikler yerel olarak doğrulandı ve commitlendi.  
-     > Değişiklikleri GitHub'a göndermek için **/push** yazabilirsiniz.
+1. **Otonom Git Yasağı:**
+   - Vigiles Engine ve alt ajanları geliştirme esnasında **ASLA otomatik olarak `git add`, `git commit` veya `git push` yapamaz.**
+   - Kodlar, testler ve şantiye dosyaları yerel çalışma alanında (working directory) hazır bekletilir.
+   - Tüm geliştirme ve test doğrulamaları tamamlandığında sistem durur ve kullanıcıya şu bildirimi sunar:
+     > 🚀 **Çalışma Tamamlandı ve Doğrulandı!**  
+     > Yapılan değişiklikleri Git'e kaydedip (add + commit) GitHub'a göndermek (push) için **/push** komutunu yazabilirsiniz.
+
 2. **Kullanıcı Tetikleyicisi:**
-   - Push işlemi yalnızca kullanıcı **/push** yazdığında veya onay verdiğinde yürütülür.
+   - `git add`, `git commit` ve `git push` işlemleri **YALNIZCA VE YALNIZCA** kullanıcı **/push** komutunu verdiğinde topluca ve sırayla icra edilir.
 
 ---
 
-## 📋 2. İcra Adımları (Execution Flow)
+## 📋 2. İcra Adımları (Tek Komutla 3'lü Pipeline)
 
-Kullanıcı `/push` komutunu verdiğinde ajan şu deterministik adımları izler:
+Kullanıcı `/push` komutunu verdiğinde sistem `core/scripts/git_push_manager.ps1` (veya `~/.gemini/config/scripts/git_push_manager.ps1`) betiğini çalıştırır:
 
-1. **Durum ve Güvenlik Denetimi:**
-   - `core/scripts/git_push_manager.ps1` betiğini (veya küresel `~/.gemini/config/scripts/git_push_manager.ps1`) `-DryRun` veya doğrudan parametrelerle çalıştırır:
-     ```powershell
-     powershell -NoProfile -File "core/scripts/git_push_manager.ps1"
-     ```
-   - Betik; mevcut branch adını, uzaktaki remote (`origin`) adresini ve bekleyen commit listesini doğrular.
-
-2. **Commitlenmemiş Dosyalar Varsa:**
-   - Eğer çalışma dizininde henüz commitlenmemiş önemli değişiklikler varsa, ajanın önce bu değişiklikleri atomik ve Conventional Commit formatında commit yapması gerekir:
-     ```bash
-     git add .
-     git commit -m "feat: <açıklama>"
-     ```
-   - Ardından push yöneticisi çalıştırılır.
-
-3. **Geri Bildirim ve Raporlama (No-Noise):**
-   - Push tamamlandığında kullanıcıya temiz ve net bir onay mesajı verilir:
-     * **Aktarılan Branch:** `main` (veya ilgili branch)
-     * **Hedef Depo:** `https://github.com/...`
-     * **Pushlanan Commit'ler:** Commit özetleri
-     * **Durum:** ✅ Başarıyla GitHub'a aktarıldı.
+1. **[ADIM 1] - `git add -A` (Sahneleme):**
+   - Çalışma dizinindeki tüm yeni, değiştirilmiş veya silinmiş dosyaları sahneye (staging area) ekler.
+2. **[ADIM 2] - `git commit -m "<mesaj>"` (Yerel Commit):**
+   - Kullanıcı bir mesaj belirttiyse onu kullanır (örn: `/push "feat: payment gateway"`).
+   - Mesaj belirtilmemişse yapılan işe göre açıklayıcı bir Conventional Commit mesajı üretir.
+3. **[ADIM 3] - `git push origin <branch>` (GitHub Aktarımı):**
+   - Aktif branch'i ve uzaktaki GitHub reposunu (`origin`) kontrol eder, değişiklikleri uzaktaki depoya güvenle pushlar.
 
 ---
 
-## ⚠️ 3. Güvenlik ve Koruma Kuralları
+## 📊 3. Temiz Geri Bildirim Raporu
 
-- **Force Push Yasağı:** `git push --force` veya `--force-with-lease` komutu ana branch'ler (`main`/`master`) üzerinde kesinlikle çalıştırılamaz.
-- **Sızıntı Taraması:** Push öncesinde `.env` veya API anahtarı barındıran dosyalar depoya eklenemez.
-- **Çakışma Durumu:** Eğer uzaktaki repo öndeyse, force push yapılmaz; kullanıcı bilgilendirilerek `git pull --rebase` uygulanır.
+İşlem tamamlandığında kullanıcıya gürültüsüz (no-noise) bir özet sunulur:
+* **Eklenen Dosyalar:** Sahnelenen dosya listesi / adedi
+* **Oluşturulan Commit:** Commit hash'i ve mesajı
+* **GitHub Aktarımı:** Aktarılan branch ve hedef URL
+* **Durum:** ✅ Pipeline (Add -> Commit -> Push) başarıyla tamamlandı.

@@ -94,18 +94,22 @@ flowchart TD
 | **17** | **GECE NÖBETÇİSİ** | Gece 03:00'te uykuda refactoring ve güvenlik devriyesi yapar. |
 | **18** | **KOTA DÜRTÜCÜSÜ** | Uzun görevlerde oturumu uyanık tutmak için minimum ping atar. |
 | **19** | **CANLI HATA DEDEKTİFİ** | Sentry canlı hata loglarını otomatik olarak TDD testine dönüştürür. |
-| **20** | **GİT & PUSH KONTROLÜ** | Sıfır otomatik push prensibi; iş bitince haber verir, `/push` ile GitHub'a aktarır. |
+| **20** | **GİT & DEPLOY KONTROLÜ** | Sıfır otomatik git prensibi; iş bitince haber verir, `/push` ile add+commit+push icra eder. |
 
 ---
 
-## 🚀 Güvenli GitHub Dağıtımı (/push)
+## 🚀 Güvenli Git Dağıtım Pipeline'ı (/push)
 
-Vigiles Engine sisteminde **Sıfır Otomatik Push Prensibi (Zero Auto-Push)** geçerlidir. Sistem asla kullanıcıdan habersiz veya otonom olarak `git push` komutu çalıştırmaz:
+Vigiles Engine sisteminde **Sıfır Otomatik Git Prensibi (Zero Auto-Git)** geçerlidir. Sistem geliştirme sırasında asla kullanıcıdan habersiz veya otonom olarak `git add`, `git commit` veya `git push` komutlarını çalıştırmaz:
 
-1. **Hazır Bildirimi:** Tüm TDD testleri, kaos testleri ve Bağımsız Yargıç onayı tamamlandığında sistem kullanıcıya açık bildirim sunar:
-   > 🚀 **GitHub'a Pushlamaya Hazır!**  
-   > Tüm testler ve doğrulamalar tamamlandı. Değişiklikleri GitHub'a göndermek için **/push** komutunu yazabilirsiniz.
-2. **Kullanıcı Kontrollü Push:** Kullanıcı Antigravity sohbetine `/push` yazdığında sistem `git_push_manager.ps1` betiğini çalıştırır, branch ve commit farklarını denetler ve değişiklikleri GitHub'a güvenle pushlar.
+1. **Hazır Bildirimi:** Tüm TDD testleri, kaos testleri ve Bağımsız Yargıç onayı tamamlandığında sistem dosyaları çalışma dizininde hazır bekletir ve kullanıcıya açık bildirim sunar:
+   > 🚀 **Çalışma Tamamlandı ve Doğrulandı!**  
+   > Tüm testler ve doğrulamalar tamamlandı. Değişiklikleri Git'e kaydedip GitHub'a göndermek için **/push** komutunu yazabilirsiniz.
+2. **Kullanıcı Kontrollü 3'ü 1 Arada Pipeline:** Kullanıcı Antigravity sohbetine `/push` (veya `/push "mesaj"`) yazdığında sistem `git_push_manager.ps1` betiğini çalıştırarak:
+   - **[1. Adım]** `git add -A` (Değişiklikleri sahneye ekler)
+   - **[2. Adım]** `git commit -m "..."` (Conventional Commit kaydeder)
+   - **[3. Adım]** `git push origin <branch>` (GitHub'a güvenle aktarır)
+   sürecini tek komutta icra eder.
 
 ---
 

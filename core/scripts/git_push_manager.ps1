@@ -1,15 +1,16 @@
 # core/scripts/git_push_manager.ps1
-# Vigiles Engine - Guvenli ve Kontrollu GitHub Push Yoneticisi
+# Vigiles Engine - Guvenli Git Pipeline Yoneticisi (Add -> Commit -> Push)
 # Kullanici /push komutunu calistirdiginda tetiklenir.
 
 param(
     [string]$Remote = "origin",
     [string]$Branch = "",
+    [string]$CommitMessage = "",
     [switch]$DryRun = $false
 )
 
 Write-Host "==========================================================" -ForegroundColor Cyan
-Write-Host ">> VIGILES ENGINE - GUVENLI GIT PUSH DENETLEYICISI" -ForegroundColor Yellow
+Write-Host ">> VIGILES ENGINE - GUVENLI GIT PIPELINE (ADD/COMMIT/PUSH)" -ForegroundColor Yellow
 Write-Host "==========================================================" -ForegroundColor Cyan
 
 # 1. Git deposu kontrolu
@@ -41,17 +42,40 @@ if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($remoteUrl)) {
 }
 Write-Host "[*] Remote URL   : $remoteUrl" -ForegroundColor Gray
 
-# 4. Yerel uncommitted (commitlenmemis) degisiklik kontrolu
+# 4. ADIM 1 & 2: git add ve git commit (Calisma dizinindeki degisiklikleri paketle)
 $dirtyFiles = (& git status --porcelain 2>$null)
+$committedNow = $false
+
 if ($dirtyFiles) {
-    Write-Host "`n[UYARI]: Calisma dizininde henuz commitlenmemis degisiklikler var:" -ForegroundColor Yellow
+    Write-Host "`n[ADIM 1 - GIT ADD]: Degisiklikler sahneye ekleniyor..." -ForegroundColor Cyan
     foreach ($line in $dirtyFiles) {
-        Write-Host "   $line" -ForegroundColor DarkYellow
+        Write-Host "   + $line" -ForegroundColor DarkCyan
     }
-    Write-Host "   (Push islemine sadece yerel commitler dahil edilecektir.)`n" -ForegroundColor DarkGray
+
+    if (-not $DryRun) {
+        & git add -A
+        
+        # Eger kullanici ozel commit mesaji vermemisse standart mesaj belirle
+        if ([string]::IsNullOrWhiteSpace($CommitMessage)) {
+            $CommitMessage = "feat: update system improvements and verified changes"
+        }
+
+        Write-Host "`n[ADIM 2 - GIT COMMIT]: Commit olusturuluyor: '$CommitMessage'..." -ForegroundColor Cyan
+        & git commit -m "$CommitMessage"
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "[OK] Commit basariyla kaydedildi." -ForegroundColor Green
+            $committedNow = $true
+        } else {
+            Write-Host "[UYARI] Commit olusturulamadi veya degisiklik algilanmadi." -ForegroundColor DarkYellow
+        }
+    } else {
+        Write-Host "`n[DRY-RUN]: 'git add -A' ve 'git commit' simule edildi (gercek commit atilmadi)." -ForegroundColor Yellow
+    }
+} else {
+    Write-Host "`n[BILGI]: Calisma dizini temiz, commitlenecek yeni dosya yok." -ForegroundColor DarkGray
 }
 
-# 5. Push bekleyen commitlerin tespiti
+# 5. ADIM 3: Push bekleyen commitlerin tespiti
 $hasUpstream = $false
 & git rev-parse --abbrev-ref '@{u}' 2>$null | Out-Null
 if ($LASTEXITCODE -eq 0) {
@@ -83,12 +107,12 @@ if ($pendingCommits) {
     }
 }
 
-if ($validCommits.Count -eq 0) {
+if ($validCommits.Count -eq 0 -and -not $committedNow) {
     Write-Host "`n[BILGI]: Uzak depo zaten guncel! Pushlanacak bekleyen yeni commit bulunmuyor." -ForegroundColor Green
     exit 0
 }
 
-Write-Host "`n[+] Pushlanacak Commitler ($($validCommits.Count) adet):" -ForegroundColor Cyan
+Write-Host "`n[ADIM 3 - GIT PUSH]: Pushlanacak Commitler ($($validCommits.Count) adet):" -ForegroundColor Cyan
 foreach ($c in $validCommits) {
     Write-Host "   -> $c" -ForegroundColor White
 }
@@ -109,7 +133,7 @@ if (-not $hasUpstream) {
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host "`n==========================================================" -ForegroundColor Green
-    Write-Host "[BASARILI]: Degisiklikler GitHub'a basariyla pushlandi!" -ForegroundColor Green
+    Write-Host "[BASARILI]: Pipeline tamamlandi! (add -> commit -> push)" -ForegroundColor Green
     Write-Host "   Branch : $Branch" -ForegroundColor White
     Write-Host "   Hedef  : $remoteUrl" -ForegroundColor White
     Write-Host "==========================================================" -ForegroundColor Green
