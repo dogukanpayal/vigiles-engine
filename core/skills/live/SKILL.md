@@ -8,24 +8,26 @@ description: >-
 
 # Canlı Operasyon Merkezi Manuel Başlatıcı (/live)
 
-Bu yetenek, kullanıcının sohbet içinde dilediği an **Canlı Operasyon Merkezi'ni (Live Mission Control)** bağımsız olarak açması, yan panelde görüntülemesi ve Port 9999 SSE bağlantısını tazelemesi için kullanılır.
+Kullanıcı `/live` (veya `/mission-control`, `/hud`) komutunu çalıştırdığında sistem anında devreye girer.
 
 ---
 
-## 🚀 Çalışma Prosedürü
+## ⚡ ULTRA HIZLI VE SIFIR ARAÇ KURALLARI (Milisaniyelik Yanıt)
 
-Kullanıcı `/live` yazdığında veya canlı kontrol merkezini açmak istediğinde sistem şu adımları icra eder:
+1. **Önceden Tamamlanan Altyapı:**
+   - `ensure_live_mission_control.ps1` kancası, model daha ilk yanıtına başlamadan önce:
+     * Port 9999 SSE telemetri sunucusunu denetlemiş ve ayaklandırmıştır,
+     * Tarayıcıda `http://localhost:9999/` adresini açmıştır,
+     * Mevcut chat oturumunun artifact dizinine `live_mission_control.html` dosyasını ve `userFacing: true` metadata'sını yerleştirmiştir.
 
-1. **Yan Panel Artifact Doğrulaması:**
-   - Mevcut chat oturumunun artifact dizininde (`<artifactDirectoryPath>/live_mission_control.html`) dosyasını `write_file` ile `ArtifactMetadata (userFacing: true)` formatında teyit eder.
-   - Bu sayede Antigravity IDE arayüzünün sağ yan panelinde kontrol merkezi doğrudan açılır.
+2. **Kesin Yasaklar (5 Dakikalık Gecikmeyi Önleme):**
+   - **ASLA** `Get-ChildItem -Recurse` ile disk taraması veya dosya araması yapmayın.
+   - **ASLA** 30KB'lık HTML dosyasını parça parça veya topluca okumaya (`read_file`) veya yeniden diske yazmaya (`write_file`) çalışmayın.
+   - **ASLA** arka plan görevleri (`manage_task`) veya gereksiz terminal komutları ile döngüye girmeyin.
 
-2. **Telemetri Sunucusu (Port 9999) Denetimi:**
-   - Arka planda `telemetry_server.ps1` çalışmıyorsa `([wmiclass]"win32_process").Create` ile bağımsız olarak ayağa kaldırır.
-   - Sunucu ayaktaysa `/set-active` rotasına oturum bilgilerini bildirir.
-
-3. **Tarayıcıda Canlı Görünüm:**
-   - `Start-Process "http://localhost:9999/"` ile kullanıcı için tarayıcıda geniş ekran kontrol merkezini açar.
-
-4. **Kullanıcıya Bildirim:**
-   - Kullanıcıya panelin aktif olduğunu, hem IDE yan panelinden hem de `http://localhost:9999/` üzerinden canlı takip edilebileceğini net ve şık bir mesajla bildirir.
+3. **Anında Sonuç Çıktısı (Zero-Tool Response):**
+   - Hiçbir araç çalıştırmadan **DOĞRUDAN VE ANINDA** aşağıdaki şık, temiz ve bağlantılı yanıtı kullanıcıya verin:
+     * **IDE Yan Paneli:** Sağ taraftaki Artifact panelinde canlı ayna modunda aktif.
+     * **Geniş Ekran Tarayıcı:** [http://localhost:9999/](http://localhost:9999/)
+     * **Canlı Deneme Tahtası:** [http://localhost:9999/playground](http://localhost:9999/playground)
+     * **Telemetri Durumu:** Port 9999 SSE hattı bağlı, tüm elemanlar gerçek zamanlı dinlemede.

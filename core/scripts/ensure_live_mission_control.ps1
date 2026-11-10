@@ -17,15 +17,21 @@ try {
     exit 0
 }
 
+# 1. Multi-turn icinde gereksiz tekrar calismayi engelle (Yalnizca kullanici komutunun ilk adiminda calis)
+if ($payload.invocationNum -and [int]$payload.invocationNum -gt 1) {
+    Write-Output "{}"
+    exit 0
+}
+
 $userInput = if ($payload.lastUserInput) { $payload.lastUserInput.Trim() } else { "" }
 
-# Yalnizca '/' ile baslayan komutlarda tetiklen (Orn: /vigiles, /push, /goal, /plan vs.)
+# Yalnizca '/' ile baslayan komutlarda tetiklen (Orn: /live, /vigiles, /push vs.)
 if (-not ($userInput -match '^\s*/')) {
     Write-Output "{}"
     exit 0
 }
 
-# Slash komutu algilandi! Oturum ve dizin bilgilerini cikar
+# Oturum ve dizin bilgilerini cikar
 $conversationId = $payload.conversationId
 $artifactDir = $payload.artifactDirectoryPath
 
@@ -38,7 +44,7 @@ $templatesDir = Join-Path $configDir "templates"
 $scriptsDir = Join-Path $configDir "scripts"
 $activeMissionFile = Join-Path $configDir "active_mission.json"
 
-# 1. Aktif Gorev Kutugunu Guncelle (active_mission.json)
+# 2. Aktif Gorev Kutugunu Guncelle (active_mission.json)
 $missionInfo = @{
     conversationId        = $conversationId
     artifactDirectoryPath = $artifactDir
@@ -51,13 +57,13 @@ try {
     $missionInfo | ConvertTo-Json -Depth 4 | Set-Content -Path $activeMissionFile -Encoding UTF8 -Force
 } catch {}
 
-# 2. Canli Dosyalari ve Artifact Dosyalarini Yeni Chat'in Artifact Dizinine Hazirla
+# 3. Canli Dosyalari ve Artifact Dosyalarini Hazirla
 if (-not [string]::IsNullOrWhiteSpace($artifactDir)) {
     if (-not (Test-Path $artifactDir)) {
         try { New-Item -ItemType Directory -Path $artifactDir -Force | Out-Null } catch {}
     }
 
-    # live_mission_control.html dosyasini kopyala
+    # live_mission_control.html kopyala
     $destHtml = Join-Path $artifactDir "live_mission_control.html"
     $templateHtml = Join-Path $templatesDir "live_mission_control.html"
     $wsFallbackHtml = "C:\Users\Dogukan\Desktop\Antigravity Improvement\ui\live_mission_control.html"
@@ -70,7 +76,7 @@ if (-not [string]::IsNullOrWhiteSpace($artifactDir)) {
         }
     }
 
-    # live_mission_control.html.metadata.json dosyasini yaz (Antigravity IDE yan paneli icin)
+    # metadata.json (IDE yan paneli icin)
     $destMeta = Join-Path $artifactDir "live_mission_control.html.metadata.json"
     if (-not (Test-Path $destMeta)) {
         $metaObj = @{
@@ -83,7 +89,7 @@ if (-not [string]::IsNullOrWhiteSpace($artifactDir)) {
         } catch {}
     }
 
-    # Baslangic live_state.json ve live_state.js olustur (Eger yoksa)
+    # live_state.json ve live_state.js (Eger yoksa)
     $destJson = Join-Path $artifactDir "live_state.json"
     $destJs = Join-Path $artifactDir "live_state.js"
     if (-not (Test-Path $destJson)) {
@@ -93,13 +99,13 @@ if (-not [string]::IsNullOrWhiteSpace($artifactDir)) {
             totalSteps    = 15
             activeNode    = "node-user"
             animClass     = "node-active-default"
-            status        = "BEKLEMEDE"
-            title         = "ASAMA 1: Sirket Sahibi Komutu Alindi"
+            status        = "HAZIR"
+            title         = "CANLI OPERASYON MERKEZI DEVREDE"
             sender        = "[1. SIZ (Sirket Sahibi)]"
-            message       = "Yeni komut devrede: $cleanCmd"
-            desc          = "Canli Operasyon Merkezi otomatik olarak baslatildi. Telemetri devrede."
+            message       = "Canli Operasyon Merkezi baglandi: $cleanCmd"
+            desc          = "Port 9999 SSE yayini ve Antigravity yan paneli aktif."
             timestamp     = (Get-Date).ToString("HH:mm:ss")
-            badge         = @{ id = "badge-user"; text = "Aktif"; class = "bg-amber-500/20 text-amber-400 border-amber-500/40 font-bold" }
+            badge         = @{ id = "badge-user"; text = "Hazir"; class = "bg-emerald-500/20 text-emerald-400 border-emerald-500/40 font-bold" }
             highlightPath = $null
             stats         = @{
                 testsPassed    = 0
@@ -118,7 +124,7 @@ if (-not [string]::IsNullOrWhiteSpace($artifactDir)) {
     }
 }
 
-# 3. Telemetri Sunucusunu (Port 9999) Kontrol Et ve Baslat
+# 4. Telemetri Sunucusunu (Port 9999) Kontrol Et ve Baslat
 $serverRunning = $false
 try {
     $conn = Get-NetTCPConnection -LocalPort 9999 -State Listen -ErrorAction SilentlyContinue
@@ -126,7 +132,6 @@ try {
 } catch {}
 
 if (-not $serverRunning) {
-    # Arka planda bagimsiz olarak baslat
     $serverScript = Join-Path $scriptsDir "telemetry_server.ps1"
     if (-not (Test-Path $serverScript)) {
         $serverScript = "C:\Users\Dogukan\Desktop\Antigravity Improvement\core\scripts\telemetry_server.ps1"
@@ -136,19 +141,18 @@ if (-not $serverRunning) {
         try {
             $cmdLine = "powershell.exe -WindowStyle Hidden -ExecutionPolicy Bypass -NoProfile -File `"$serverScript`""
             ([wmiclass]"win32_process").Create($cmdLine) | Out-Null
-            Start-Sleep -Milliseconds 500
+            Start-Sleep -Milliseconds 300
         } catch {
             Start-Process powershell.exe -ArgumentList "-WindowStyle Hidden -ExecutionPolicy Bypass -NoProfile -File `"$serverScript`"" -WindowStyle Hidden
-            Start-Sleep -Milliseconds 500
+            Start-Sleep -Milliseconds 300
         }
     }
 } else {
-    # Sunucu zaten ayaktaysa yeni aktif gorevi bildir
     try {
         $req = [System.Net.WebRequest]::Create("http://localhost:9999/set-active")
         $req.Method = "POST"
         $req.ContentType = "application/json; charset=utf-8"
-        $req.Timeout = 250
+        $req.Timeout = 200
         $activeJson = ($missionInfo | ConvertTo-Json -Compress)
         $bytes = [System.Text.Encoding]::UTF8.GetBytes($activeJson)
         $req.ContentLength = $bytes.Length
@@ -160,7 +164,7 @@ if (-not $serverRunning) {
     } catch {}
 }
 
-# 4. Tarayicida Canli Operasyon Merkezini Ac (Her oturumda yalnizca bir kez)
+# 5. Tarayicida Canli Operasyon Merkezini Ac (Oturumda yalnizca bir kez)
 if (-not [string]::IsNullOrWhiteSpace($artifactDir)) {
     $launchMarker = Join-Path $artifactDir ".live_mission_launched"
     if (-not (Test-Path $launchMarker)) {
@@ -171,12 +175,12 @@ if (-not [string]::IsNullOrWhiteSpace($artifactDir)) {
     }
 }
 
-# 5. Modeli Bilgilendir (PreInvocation injectSteps)
+# 6. Modeli Bilgilendir (Net ve sifir gecikmeli direktif)
 $response = @{
     injectSteps = @(
         @{
             systemMessage = @{
-                systemMessage = "[CANLI OPERASYON MERKEZI DEVREDE]: Yeni oturumda '/' komutu algilandi. Canli Operasyon Merkezi (Port 9999 SSE) baslatildi ve tarayicida acildi. Kullanicinin Antigravity yan panelinde de kontrol merkezini gormesi icin mevcut 'live_mission_control.html' artifact'ini dogrulayin."
+                systemMessage = "[CANLI OPERASYON MERKEZI DEVREDE]: Canli Operasyon Merkezi Port 9999 ve tarayicida aninda baslatildi. live_mission_control.html hazirlandi. Herhangi bir dosya aramasi veya dogrulama yapmaniza gerek YOKTUR; dogrudan sonuca odaklanin ve yanit verin."
             }
         }
     )

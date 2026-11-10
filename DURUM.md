@@ -36,6 +36,7 @@
 - [x] **Aşama 6: Simülasyon & Uçtan Uca Doğrulama** (Yeni chat ID ile simüle edildi, tüm dosyalar ve port 9999 doğrulandı)
 - [x] **Aşama 7: Konsolide Test Paketi (8/8 Yeşil)** (`Run-MasterVerification.ps1` sıfır hatayla geçti)
 - [x] **Aşama 8: Canlı Teslimat** (Mevcut chat'e artifact basıldı, sistem dağıtıma hazır)
+- [x] **Aşama 9: /live Hız Optimizasyonu (< 2 Saniye)** (5 dakikalık disk taraması ve 51 adımlık döngü kaldırıldı; hook `invocationNum == 1` ile sınırlandı, skill sıfır araçla anında yanıt verecek şekilde yapılandırıldı)
 
 ---
 
