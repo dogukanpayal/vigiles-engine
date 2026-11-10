@@ -27,7 +27,16 @@ $toolName = $toolCall.name
 $args = $toolCall.args
 $artifactDir = $payload.artifactDirectoryPath
 if ([string]::IsNullOrWhiteSpace($artifactDir)) {
-    $artifactDir = "C:\Users\Dogukan\.gemini\antigravity\brain\f6dee0d7-3f60-474d-8a94-ce06e0039c63"
+    $activeFile = Join-Path $HOME ".gemini\config\active_mission.json"
+    if (Test-Path $activeFile) {
+        try {
+            $act = Get-Content -Raw -Encoding UTF8 $activeFile | ConvertFrom-Json
+            if ($act.artifactDirectoryPath) { $artifactDir = $act.artifactDirectoryPath }
+        } catch {}
+    }
+}
+if ([string]::IsNullOrWhiteSpace($artifactDir)) {
+    $artifactDir = "C:\Users\Dogukan\Desktop\Antigravity Improvement\ui"
 }
 
 # --- YARDIMCI: TELEMETRI YAYINI ---
@@ -35,25 +44,27 @@ function Send-Telemetry([hashtable]$state) {
     try {
         $stateJson = $state | ConvertTo-Json -Depth 6 -Compress
 
-        # 1. live_state.js (Zero-CORS fallback)
-        $jsContent = "// Antigravity Canli Telemetri Kancasi`nwindow.__ANTIGRAVITY_STATE__ = $stateJson;`nif (typeof window.onAntigravityStateUpdate === 'function') { window.onAntigravityStateUpdate(window.__ANTIGRAVITY_STATE__); }"
-        $jsPath = Join-Path $artifactDir "live_state.js"
-        [System.IO.File]::WriteAllText($jsPath, $jsContent, [System.Text.Encoding]::UTF8)
+        if (-not [string]::IsNullOrWhiteSpace($artifactDir) -and (Test-Path $artifactDir)) {
+            # 1. live_state.js (Zero-CORS fallback)
+            $jsContent = "// Antigravity Canli Telemetri Kancasi`nwindow.__ANTIGRAVITY_STATE__ = $stateJson;`nif (typeof window.onAntigravityStateUpdate === 'function') { window.onAntigravityStateUpdate(window.__ANTIGRAVITY_STATE__); }"
+            $jsPath = Join-Path $artifactDir "live_state.js"
+            [System.IO.File]::WriteAllText($jsPath, $jsContent, [System.Text.Encoding]::UTF8)
 
-        # 2. live_state.json
-        $jsonPath = Join-Path $artifactDir "live_state.json"
-        [System.IO.File]::WriteAllText($jsonPath, $stateJson, [System.Text.Encoding]::UTF8)
+            # 2. live_state.json
+            $jsonPath = Join-Path $artifactDir "live_state.json"
+            [System.IO.File]::WriteAllText($jsonPath, $stateJson, [System.Text.Encoding]::UTF8)
 
-        # 3. live_events.jsonl (Olay Gunlugu)
-        $logPath = Join-Path $artifactDir "live_events.jsonl"
-        $eventEntry = @{
-            timestamp = $state.timestamp
-            sender    = $state.sender
-            title     = $state.title
-            node      = $state.activeNode
-            tool      = $toolName
-        } | ConvertTo-Json -Compress
-        [System.IO.File]::AppendAllText($logPath, "$eventEntry`n", [System.Text.Encoding]::UTF8)
+            # 3. live_events.jsonl (Olay Gunlugu)
+            $logPath = Join-Path $artifactDir "live_events.jsonl"
+            $eventEntry = @{
+                timestamp = $state.timestamp
+                sender    = $state.sender
+                title     = $state.title
+                node      = $state.activeNode
+                tool      = $toolName
+            } | ConvertTo-Json -Compress
+            [System.IO.File]::AppendAllText($logPath, "$eventEntry`n", [System.Text.Encoding]::UTF8)
+        }
 
         # 4. Yerel SSE Sunucusuna HTTP POST (Port 9999) - Hizli ve Non-Blocking
         try {

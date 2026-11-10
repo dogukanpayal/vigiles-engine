@@ -92,6 +92,11 @@ Her elemanın görevi ve sorumluluk sınırı kesindir. Kimse başkasının işi
         2. `git commit -m "..."` (Conventional Commit oluşturur)
         3. `git push origin <branch>` (GitHub'a aktarır)
       * Bu sayede tüm Git süreci tek bir komutla ve tamamen sizin kontrolünüzde icra edilir.
+21. **🛰️ CANLI OPERASYON MERKEZİ (Mission Control HUD & Port 9999 SSE Telemetri)**:
+    - **OTOMATİK BAŞLATMA**: Yeni bir chat üzerinde `/` ile başlayan bir komut (özellikle `/vigiles`) çalıştırıldığında `ensure_live_mission_control.ps1` kancası ile arka planda otomatik olarak ayaklandırılır.
+    - Port 9999 SSE sunucusu bağımsız olarak çalışır ve tarayıcıda `http://localhost:9999/` canlı ekranı açılır.
+    - İlgili chat'in artifact dizininde `live_mission_control.html` hazırlanarak Antigravity IDE yan paneli canlı ayna moduna bağlanır.
+    - Ajanın yaptığı tüm eylemler (`PreToolUse` telemetrisi ile) milisaniyesinde ekrana yansır.
 
 ---
 

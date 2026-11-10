@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Canlı Deneme Tahtası - İki Aşamalı Doğrulama (2FA / OTP)</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+</head>
+<body class="bg-[var(--background)] text-[var(--foreground)] antialiased p-4 min-h-screen flex flex-col items-center justify-center">
+
+  <div class="max-w-md w-full bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 shadow-xl relative overflow-hidden">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-4 border-b border-[var(--border)] pb-3">
+      <div>
+        <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-bold border border-emerald-500/20 mb-1">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          🎮 16. CANLI DENEME TAHTASI (2FA / OTP)
+        </div>
+        <h2 class="text-base font-extrabold tracking-tight text-[var(--foreground)]">İki Aşamalı Güvenlik (2FA)</h2>
+        <p class="text-[11px] text-[var(--muted-foreground)]">Model: <strong>6 Haneli SMS/Email OTP • 60s TTL • Max 3 Hata</strong></p>
+      </div>
+      <span class="text-3xl">🔐</span>
+    </div>
+
+    <!-- Active OTP Display Box -->
+    <div class="p-4 rounded-2xl bg-gradient-to-br from-blue-950/50 to-indigo-950/50 border border-blue-500/30 mb-4 shadow-inner text-center">
+      <span class="text-[10px] uppercase font-bold tracking-wider text-blue-300">Simüle Edilen SMS/Email Kodu</span>
+      <div id="otp-display" class="text-3xl font-black font-mono tracking-widest text-emerald-400 my-1">
+        ------
+      </div>
+      <!-- Timer & Progress -->
+      <div class="flex items-center justify-between text-[11px] text-zinc-400 font-mono mt-2">
+        <span>Kalan Süre: <strong id="timer-text" class="text-white">60s</strong></span>
+        <span>Hatalı Deneme: <strong id="attempts-text" class="text-amber-400">0 / 3</strong></span>
+      </div>
+      <div class="w-full h-1.5 bg-black/40 rounded-full overflow-hidden mt-1.5 border border-white/10">
+        <div id="timer-bar" class="h-full bg-blue-500 transition-all duration-1000" style="width: 100%;"></div>
+      </div>
+    </div>
+
+    <!-- Action Buttons & Input -->
+    <div class="space-y-3">
+      <div>
+        <button onclick="generateNewOtp()" id="btn-generate" class="w-full py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-md shadow-blue-600/20">
+          <span>📨 Yeni OTP Kodu Üret (SMS Simülasyonu)</span>
+        </button>
+      </div>
+
+      <div class="p-3 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+        <label class="block text-[11px] font-bold text-[var(--foreground)] mb-1.5">Doğrulama Kodunu Girin:</label>
+        <div class="flex gap-2">
+          <input id="inp-code" type="text" maxlength="6" placeholder="6 haneli kod..." class="flex-1 px-3 py-2 rounded-xl bg-[var(--card)] border border-[var(--border)] text-sm font-mono font-bold tracking-widest text-center focus:outline-none focus:border-blue-500">
+          <button onclick="verifyCode()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition">
+            Doğrula
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Test Scenarios -->
+      <div class="space-y-1.5">
+        <span class="text-[10px] text-[var(--muted-foreground)] block">Hızlı Test Senaryoları:</span>
+        <div class="flex flex-wrap gap-1.5">
+          <button onclick="fillCorrectCode()" class="px-2 py-1 rounded bg-[var(--background)] border border-emerald-500/30 text-emerald-400 text-[10px] hover:bg-emerald-500/10 transition font-semibold">
+            ✅ Doğru Kodu Doldur
+          </button>
+          <button onclick="fillWrongCode()" class="px-2 py-1 rounded bg-[var(--background)] border border-amber-500/30 text-amber-400 text-[10px] hover:bg-amber-500/10 transition">
+            ❌ Hatalı Kod Gir (1 Deneme)
+          </button>
+          <button onclick="simulateExpired()" class="px-2 py-1 rounded bg-[var(--background)] border border-rose-500/30 text-rose-400 text-[10px] hover:bg-rose-500/10 transition">
+            ⏳ Süreyi Bitir (Expire Et)
+          </button>
+        </div>
+      </div>
+
+      <!-- Chaos Attack -->
+      <div>
+        <button onclick="runChaosBruteForce()" class="w-full py-2 px-3 rounded-xl bg-orange-600/15 text-orange-400 border border-orange-500/30 hover:bg-orange-600/25 text-xs font-bold transition flex items-center justify-center gap-1.5">
+          <span>🐒 Kaos Brute-Force Saldırısı (100ms'de 4 Yanlış Tahmin ile Kilit Testi)</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Live Event Log -->
+    <div class="mt-4 pt-3 border-t border-[var(--border)]">
+      <div class="flex items-center justify-between mb-1">
+        <span class="text-[10px] font-mono uppercase text-[var(--muted-foreground)]">Doğrulama Günlüğü</span>
+        <button onclick="clearLogs()" class="text-[10px] text-[var(--muted-foreground)] hover:text-white">Temizle</button>
+      </div>
+      <div id="log-box" class="h-20 overflow-y-auto p-2 rounded-xl bg-[var(--background)] border border-[var(--border)] font-mono text-[10px] space-y-1">
+        <div class="text-zinc-500">● 2FA Servisi hazır. "Yeni OTP Üret" butonuna basın.</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let activeOtp = null;
+    let timeLeft = 0;
+    let timerInterval = null;
+    let attempts = 0;
+    let isLocked = false;
+
+    function addLog(msg, type = "info") {
+      const box = document.getElementById('log-box');
+      const time = new Date().toLocaleTimeString();
+      const div = document.createElement('div');
+      let color = "text-zinc-300";
+      if (type === "success") color = "text-emerald-400 font-bold";
+      if (type === "error") color = "text-rose-400 font-bold";
+      if (type === "warn") color = "text-amber-400 font-semibold";
+      div.className = color;
+      div.innerHTML = `<span class="text-zinc-500">[${time}]</span> ${msg}`;
+      box.appendChild(div);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function clearLogs() {
+      document.getElementById('log-box').innerHTML = '<div class="text-zinc-500">● Günlük temizlendi.</div>';
+    }
+
+    function generateNewOtp() {
+      if (timerInterval) clearInterval(timerInterval);
+      activeOtp = Math.floor(100000 + Math.random() * 900000).toString();
+      timeLeft = 60;
+      attempts = 0;
+      isLocked = false;
+
+      document.getElementById('otp-display').innerText = activeOtp;
+      document.getElementById('otp-display').className = "text-3xl font-black font-mono tracking-widest text-emerald-400 my-1";
+      document.getElementById('attempts-text').innerText = "0 / 3";
+      document.getElementById('inp-code').value = "";
+      addLog(`📨 Yeni OTP üretildi: ${activeOtp} (60 saniye geçerli)`, "info");
+
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        document.getElementById('timer-text').innerText = timeLeft + "s";
+        const pct = (timeLeft / 60) * 100;
+        document.getElementById('timer-bar').style.width = pct + "%";
+
+        if (timeLeft <= 0) {
+          clearInterval(timerInterval);
+          activeOtp = null;
+          document.getElementById('otp-display').innerText = "EXPIRED";
+          document.getElementById('otp-display').className = "text-3xl font-black font-mono tracking-widest text-zinc-500 my-1";
+          addLog("⏳ OTP süresi doldu! Yeni kod talep edin.", "warn");
+        }
+      }, 1000);
+    }
+
+    function verifyCode() {
+      const candidate = (document.getElementById('inp-code').value || "").trim();
+      if (isLocked) {
+        addLog("🚨 HesapKilitlendi: 3 hatalı deneme aşıldı! Lütfen yeni kod üretin.", "error");
+        return;
+      }
+      if (!activeOtp || timeLeft <= 0) {
+        addLog("❌ KodunSuresiDolmus: Aktif veya geçerli bir kod bulunmuyor!", "error");
+        return;
+      }
+
+      if (candidate === activeOtp) {
+        if (timerInterval) clearInterval(timerInterval);
+        addLog(`🎉 Doğrulama Başarılı! Kod (${activeOtp}) tek kullanımlık olarak imha edildi.`, "success");
+        activeOtp = null;
+        document.getElementById('otp-display').innerText = "VERIFIED";
+        document.getElementById('otp-display').className = "text-3xl font-black font-mono tracking-widest text-emerald-400 my-1";
+      } else {
+        attempts++;
+        document.getElementById('attempts-text').innerText = attempts + " / 3";
+        if (attempts >= 3) {
+          isLocked = true;
+          if (timerInterval) clearInterval(timerInterval);
+          document.getElementById('otp-display').innerText = "LOCKED";
+          document.getElementById('otp-display').className = "text-3xl font-black font-mono tracking-widest text-rose-500 my-1 animate-pulse";
+          addLog("🚨 HESAP KİLİTLENDİ (429 Rate Limit): 3 hatalı deneme aşıldı!", "error");
+        } else {
+          addLog(`❌ Hatalı Kod! Kalan deneme hakkı: ${3 - attempts}`, "warn");
+        }
+      }
+    }
+
+    function fillCorrectCode() {
+      if (activeOtp) {
+        document.getElementById('inp-code').value = activeOtp;
+      } else {
+        generateNewOtp();
+        setTimeout(() => { document.getElementById('inp-code').value = activeOtp; }, 100);
+      }
+    }
+
+    function fillWrongCode() {
+      document.getElementById('inp-code').value = "999999";
+      verifyCode();
+    }
+
+    function simulateExpired() {
+      timeLeft = 1;
+    }
+
+    function runChaosBruteForce() {
+      generateNewOtp();
+      addLog("🐒 KAOS KABA KUVVET SALDIRISI: 4 seri yanlış tahmin yapılıyor...", "warn");
+      let c = 0;
+      const interval = setInterval(() => {
+        c++;
+        document.getElementById('inp-code').value = "12345" + c;
+        verifyCode();
+        if (c >= 4) {
+          clearInterval(interval);
+          addLog("🐒 Kaos saldırısı sona erdi: Hesap 3. denemede kilitlendi ve 4. deneme reddedildi.", "info");
+        }
+      }, 150);
+    }
+
+    generateNewOtp();
+  </script>
+</body>
+</html>
