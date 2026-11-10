@@ -1,7 +1,8 @@
-param()
+﻿param()
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 [Console]::InputEncoding  = [System.Text.Encoding]::UTF8
+$OutputEncoding           = [System.Text.Encoding]::UTF8
 
 $rawInput = [Console]::In.ReadToEnd()
 
@@ -25,12 +26,6 @@ if ($payload.invocationNum -and [int]$payload.invocationNum -gt 1) {
 
 $userInput = if ($payload.lastUserInput) { $payload.lastUserInput.Trim() } else { "" }
 
-# Yalnizca '/' ile baslayan komutlarda tetiklen (Orn: /live, /vigiles, /push vs.)
-if (-not ($userInput -match '^\s*/')) {
-    Write-Output "{}"
-    exit 0
-}
-
 # Oturum ve dizin bilgilerini cikar
 $conversationId = $payload.conversationId
 $artifactDir = $payload.artifactDirectoryPath
@@ -44,18 +39,27 @@ $templatesDir = Join-Path $configDir "templates"
 $scriptsDir = Join-Path $configDir "scripts"
 $activeMissionFile = Join-Path $configDir "active_mission.json"
 
-# 2. Aktif Gorev Kutugunu Guncelle (active_mission.json)
-$missionInfo = @{
-    conversationId        = $conversationId
-    artifactDirectoryPath = $artifactDir
-    workspacePaths        = $payload.workspacePaths
-    lastCommand           = $userInput
-    updatedAt             = (Get-Date).ToString("o")
+# 2. Aktif Görev Kütüğünü Güncelle (active_mission.json) - Her zaman güncel tut!
+if (-not [string]::IsNullOrWhiteSpace($artifactDir)) {
+    $missionInfo = @{
+        conversationId        = $conversationId
+        artifactDirectoryPath = $artifactDir
+        workspacePaths        = $payload.workspacePaths
+        lastCommand           = $userInput
+        updatedAt             = (Get-Date).ToString("o")
+    }
+
+    try {
+        $missionJson = $missionInfo | ConvertTo-Json -Depth 4
+        [System.IO.File]::WriteAllText($activeMissionFile, $missionJson, [System.Text.Encoding]::UTF8)
+    } catch {}
 }
 
-try {
-    $missionInfo | ConvertTo-Json -Depth 4 | Set-Content -Path $activeMissionFile -Encoding UTF8 -Force
-} catch {}
+# Yalnızca '/' ile başlayan komutlarda tetiklen (Örn: /live, /vigiles, /push vs.)
+if (-not ($userInput -match '^\s*/')) {
+    Write-Output "{}"
+    exit 0
+}
 
 # 3. Canli Dosyalari ve Artifact Dosyalarini Hazirla
 if (-not [string]::IsNullOrWhiteSpace($artifactDir)) {
@@ -80,12 +84,13 @@ if (-not [string]::IsNullOrWhiteSpace($artifactDir)) {
     $destMeta = Join-Path $artifactDir "live_mission_control.html.metadata.json"
     if (-not (Test-Path $destMeta)) {
         $metaObj = @{
-            summary     = "Antigravity Canli Operasyon Merkezi (Live Mission Control)"
+            summary     = "Antigravity Canlı Operasyon Merkezi (Live Mission Control)"
             updatedAt   = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ")
             userFacing  = $true
         }
         try {
-            $metaObj | ConvertTo-Json -Compress | Set-Content -Path $destMeta -Encoding UTF8 -Force
+            $metaJson = $metaObj | ConvertTo-Json -Compress
+            [System.IO.File]::WriteAllText($destMeta, $metaJson, [System.Text.Encoding]::UTF8)
         } catch {}
     }
 
@@ -100,12 +105,12 @@ if (-not [string]::IsNullOrWhiteSpace($artifactDir)) {
             activeNode    = "node-user"
             animClass     = "node-active-default"
             status        = "HAZIR"
-            title         = "CANLI OPERASYON MERKEZI DEVREDE"
-            sender        = "[1. SIZ (Sirket Sahibi)]"
-            message       = "Canli Operasyon Merkezi baglandi: $cleanCmd"
-            desc          = "Port 9999 SSE yayini ve Antigravity yan paneli aktif."
+            title         = "CANLI OPERASYON MERKEZİ DEVREDE"
+            sender        = "[1. SİZ (Şirket Sahibi)]"
+            message       = "Canlı Operasyon Merkezi bağlandı: $cleanCmd"
+            desc          = "Port 9999 SSE yayını ve Antigravity yan paneli aktif."
             timestamp     = (Get-Date).ToString("HH:mm:ss")
-            badge         = @{ id = "badge-user"; text = "Hazir"; class = "bg-emerald-500/20 text-emerald-400 border-emerald-500/40 font-bold" }
+            badge         = @{ id = "badge-user"; text = "Hazır"; class = "bg-emerald-500/20 text-emerald-400 border-emerald-500/40 font-bold" }
             highlightPath = $null
             stats         = @{
                 testsPassed    = 0
@@ -117,9 +122,9 @@ if (-not [string]::IsNullOrWhiteSpace($artifactDir)) {
         }
         $initStateJson = $initState | ConvertTo-Json -Depth 5 -Compress
         try {
-            Set-Content -Path $destJson -Value $initStateJson -Encoding UTF8 -Force
+            [System.IO.File]::WriteAllText($destJson, $initStateJson, [System.Text.Encoding]::UTF8)
             $jsWrap = "// Antigravity Canli Telemetri Kancasi`nwindow.__ANTIGRAVITY_STATE__ = $initStateJson;`nif (typeof window.onAntigravityStateUpdate === 'function') { window.onAntigravityStateUpdate(window.__ANTIGRAVITY_STATE__); }"
-            Set-Content -Path $destJs -Value $jsWrap -Encoding UTF8 -Force
+            [System.IO.File]::WriteAllText($destJs, $jsWrap, [System.Text.Encoding]::UTF8)
         } catch {}
     }
 }

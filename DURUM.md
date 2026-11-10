@@ -42,6 +42,7 @@
 - [x] **Aşama 12: Sohbet Ortasından Kaldırma ve Side Panel Browser Entegrasyonu** (Kullanıcı talebi doğrultusunda `<agent-embed>` sohbet ortasından tamamen kaldırıldı; Antigravity'nin yan panelindeki (side panel) dahili browser sekmesi birincil kılındı)
 - [x] **Aşama 13: Görev Bitiminde 1. SİZ (Şirket Sahibi / Vibe Coder) Otomatik Highlight Kancası** (Antigravity 'Stop' yaşam döngüsü kancası entegre edildi. Model çıktıyı teslim edip durduğu milisaniyede `on_mission_complete.ps1` devreye girerek grafik üzerindeki highlight'ı 'node-user' [1. SİZ] üzerine kilitler; önceki işçi/Git elemanlarının aktif kalması önlendi)
 - [x] **Aşama 14: Canlı Operasyon Merkezi Gerçek Zamanlı Akış Testi** (Kullanıcı huzurunda Baş Mimar -> Özel Testçi -> Kaos Mühendisi -> Hafıza Uzmanı akışının telemetri doğrulaması icra edildi)
+- [x] **Aşama 15: Karanlık ve Aydınlık Modu (Dark / Light Theme Switch)** (Canlı Operasyon Merkezi ve Deneme Tahtası başlığına interaktif tema değiştirici anahtar [switch] eklendi; animasyonlu slider, yüksek kontrastlı renk paletleri, sesli bildirim ve kalıcı `localStorage` senkronizasyonu sağlandı)
 
 ---
 

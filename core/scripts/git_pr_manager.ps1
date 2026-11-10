@@ -1,4 +1,4 @@
-# core/scripts/git_pr_manager.ps1
+﻿# core/scripts/git_pr_manager.ps1
 # Vigiles Engine - Git ve PR Yoneticisi (Sifir Otomatik Push Prensipli)
 
 param(

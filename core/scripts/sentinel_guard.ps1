@@ -1,7 +1,8 @@
-param()
+﻿param()
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-[Console]::InputEncoding = [System.Text.Encoding]::UTF8
+[Console]::InputEncoding  = [System.Text.Encoding]::UTF8
+$OutputEncoding           = [System.Text.Encoding]::UTF8
 
 $rawInput = [Console]::In.ReadToEnd()
 
@@ -25,7 +26,12 @@ if (-not $toolCall) {
 
 $toolName = $toolCall.name
 $args = $toolCall.args
+
+# Dizin belirleme (Öncelik: payload.artifactDirectoryPath -> payload.conversationId -> active_mission.json)
 $artifactDir = $payload.artifactDirectoryPath
+if ([string]::IsNullOrWhiteSpace($artifactDir) -and -not [string]::IsNullOrWhiteSpace($payload.conversationId)) {
+    $artifactDir = "C:\Users\Dogukan\.gemini\antigravity\brain\$($payload.conversationId)"
+}
 if ([string]::IsNullOrWhiteSpace($artifactDir)) {
     $activeFile = Join-Path $HOME ".gemini\config\active_mission.json"
     if (Test-Path $activeFile) {
@@ -54,7 +60,7 @@ function Send-Telemetry([hashtable]$state) {
             $jsonPath = Join-Path $artifactDir "live_state.json"
             [System.IO.File]::WriteAllText($jsonPath, $stateJson, [System.Text.Encoding]::UTF8)
 
-            # 3. live_events.jsonl (Olay Gunlugu)
+            # 3. live_events.jsonl (Olay Günlüğü)
             $logPath = Join-Path $artifactDir "live_events.jsonl"
             $eventEntry = @{
                 timestamp = $state.timestamp
@@ -66,7 +72,7 @@ function Send-Telemetry([hashtable]$state) {
             [System.IO.File]::AppendAllText($logPath, "$eventEntry`n", [System.Text.Encoding]::UTF8)
         }
 
-        # 4. Yerel SSE Sunucusuna HTTP POST (Port 9999) - Hizli ve Non-Blocking
+        # 4. Yerel SSE Sunucusuna HTTP POST (Port 9999) - Hızlı ve Non-Blocking
         try {
             $req = [System.Net.WebRequest]::Create("http://localhost:9999/notify")
             $req.Method = "POST"
@@ -83,7 +89,7 @@ function Send-Telemetry([hashtable]$state) {
     } catch {}
 }
 
-# --- 1. GUVENLIK VE SIZINTI KONTROLLERI (Zero-Leak Muhafizi) ---
+# --- 1. GÜVENLİK VE SIZINTI KONTROLLERİ (Zero-Leak Muhafızı) ---
 if ($toolName -in @("write_file", "edit_file")) {
     $textToCheck = ""
     if ($args.Content) { $textToCheck += $args.Content }
@@ -105,17 +111,17 @@ if ($toolName -in @("write_file", "edit_file")) {
                 activeNode  = "node-shield"
                 animClass   = "node-active-red"
                 status      = "GUVENLIK_ENGELI"
-                title       = "GUVENLIK IHLALI: Kod Icinde API Anahtari Engellendi!"
-                sender      = "[9. GUVENLIK MUHAFIZI]"
-                message     = "Zero-Leak Kalkani: Kod icine acik API anahtari yazilmaya calisildi; islem bloke edildi!"
+                title       = "GÜVENLİK İHLALİ: Kod İçinde API Anahtarı Engellendi!"
+                sender      = "[9. GÜVENLİK MUHAFIZI]"
+                message     = "Zero-Leak Kalkanı: Kod içine açık API anahtarı yazılmaya çalışıldı; işlem bloke edildi!"
                 timestamp   = (Get-Date).ToString("HH:mm:ss")
-                badge       = @{ id = "badge-shield"; text = "SIZINTI ENGELLENDI"; class = "bg-rose-500/20 text-rose-400 border-rose-500/40 font-bold animate-pulse" }
+                badge       = @{ id = "badge-shield"; text = "SIZINTI ENGELLENDİ"; class = "bg-rose-500/20 text-rose-400 border-rose-500/40 font-bold animate-pulse" }
             }
             Send-Telemetry $telemetry
 
             $response = @{
                 decision = "deny"
-                reason = "[ZERO-LEAK GUVENLIK MUHAFIZI]: Kod icinde acik API anahtari tespit edildi! Lutfen process.env kullanin."
+                reason = "[ZERO-LEAK GÜVENLİK MUHAFIZI]: Kod içinde açık API anahtarı tespit edildi! Lütfen process.env kullanın."
             }
             Write-Output ($response | ConvertTo-Json -Compress)
             exit 0
@@ -129,7 +135,7 @@ if ($toolName -eq "run_command") {
     if ($cmd -match 'git\s+add\s+.*\.env(\s|$)' -or $cmd -match 'git\s+commit\s+.*\.env') {
         $response = @{
             decision = "deny"
-            reason = "[ZERO-LEAK GUVENLIK MUHAFIZI]: .env dosyasini git deposuna ekleyemezsiniz!"
+            reason = "[ZERO-LEAK GÜVENLİK MUHAFIZI]: .env dosyasını git deposuna ekleyemezsiniz!"
         }
         Write-Output ($response | ConvertTo-Json -Compress)
         exit 0
@@ -138,7 +144,7 @@ if ($toolName -eq "run_command") {
     if ($cmd -match 'git\s+push\s+.*--force.*(main|master)') {
         $response = @{
             decision = "deny"
-            reason = "[GUVENLIK MUHAFIZI]: Ana branch uzerine force push yapamazsiniz!"
+            reason = "[GÜVENLİK MUHAFIZI]: Ana branch üzerine force push yapamazsınız!"
         }
         Write-Output ($response | ConvertTo-Json -Compress)
         exit 0
@@ -147,14 +153,14 @@ if ($toolName -eq "run_command") {
     if ($cmd -match '(npm\s+(i|install|add)|yarn\s+add|pnpm\s+add)\s+.*(moment|lodash)(\s|$)' -and -not ($cmd -match 'lodash-es')) {
         $response = @{
             decision = "deny"
-            reason = "[ANTI-BLOAT MUHAFIZI]: 15MB+ siskin kutuphane (moment/lodash) tespit edildi!"
+            reason = "[ANTI-BLOAT MUHAFIZI]: 15MB+ şişkin kütüphane (moment/lodash) tespit edildi!"
         }
         Write-Output ($response | ConvertTo-Json -Compress)
         exit 0
     }
 }
 
-# --- 2. AKILLI 20-ELEMAN TELEMETRI ESLEMESI ---
+# --- 2. AKILLI 20-ELEMAN TELEMETRİ EŞLEMESİ ---
 $isInternalStateFile = $false
 if ($toolName -in @("write_file", "edit_file") -and $args.Path) {
     if ($args.Path -match 'live_state|live_events|telemetry') {
@@ -175,12 +181,12 @@ if (-not $isInternalStateFile) {
                 activeNode  = "node-tester"
                 animClass   = "node-active-default"
                 status      = "TEST_KOSULUYOR"
-                title       = "ASAMA 5 / 15: Ozel Testci Devrede"
-                sender      = "[11. OZEL TESTCI (TDD)]"
-                message     = "Birim Testi Kosuluyor: $cmd"
-                desc        = "TDD Dongusu: Testler otonom olarak terminal uzerinden calistiriliyor."
+                title       = "AŞAMA 5 / 15: Özel Testçi Devrede"
+                sender      = "[11. ÖZEL TESTÇİ (TDD)]"
+                message     = "Birim Testi Koşuluyor: $cmd"
+                desc        = "TDD Döngüsü: Testler otonom olarak terminal üzerinden çalıştırılıyor."
                 timestamp   = $time
-                badge       = @{ id = "badge-tester"; text = "Test Kosuluyor"; class = "bg-rose-500/20 text-rose-400 border-rose-500/40 font-bold animate-pulse" }
+                badge       = @{ id = "badge-tester"; text = "Test Koşuluyor"; class = "bg-rose-500/20 text-rose-400 border-rose-500/40 font-bold animate-pulse" }
             }
         } elseif ($cmd -match 'Chaos-') {
             $telemetry = @{
@@ -189,12 +195,12 @@ if (-not $isInternalStateFile) {
                 activeNode  = "node-chaos"
                 animClass   = "node-active-chaos"
                 status      = "KAOS_SALDIRISI"
-                title       = "ASAMA 8 / 15: Kaos Muhendisi Devrede"
-                sender      = "[12. KAOS MUHENDISI]"
-                message     = "Dayaniklilik ve Yaris Durumu Saldirisi: $cmd"
-                desc        = "Kaos Testi: Eszamanli istekler ve sinir deger saldirilari puskurtuluyor."
+                title       = "AŞAMA 8 / 15: Kaos Mühendisi Devrede"
+                sender      = "[12. KAOS MÜHENDİSİ]"
+                message     = "Dayanıklılık ve Yarış Durumu Saldırısı: $cmd"
+                desc        = "Kaos Testi: Eşzamanlı istekler ve sınır değer saldırıları püskürtülüyor."
                 timestamp   = $time
-                badge       = @{ id = "badge-chaos"; text = "Stres Saldirisi"; class = "bg-amber-500/20 text-amber-400 border-amber-500/40 font-bold animate-pulse" }
+                badge       = @{ id = "badge-chaos"; text = "Stres Saldırısı"; class = "bg-amber-500/20 text-amber-400 border-amber-500/40 font-bold animate-pulse" }
             }
         } elseif ($cmd -match 'git') {
             $telemetry = @{
@@ -203,12 +209,12 @@ if (-not $isInternalStateFile) {
                 activeNode  = "node-pr"
                 animClass   = "node-active-default"
                 status      = "GIT_ISLEMI"
-                title       = "ASAMA 12 / 15: Git ve PR Fabrikasi"
-                sender      = "[20. GIT VE PR FABRIKASI]"
-                message     = "Versiyonlama ve Branch Yonetimi: $cmd"
-                desc        = "Surum Yonetimi: Git deposu guncelleniyor."
+                title       = "AŞAMA 12 / 15: Git ve PR Fabrikası"
+                sender      = "[20. GİT VE PR FABRİKASI]"
+                message     = "Versiyonlama ve Branch Yönetimi: $cmd"
+                desc        = "Sürüm Yönetimi: Git deposu güncelleniyor."
                 timestamp   = $time
-                badge       = @{ id = "badge-pr"; text = "Git Calisiyor"; class = "bg-purple-500/20 text-purple-400 border-purple-500/40 font-bold" }
+                badge       = @{ id = "badge-pr"; text = "Git Çalışıyor"; class = "bg-purple-500/20 text-purple-400 border-purple-500/40 font-bold" }
             }
         } else {
             $telemetry = @{
@@ -217,12 +223,12 @@ if (-not $isInternalStateFile) {
                 activeNode  = "node-workers"
                 animClass   = "node-active-default"
                 status      = "KOMUT_CALISIYOR"
-                title       = "ASAMA 7 / 15: Isciler (Terminal Komutu)"
-                sender      = "[7. ISCILER (Autonomous Workers)]"
-                message     = "Terminal Komutu Yurutuluyor: $cmd"
-                desc        = "Isci Birimi: Yerel ortamda komut calistiriliyor."
+                title       = "AŞAMA 7 / 15: İşçiler (Terminal Komutu)"
+                sender      = "[7. İŞÇİLER (Autonomous Workers)]"
+                message     = "Terminal Komutu Yürütülüyor: $cmd"
+                desc        = "İşçi Birimi: Yerel ortamda komut çalıştırılıyor."
                 timestamp   = $time
-                badge       = @{ id = "badge-workers"; text = "Komut Yurutuluyor"; class = "bg-emerald-500/20 text-emerald-400 border-emerald-500/40 font-bold animate-pulse" }
+                badge       = @{ id = "badge-workers"; text = "Komut Yürütülüyor"; class = "bg-emerald-500/20 text-emerald-400 border-emerald-500/40 font-bold animate-pulse" }
             }
         }
     }
@@ -237,12 +243,12 @@ if (-not $isInternalStateFile) {
                 activeNode  = "node-architect"
                 animClass   = "node-active-architect"
                 status      = "MIMARI_PLANLAMA"
-                title       = "ASAMA 2 / 15: Bas Mimar Statik Planlama"
-                sender      = "[2. BAS MIMAR (Lead Planner)]"
-                message     = "Kabul Kriterleri ve Santiye Defteri (DURUM.md) guncelleniyor."
-                desc        = "Mimari Sozlesme: Gorevin sinirlari ve kabul kriterleri belirleniyor."
+                title       = "AŞAMA 2 / 15: Baş Mimar Statik Planlama"
+                sender      = "[2. BAŞ MİMAR (Lead Planner)]"
+                message     = "Kabul Kriterleri ve Şantiye Defteri (DURUM.md) güncelleniyor."
+                desc        = "Mimari Sözleşme: Görevin sınırları ve kabul kriterleri belirleniyor."
                 timestamp   = $time
-                badge       = @{ id = "badge-architect"; text = "Plan Ciziliyor"; class = "bg-indigo-500/20 text-indigo-400 border-indigo-500/40 font-bold animate-pulse" }
+                badge       = @{ id = "badge-architect"; text = "Plan Çiziliyor"; class = "bg-indigo-500/20 text-indigo-400 border-indigo-500/40 font-bold animate-pulse" }
             }
         } elseif ($path -match 'KURALLAR\.md') {
             $telemetry = @{
@@ -251,12 +257,12 @@ if (-not $isInternalStateFile) {
                 activeNode  = "node-memory"
                 animClass   = "node-active-default"
                 status      = "HAFIZA_GUNCELLEME"
-                title       = "ASAMA 14 / 15: Hafiza Uzmani Devrede"
+                title       = "AŞAMA 14 / 15: Hafıza Uzmanı Devrede"
                 sender      = "[14. HAFIZA UZMANI (Memory Extractor)]"
-                message     = "Sirket Anayasasi ve Kurallar (KURALLAR.md) guncelleniyor."
-                desc        = "Kurumsal Hafiza: Gorevden ogrenilen dersler kalici anayasaya isleniyor."
+                message     = "Şirket Anayasası ve Kurallar (KURALLAR.md) güncelleniyor."
+                desc        = "Kurumsal Hafıza: Görevden öğrenilen dersler kalıcı anayasaya işleniyor."
                 timestamp   = $time
-                badge       = @{ id = "badge-memory"; text = "Hafiza Kaydediliyor"; class = "bg-purple-500/20 text-purple-400 border-purple-500/40 font-bold animate-pulse" }
+                badge       = @{ id = "badge-memory"; text = "Hafıza Kaydediliyor"; class = "bg-purple-500/20 text-purple-400 border-purple-500/40 font-bold animate-pulse" }
             }
         } elseif ($path -match 'Test-') {
             $telemetry = @{
@@ -265,12 +271,12 @@ if (-not $isInternalStateFile) {
                 activeNode  = "node-tester"
                 animClass   = "node-active-default"
                 status      = "TEST_YAZILIYOR"
-                title       = "ASAMA 5 / 15: Ozel Testci (Test Dosyasi)"
-                sender      = "[11. OZEL TESTCI (TDD)]"
-                message     = "Test Dosyasi Hazirlaniyor: $leaf"
-                desc        = "TDD Kirmizi Faz: Kabul kriterlerini dogrulayan birim test yaziliyor."
+                title       = "AŞAMA 5 / 15: Özel Testçi (Test Dosyası)"
+                sender      = "[11. ÖZEL TESTÇİ (TDD)]"
+                message     = "Test Dosyası Hazırlanıyor: $leaf"
+                desc        = "TDD Kırmızı Faz: Kabul kriterlerini doğrulayan birim test yazılıyor."
                 timestamp   = $time
-                badge       = @{ id = "badge-tester"; text = "Test Yaziliyor"; class = "bg-rose-500/20 text-rose-400 border-rose-500/40 font-bold animate-pulse" }
+                badge       = @{ id = "badge-tester"; text = "Test Yazılıyor"; class = "bg-rose-500/20 text-rose-400 border-rose-500/40 font-bold animate-pulse" }
             }
         } elseif ($path -match 'Chaos-') {
             $telemetry = @{
@@ -279,12 +285,12 @@ if (-not $isInternalStateFile) {
                 activeNode  = "node-chaos"
                 animClass   = "node-active-chaos"
                 status      = "KAOS_KODLANIYOR"
-                title       = "ASAMA 8 / 15: Kaos Muhendisi (Stres Kodu)"
-                sender      = "[12. KAOS MUHENDISI]"
-                message     = "Kaos Saldiri Senaryosu Kodlaniyor: $leaf"
-                desc        = "Dayaniklilik Testi: Eszamanli cekim ve negatif yukleme senaryosu kuruluyor."
+                title       = "AŞAMA 8 / 15: Kaos Mühendisi (Stres Kodu)"
+                sender      = "[12. KAOS MÜHENDİSİ]"
+                message     = "Kaos Saldırı Senaryosu Kodlanıyor: $leaf"
+                desc        = "Dayanıklılık Testi: Eşzamanlı çekim ve negatif yükleme senaryosu kuruluyor."
                 timestamp   = $time
-                badge       = @{ id = "badge-chaos"; text = "Kaos Kodlaniyor"; class = "bg-amber-500/20 text-amber-400 border-amber-500/40 font-bold animate-pulse" }
+                badge       = @{ id = "badge-chaos"; text = "Kaos Kodlanıyor"; class = "bg-amber-500/20 text-amber-400 border-amber-500/40 font-bold animate-pulse" }
             }
         } elseif ($path -match 'live_playground') {
             $telemetry = @{
@@ -293,12 +299,12 @@ if (-not $isInternalStateFile) {
                 activeNode  = "node-playground"
                 animClass   = "node-active-green"
                 status      = "CANLI_ARAYUZ_HAZIR"
-                title       = "ASAMA 15 / 15: Canli Deneme Tahtasi Hazir!"
+                title       = "AŞAMA 15 / 15: Canlı Deneme Tahtası Hazır!"
                 sender      = "[16. CANLI DENEME TAHTASI]"
-                message     = "Interaktif Test Arayuzu (live_playground.html) guncellendi."
-                desc        = "Vibe Coder Deneyimi: Urunu tarayicinizda canli deneyebilirsiniz."
+                message     = "İnteraktif Test Arayüzü (live_playground.html) güncellendi."
+                desc        = "Vibe Coder Deneyimi: Ürünü tarayıcınızda canlı deneyebilirsiniz."
                 timestamp   = $time
-                badge       = @{ id = "badge-playground"; text = "CANLI AKTIF"; class = "bg-emerald-500/20 text-emerald-400 border-emerald-500/40 font-bold animate-pulse" }
+                badge       = @{ id = "badge-playground"; text = "CANLI AKTİF"; class = "bg-emerald-500/20 text-emerald-400 border-emerald-500/40 font-bold animate-pulse" }
             }
         } else {
             $telemetry = @{
@@ -307,12 +313,12 @@ if (-not $isInternalStateFile) {
                 activeNode  = "node-workers"
                 animClass   = "node-active-default"
                 status      = "KOD_GELISTIRILIYOR"
-                title       = "ASAMA 6 / 15: Isciler Kaynak Kod Yaziyor"
-                sender      = "[7. ISCILER (Autonomous Workers)]"
-                message     = "Kaynak Dosyasi Gelistiriliyor: $leaf"
-                desc        = "TDD Yesil Faz: Testleri gececek uretim kodu yaziliyor."
+                title       = "AŞAMA 6 / 15: İşçiler Kaynak Kod Yazıyor"
+                sender      = "[7. İŞÇİLER (Autonomous Workers)]"
+                message     = "Kaynak Dosyası Geliştiriliyor: $leaf"
+                desc        = "TDD Yeşil Faz: Testleri geçecek üretim kodu yazılıyor."
                 timestamp   = $time
-                badge       = @{ id = "badge-workers"; text = "Kod Yaziliyor"; class = "bg-emerald-500/20 text-emerald-400 border-emerald-500/40 font-bold animate-pulse" }
+                badge       = @{ id = "badge-workers"; text = "Kod Yazılıyor"; class = "bg-emerald-500/20 text-emerald-400 border-emerald-500/40 font-bold animate-pulse" }
             }
         }
     }
@@ -323,10 +329,10 @@ if (-not $isInternalStateFile) {
             activeNode  = "node-gatekeeper"
             animClass   = "node-active-default"
             status      = "POPUP_BEKLENIYOR"
-            title       = "ASAMA 3 / 15: Karar Suzgeci (Pop-Up)"
-            sender      = "[4. KARAR SUZGECI (Gatekeeper)]"
-            message     = "Tek Yonlu Kapi (Irreversible): Sirket Sahibinin pop-up secimi bekleniyor..."
-            desc        = "Gercek Zamanli Duraklama: Siz secim yapana kadar sistem bu adimda kilitlidir."
+            title       = "AŞAMA 3 / 15: Karar Süzgeci (Pop-Up)"
+            sender      = "[4. KARAR SÜZGECİ (Gatekeeper)]"
+            message     = "Tek Yönlü Kapı (Irreversible): Şirket Sahibinin pop-up seçimi bekleniyor..."
+            desc        = "Gerçek Zamanlı Duraklama: Siz seçim yapana kadar sistem bu adımda kilitlidir."
             timestamp   = $time
             badge       = @{ id = "badge-gatekeeper"; text = "Pop-Up Bekleniyor"; class = "bg-amber-500/20 text-amber-400 border-amber-500/40 font-bold animate-pulse" }
         }
@@ -339,10 +345,10 @@ if (-not $isInternalStateFile) {
             activeNode  = "node-orch"
             animClass   = "node-active-default"
             status      = "ALT_AJAN_DEVREDE"
-            title       = "ASAMA 4 / 15: Orkestrator Alt Ajan Baslatti"
-            sender      = "[5. ORKESTRATOR VE BEYIN]"
-            message     = "Gorev Devredildi: $role"
-            desc        = "Is Dagitimi: Bagimsiz alt ajan arka planda gorevlendirildi."
+            title       = "AŞAMA 4 / 15: Orkestratör Alt Ajan Başlattı"
+            sender      = "[5. ORKESTRATÖR VE BEYİN]"
+            message     = "Görev Devredildi: $role"
+            desc        = "İş Dağıtımı: Bağımsız alt ajan arka planda görevlendirildi."
             timestamp   = $time
             badge       = @{ id = "badge-orch"; text = "Ajan Devrede"; class = "bg-blue-500/20 text-blue-400 border-blue-500/40 font-bold animate-pulse" }
         }
@@ -357,12 +363,12 @@ if (-not $isInternalStateFile) {
                 activeNode  = "node-architect"
                 animClass   = "node-active-architect"
                 status      = "INCELEME"
-                title       = "ASAMA 1 / 15: Bas Mimar Santiye Incelemesi"
-                sender      = "[2. BAS MIMAR]"
-                message     = "Mevcut Kurallar ve Santiye Defteri Inceleniyor: $leaf"
-                desc        = "Analiz: Onceden konulmus kurallar ve durum kontrol ediliyor."
+                title       = "AŞAMA 1 / 15: Baş Mimar Şantiye İncelemesi"
+                sender      = "[2. BAŞ MİMAR]"
+                message     = "Mevcut Kurallar ve Şantiye Defteri İnceleniyor: $leaf"
+                desc        = "Analiz: Önceden konulmuş kurallar ve durum kontrol ediliyor."
                 timestamp   = $time
-                badge       = @{ id = "badge-architect"; text = "Inceleniyor"; class = "bg-indigo-500/20 text-indigo-400 border-indigo-500/40 font-bold" }
+                badge       = @{ id = "badge-architect"; text = "İnceleniyor"; class = "bg-indigo-500/20 text-indigo-400 border-indigo-500/40 font-bold" }
             }
         }
     }

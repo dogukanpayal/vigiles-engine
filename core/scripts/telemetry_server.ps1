@@ -1,4 +1,4 @@
-# telemetry_server.ps1
+﻿# telemetry_server.ps1
 # Antigravity Canli Operasyon Merkezi - Dinamik SSE & HTTP Telemetri Dagitim Servisi
 # Port: 9999
 
@@ -8,11 +8,28 @@ param(
 )
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+[Console]::InputEncoding  = [System.Text.Encoding]::UTF8
+$OutputEncoding           = [System.Text.Encoding]::UTF8
 
 $configDir = Join-Path $HOME ".gemini\config"
 $activeMissionFile = Join-Path $configDir "active_mission.json"
 $globalTemplateHtml = Join-Path $configDir "templates\live_mission_control.html"
 $workspaceHtmlFallback = "C:\Users\Dogukan\Desktop\Antigravity Improvement\ui\live_mission_control.html"
+
+# Self-healing UTF-8 / Mojibake onarici
+function Repair-Utf8String([string]$str) {
+    if ([string]::IsNullOrWhiteSpace($str)) { return $str }
+    if ($str -match 'Ã|Å|Ä') {
+        try {
+            $rawBytes = [System.Text.Encoding]::GetEncoding(1252).GetBytes($str)
+            $candidate = [System.Text.Encoding]::UTF8.GetString($rawBytes)
+            if (-not $candidate.Contains([char]0xFFFD)) {
+                return $candidate
+            }
+        } catch {}
+    }
+    return $str
+}
 
 if ([string]::IsNullOrWhiteSpace($ArtifactDir) -and (Test-Path $activeMissionFile)) {
     try {
@@ -47,7 +64,10 @@ $latestStateJson = "{}"
 if (-not [string]::IsNullOrWhiteSpace($ArtifactDir)) {
     $statePath = Join-Path $ArtifactDir "live_state.json"
     if (Test-Path $statePath) {
-        try { $latestStateJson = Get-Content -Raw -Encoding UTF8 $statePath } catch {}
+        try {
+            $latestStateJson = [System.IO.File]::ReadAllText($statePath, [System.Text.Encoding]::UTF8)
+            $latestStateJson = Repair-Utf8String $latestStateJson
+        } catch {}
     }
 }
 
@@ -131,6 +151,7 @@ while ($listener.IsListening) {
             $reader.Dispose()
 
             if (-not [string]::IsNullOrWhiteSpace($body)) {
+                $body = Repair-Utf8String $body
                 $latestStateJson = $body
                 Broadcast-SSE $body
             }
@@ -158,7 +179,8 @@ while ($listener.IsListening) {
                     $statePath = Join-Path $ArtifactDir "live_state.json"
                     if (Test-Path $statePath) {
                         try {
-                            $latestStateJson = Get-Content -Raw -Encoding UTF8 $statePath
+                            $latestStateJson = [System.IO.File]::ReadAllText($statePath, [System.Text.Encoding]::UTF8)
+                            $latestStateJson = Repair-Utf8String $latestStateJson
                             Broadcast-SSE $latestStateJson
                         } catch {}
                     }
@@ -178,7 +200,8 @@ while ($listener.IsListening) {
         if ($rawUrl -eq "/state") {
             $res.ContentType = "application/json; charset=utf-8"
             $res.StatusCode = 200
-            $bytes = [System.Text.Encoding]::UTF8.GetBytes($latestStateJson)
+            $cleanState = Repair-Utf8String $latestStateJson
+            $bytes = [System.Text.Encoding]::UTF8.GetBytes($cleanState)
             $res.ContentLength64 = $bytes.Length
             if (-not $isHead) {
                 $res.OutputStream.Write($bytes, 0, $bytes.Length)
@@ -205,7 +228,7 @@ while ($listener.IsListening) {
             }
 
             if ($foundPath) {
-                $htmlContent = Get-Content -Raw -Encoding UTF8 $foundPath
+                $htmlContent = [System.IO.File]::ReadAllText($foundPath, [System.Text.Encoding]::UTF8)
                 $res.ContentType = "text/html; charset=utf-8"
                 $res.StatusCode = 200
                 $bytes = [System.Text.Encoding]::UTF8.GetBytes($htmlContent)
@@ -243,7 +266,7 @@ while ($listener.IsListening) {
             }
 
             if ($foundPath) {
-                $htmlContent = Get-Content -Raw -Encoding UTF8 $foundPath
+                $htmlContent = [System.IO.File]::ReadAllText($foundPath, [System.Text.Encoding]::UTF8)
                 $res.ContentType = "text/html; charset=utf-8"
                 $res.StatusCode = 200
                 $bytes = [System.Text.Encoding]::UTF8.GetBytes($htmlContent)

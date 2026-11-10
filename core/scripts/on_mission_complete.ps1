@@ -1,7 +1,8 @@
-param()
+﻿param()
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 [Console]::InputEncoding  = [System.Text.Encoding]::UTF8
+$OutputEncoding           = [System.Text.Encoding]::UTF8
 
 $rawInput = [Console]::In.ReadToEnd()
 
@@ -31,7 +32,7 @@ if ([string]::IsNullOrWhiteSpace($artifactDir) -and -not [string]::IsNullOrWhite
     $artifactDir = "C:\Users\Dogukan\.gemini\antigravity\brain\$conversationId"
 }
 
-# Gorev Tamamlandi Durumu (1. SIZ - Sirket Sahibi / Vibe Coder)
+# Görev Tamamlandı Durumu (1. SİZ - Şirket Sahibi / Vibe Coder)
 $time = (Get-Date).ToString("HH:mm:ss")
 $completionState = @{
     step          = 15
@@ -90,7 +91,7 @@ try {
     $req = [System.Net.WebRequest]::Create("http://localhost:9999/notify")
     $req.Method = "POST"
     $req.ContentType = "application/json; charset=utf-8"
-    $req.Timeout = 150
+    $req.Timeout = 200
     $bytes = [System.Text.Encoding]::UTF8.GetBytes($stateJson)
     $req.ContentLength = $bytes.Length
     $stream = $req.GetRequestStream()

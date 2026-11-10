@@ -1,4 +1,4 @@
-# core/scripts/git_push_manager.ps1
+﻿# core/scripts/git_push_manager.ps1
 # Vigiles Engine - Guvenli Git Pipeline Yoneticisi (Add -> Commit -> Push)
 # Kullanici /push komutunu calistirdiginda tetiklenir.
 
