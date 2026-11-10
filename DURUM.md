@@ -1,50 +1,49 @@
 # CANLI ŞANTİYE DEFTERİ (DURUM.md)
 *Bu dosya görevin canlı durumunu, kabul kriterlerini ve test kanıtlarını takip eden yaşayan belgedir.*
 
-**Görev Adı:** İki Aşamalı Doğrulama & OTP Servisi (TwoFactorService)  
-**Tarih / Saat:** 2026-11-10 17:39:30  
-**Çalışma Vitesi:** 🚀 Veteran Engineering Protocol (20 Elemanlı Fabrika)  
-**Git & PR Modu:** KAPALI (Lokal Hızlı Prototipleme)  
+**Görev Adı:** Kontrollü GitHub Push Mekanizması & /push Slash Komutu Entegrasyonu  
+**Tarih / Saat:** 2026-11-10 18:37:00  
+**Çalışma Vitesi:** 🏛️ Vigiles Engine Protocol (20 Elemanlı Fabrika)  
+**Git & PR Modu:** MANUEL KONTROLLÜ (Sıfır Otomatik Push / Kullanıcı Onaylı)  
 
 ---
 
 ## 🎯 1. Görev Özeti ve Vizyon
 *Şirket Sahibinin (Sizin) verdiği vizyon ve temel beklenti:*
-> "Kullanıcı girişlerinde SMS/E-posta ile tek kullanımlık şifre (OTP) üreten, 60 saniye süre tanıyan, tek kullanımlık olan ve 3 hatalı denemede brute-force kilidi koyan kurşungeçirmez bir 2FA Güvenlik Servisi (TwoFactorService) kurulması."
+> "Sistem otomatik olarak GitHub'a pushlama yapmasın. Değişiklikler ve testler bittiğinde bana GitHub'a pushlayabileceğim zaman haber versin. Ben pushlamak istersem `/push` gibi bir komutla pushlayabileyim."
 
 ---
 
 ## 📐 2. Baş Mimar Kabul Kriterleri
 | # | Kabul Kriteri | Beklenen Çıktı / Davranış | Doğrulama Yöntemi | Durum |
 | :-: | :--- | :--- | :--- | :-: |
-| 1 | OTP Kod Üretimi | Kullanıcı için geçerli 6 haneli sayısal OTP üretilmeli; 60 saniyelik TTL atanmalı. | Birim Testi (Test-TwoFactor.ps1) | ✅ GEÇTİ |
-| 2 | Başarılı Doğrulama | Doğru kod girildiğinde başarı dönmeli ve kod anında imha edilmeli (tek kullanımlık). | Birim Testi (Test-TwoFactor.ps1) | ✅ GEÇTİ |
-| 3 | Süresi Dolan Kod (TTL) | 60 saniyelik süresi geçen kod girilirse 400 Expired hatası vermeli. | Birim Testi (Test-TwoFactor.ps1) | ✅ GEÇTİ |
-| 4 | Brute-Force Koruması | 3 kez yanlış kod girilirse kullanıcı hesabı geçici olarak kilitlenmeli (429 Rate Limit). | Birim Testi (Test-TwoFactor.ps1) | ✅ GEÇTİ |
-| 5 | Kaos Kaba Kuvvet Saldırısı | 100 ardışık rastgele tahmin saldırısı 3. denemede kilitlenmeli; replay saldırısı engellenmeli! | Kaos Testi (Chaos-TwoFactor.ps1) | ✅ GEÇTİ |
-| 6 | Canlı Deneme Tahtası | Yan panelde OTP üretip süresini ve kilitlenmesini deneyebileceğimiz interaktif simülatör. | Canlı Deneme Tahtası | ✅ GEÇTİ |
+| 1 | Sıfır Otomatik Push | Sistem ve alt ajanlar hiçbir senaryoda otonom olarak `git push` yapamaz. | Kod Denetimi & Kural Entegrasyonu | ✅ GEÇTİ |
+| 2 | /push Slash Komutu | Kullanıcı `/push` yazdığında devreye giren özel skill ve komut altyapısı. | Skill Dosyası (`skills/push/SKILL.md`) | ✅ GEÇTİ |
+| 3 | Push Yöneticisi Betiği | Branch, commit farkı ve bağlantı denetimi yapan `git_push_manager.ps1`. | Birim Testi (`Test-GitPushManager.ps1`) | ✅ GEÇTİ (3/3 Test) |
+| 4 | Hazır Bildirimi | İş bittiğinde veya commit hazır olduğunda kullanıcıya `/push` daveti yapılması. | Vigiles Protokol Kuralı (Rol 20) | ✅ GEÇTİ |
+| 5 | Şirket Anayasası Kuralı | KURAL-007 olarak kalıcı kurumsal hafızaya işlenmesi. | `KURALLAR.md` & Şablonlar | ✅ GEÇTİ |
+| 6 | Küresel Entegrasyon | `install.ps1` ile `~/.gemini/config/` altına tam kurulum yapılması. | Yükleme Betiği Doğrulaması | ✅ GEÇTİ |
 
 ---
 
 ## 🚧 3. Şantiye İlerleme Çizelgesi
-- [x] **Aşama 1: Analiz & Mimari Planlama** (Baş Mimar kabul kriterlerini DURUM.md'ye işledi)
-- [x] **Aşama 2: Karar Süzgeci Kontrolü** (🛑 6 Haneli Standart OTP seçildi)
-- [x] **Aşama 3: Kodlama & TDD** (İşçiler ve Özel Testçi 5/5 testi yeşile çevirdi)
-- [x] **Aşama 4: Güvenlik & Performans Denetimi** (Zero-Leak ve Anti-Bloat kalkanı onaylandı)
-- [x] **Aşama 5: Kaos Stres Saldırısı** (Kaos Mühendisi 100 seri kaba kuvvet ve replay atağını püskürttü)
-- [x] **Aşama 6: Bağımsız Yargıç Denetimi** (Zero-Trust denetimi tamamlandı, ONAY MÜHRÜ basıldı)
-- [ ] **Aşama 7: Şirket Hafızası** (Hafıza Uzmanı KURALLAR.md güncellemesi)
-- [ ] **Aşama 8: Canlı Deneme Tahtası** (Canlı interaktif 2FA simülatörü)
-- [ ] **Aşama 9: Teslimat**
+- [x] **Aşama 1: Analiz & Mimari Planlama** (Kabul kriterleri belirlendi ve DURUM.md açıldı)
+- [x] **Aşama 2: Push Yöneticisi Betiği (TDD)** (`git_push_manager.ps1` yazıldı, 3/3 test geçti)
+- [x] **Aşama 3: /push Slash Komut Skill'i** (`skills/push/SKILL.md` oluşturuldu)
+- [x] **Aşama 4: Vigiles Protokolü & PR Yöneticisi Güncellemesi** (Otomatik push davranışı sonlandırıldı)
+- [x] **Aşama 5: Şirket Anayasası Güncellemesi** (KURAL-007 kalıcı kurumsal hafızaya işlendi)
+- [x] **Aşama 6: Küresel Kurulum & Senkronizasyon** (`install.ps1` ile küresel ortama kuruldu)
+- [x] **Aşama 7: Bağımsız Yargıç Mühürlemesi** (Konsolide 8/8 test geçişi ile onaylandı)
+- [x] **Aşama 8: Kullanıcı Bildirimi & Push Daveti** (Hazır olunduğunda `/push` önerisi sunulacak)
 
 ---
 
 ## ❌ 4. Açık Kusurlar ve Düzeltme Kayıtları (Red Döngüsü)
-*Tüm testler ve denetimler ilk seferde eksiksiz geçti; açık kusur bulunmuyor.*
+*Tüm testler ve kontroller başarıyla tamamlandı; açık kusur bulunmuyor.*
 
 ---
 
 ## 📸 5. Doğrulama ve Kanıt Dosyaları
-* **Birim Test Çıktısı:** `5 Test Koşuldu, 5 Başarılı, 0 Hata.`
-* **Kaos Stres Raporu:** `2/2 Kaos Saldırısı Püskürtüldü (3. Denemede Kilit Devreye Girdi, Replay Engellendi).`
-* **Yargıç Mührü:** ✅ ONAYLANDI (Tüm kabul kriterleri %100 sağlandı)
+* **Birim & Entegrasyon Test Çıktısı:** `Test-GitPushManager.ps1` (3 / 3 Başarılı)
+* **Konsolide Büyük Sistem Doğrulaması:** `Run-MasterVerification.ps1` (8 / 8 Test Paketi Eksiksiz Başarılı)
+* **Yargıç Mührü:** ✅ ONAYLANDI (Tüm kabul kriterleri %100 sağlandı, Sıfır Otomatik Push kuralı devrede)

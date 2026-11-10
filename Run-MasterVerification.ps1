@@ -8,6 +8,7 @@ $suites = @(
     "Test-Coupon.ps1",
     "Test-Wallet.ps1",
     "Test-TwoFactor.ps1",
+    "Test-GitPushManager.ps1",
     "Chaos-Coupon.ps1",
     "Chaos-Wallet.ps1",
     "Chaos-TwoFactor.ps1"

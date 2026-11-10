@@ -80,7 +80,7 @@ flowchart TD
 | **17** | **GECE NÖBETÇİSİ** | Gece 03:00'te uykuda refactoring ve güvenlik taraması yapar. | `gece_nobetci.ps1` / cron |
 | **18** | **KOTA DÜRTÜCÜSÜ** | Oturumu uyanık tutmak için minimum token ping'i atar. | Heartbeat servisi |
 | **19** | **CANLI HATA DEDEKTİFİ** | Canlı logları ve Sentry hatalarını TDD testine çevirir. | Sentry MCP / Log İzleyici |
-| **20** | **GİT & PR FABRİKASI** | İsteğe bağlı feature branch açar ve PR özeti hazırlar. | `git_pr_manager.ps1` |
+| **20** | **GİT & PUSH KONTROLÜ** | Sıfır otomatik push prensibi; iş bitince haber verir, `/push` ile GitHub'a aktarır. | `git_push_manager.ps1` |
 
 ---
 

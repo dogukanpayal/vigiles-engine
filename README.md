@@ -1,7 +1,7 @@
 # 🏛️ Vigiles Engine
 ### Kurşungeçirmez 20 Elemanlı Otonom Yazılım Şirketi ve Canlı Telemetri Merkezi
 
-[![Tests](https://img.shields.io/badge/Tests-7%2F7%20Passing-brightgreen?style=flat-square&logo=powershell)](./Run-MasterVerification.ps1)
+[![Tests](https://img.shields.io/badge/Tests-8%2F8%20Passing-brightgreen?style=flat-square&logo=powershell)](./Run-MasterVerification.ps1)
 [![Platform](https://img.shields.io/badge/Antigravity-2.0%20Ready-blue?style=flat-square&logo=google)](https://antigravity.google)
 [![Architecture](https://img.shields.io/badge/Protocol-Vigiles%2020--Element-purple?style=flat-square)](#-sistem-mimarisi)
 [![Telemetry](https://img.shields.io/badge/Mission%20Control-SSE%20Port%209999-orange?style=flat-square)](#-canlı-operasyon-merkezi-mission-control)
@@ -94,7 +94,18 @@ flowchart TD
 | **17** | **GECE NÖBETÇİSİ** | Gece 03:00'te uykuda refactoring ve güvenlik devriyesi yapar. |
 | **18** | **KOTA DÜRTÜCÜSÜ** | Uzun görevlerde oturumu uyanık tutmak için minimum ping atar. |
 | **19** | **CANLI HATA DEDEKTİFİ** | Sentry canlı hata loglarını otomatik olarak TDD testine dönüştürür. |
-| **20** | **GİT & PR FABRİKASI** | Özellik branch'i açar, konvansiyonel commit ve PR özeti üretir. |
+| **20** | **GİT & PUSH KONTROLÜ** | Sıfır otomatik push prensibi; iş bitince haber verir, `/push` ile GitHub'a aktarır. |
+
+---
+
+## 🚀 Güvenli GitHub Dağıtımı (/push)
+
+Vigiles Engine sisteminde **Sıfır Otomatik Push Prensibi (Zero Auto-Push)** geçerlidir. Sistem asla kullanıcıdan habersiz veya otonom olarak `git push` komutu çalıştırmaz:
+
+1. **Hazır Bildirimi:** Tüm TDD testleri, kaos testleri ve Bağımsız Yargıç onayı tamamlandığında sistem kullanıcıya açık bildirim sunar:
+   > 🚀 **GitHub'a Pushlamaya Hazır!**  
+   > Tüm testler ve doğrulamalar tamamlandı. Değişiklikleri GitHub'a göndermek için **/push** komutunu yazabilirsiniz.
+2. **Kullanıcı Kontrollü Push:** Kullanıcı Antigravity sohbetine `/push` yazdığında sistem `git_push_manager.ps1` betiğini çalıştırır, branch ve commit farklarını denetler ve değişiklikleri GitHub'a güvenle pushlar.
 
 ---
 
