@@ -140,6 +140,52 @@ function Get-ConversationDisplayName([string]$cid, [string]$wsName, [string]$fal
     return "Sohbet ($short)"
 }
 
+# --- PROJE ADI TESPİT EDİCİ (WORKSPACE / PROJECT CLASSIFIER - MODEL A) ---
+function Get-ConversationProjectName([string]$cid, [string]$rawText = "", [string]$wsHint = "") {
+    $checkText = "$rawText $wsHint"
+    if ($checkText -match 'QRMenuHotel|qrmenu') { return "QRMenuHotel" }
+    if ($checkText -match 'WispDock|wispdock') { return "WispDock" }
+    if ($checkText -match 'UsageGauge|usagegauge') { return "UsageGauge" }
+    if ($checkText -match 'StatusLantern|statuslantern') { return "StatusLantern" }
+    if ($checkText -match 'Antigravity Improvement|antigravity|mission_control|telemetry') { return "Antigravity Improvement" }
+
+    $brainDir = Join-Path $HOME ".gemini\antigravity\brain\$cid"
+    $tPath = Join-Path $brainDir ".system_generated\logs\transcript.jsonl"
+    if (Test-Path $tPath) {
+        try {
+            $file = [System.IO.File]::Open($tPath, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+            $reader = New-Object System.IO.StreamReader($file, [System.Text.Encoding]::UTF8)
+            $cnt = 0
+            while (-not $reader.EndOfStream -and $cnt -lt 15) {
+                $line = $reader.ReadLine()
+                $cnt++
+                if ($line -match 'QRMenuHotel|qrmenu') { $reader.Dispose(); $file.Dispose(); return "QRMenuHotel" }
+                if ($line -match 'WispDock|wispdock') { $reader.Dispose(); $file.Dispose(); return "WispDock" }
+                if ($line -match 'UsageGauge|usagegauge') { $reader.Dispose(); $file.Dispose(); return "UsageGauge" }
+                if ($line -match 'StatusLantern|statuslantern') { $reader.Dispose(); $file.Dispose(); return "StatusLantern" }
+                if ($line -match 'Antigravity Improvement|antigravity|mission_control|telemetry') { $reader.Dispose(); $file.Dispose(); return "Antigravity Improvement" }
+            }
+            $reader.Dispose()
+            $file.Dispose()
+        } catch {}
+    }
+
+    $durumPath = Join-Path $brainDir "DURUM.md"
+    if (Test-Path $durumPath) {
+        try {
+            $lines = Get-Content $durumPath -TotalCount 20
+            $dText = ($lines -join ' ')
+            if ($dText -match 'QRMenuHotel|qrmenu') { return "QRMenuHotel" }
+            if ($dText -match 'WispDock|wispdock') { return "WispDock" }
+            if ($dText -match 'UsageGauge|usagegauge') { return "UsageGauge" }
+            if ($dText -match 'StatusLantern|statuslantern') { return "StatusLantern" }
+            if ($dText -match 'Antigravity Improvement|antigravity|mission_control|telemetry') { return "Antigravity Improvement" }
+        } catch {}
+    }
+
+    return "Genel"
+}
+
 # --- ANTIGRAVITY BRAIN AUTO-DISCOVERY & CACHE (TÜM SOHBETLERİ KEŞFETME) ---
 $discoveredArchiveCache = [System.Collections.Generic.List[hashtable]]::new()
 $lastDiscoveryTime = [datetime]::MinValue
@@ -163,9 +209,6 @@ function Get-DiscoveredArchiveSessions([System.Collections.Concurrent.Concurrent
     $dirs = @(Get-ChildItem -Path $brainBaseDir -Directory -ErrorAction SilentlyContinue | Where-Object { $_.Name -match '^[a-f0-9\-]{36}$' })
     if ($dirs.Count -eq 0) { return @() }
 
-    # Son dokunulma tarihine göre azalan sırala (en güncel en üstte)
-    $dirs = @($dirs | Sort-Object LastWriteTime -Descending)
-
     $newList = [System.Collections.Generic.List[hashtable]]::new()
     $returnList = [System.Collections.Generic.List[hashtable]]::new()
 
@@ -176,22 +219,28 @@ function Get-DiscoveredArchiveSessions([System.Collections.Concurrent.Concurrent
         $tPath = Join-Path $d.FullName '.system_generated\logs\transcript.jsonl'
         $durumPath = Join-Path $d.FullName 'DURUM.md'
         $isUserChat = $false
+        $rawUserText = ""
 
         if (Test-Path $durumPath) {
             $isUserChat = $true
         }
 
-        if (-not $isUserChat -and (Test-Path $tPath)) {
+        if (Test-Path $tPath) {
             try {
                 $file = [System.IO.File]::Open($tPath, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
                 $reader = New-Object System.IO.StreamReader($file, [System.Text.Encoding]::UTF8)
                 $lCount = 0
-                while (-not $reader.EndOfStream -and $lCount -lt 10) {
+                while (-not $reader.EndOfStream -and $lCount -lt 12) {
                     $line = $reader.ReadLine()
                     $lCount++
-                    if (-not [string]::IsNullOrWhiteSpace($line) -and $line -match '<USER_REQUEST>') {
-                        $isUserChat = $true
-                        break
+                    if (-not [string]::IsNullOrWhiteSpace($line)) {
+                        if ($line -match '<USER_REQUEST>') {
+                            $isUserChat = $true
+                        }
+                        if ($line -match '<USER_REQUEST>\s*([\s\S]*?)\s*</USER_REQUEST>') {
+                            $rawUserText = $matches[1].Trim()
+                            break
+                        }
                     }
                 }
                 $reader.Dispose()
@@ -204,9 +253,10 @@ function Get-DiscoveredArchiveSessions([System.Collections.Concurrent.Concurrent
             continue
         }
 
-        $lastWrite = $d.LastWriteTime
-        $timeStr = $lastWrite.ToString("HH:mm")
-        $dateStr = $lastWrite.ToString("dd.MM")
+        # Gerçek dosya değişim zamanı (transcript.jsonl NTFS LastWriteTime)
+        $effectiveTime = if (Test-Path $tPath) { (Get-Item $tPath).LastWriteTime } else { $d.LastWriteTime }
+        $timeStr = $effectiveTime.ToString("HH:mm")
+        $dateStr = $effectiveTime.ToString("dd.MM")
 
         $cTitle = Get-ConversationDisplayName -cid $cid -wsName "Antigravity Workspace" -fallbackTitle ""
         if ([string]::IsNullOrWhiteSpace($cTitle) -or $cTitle -eq "Geçmiş Sohbet") {
@@ -215,11 +265,14 @@ function Get-DiscoveredArchiveSessions([System.Collections.Concurrent.Concurrent
         }
         $shortCid = if ($cid.Length -gt 8) { $cid.Substring(0, 8) + "..." } else { $cid }
 
+        $projName = Get-ConversationProjectName -cid $cid -rawText $rawUserText -wsHint ""
+
         $entry = @{
             conversationId = $cid
             shortId        = $shortCid
             chatTitle      = $cTitle
             workspaceName  = "Antigravity Workspace"
+            projectName    = $projName
             title          = $cTitle
             sender         = "Antigravity"
             status         = "ARŞİV"
@@ -229,18 +282,24 @@ function Get-DiscoveredArchiveSessions([System.Collections.Concurrent.Concurrent
             isArchived     = $true
             isTest         = $false
             timeStr        = "$dateStr $timeStr"
-            updatedAt      = $lastWrite.ToString("o")
+            updatedAt      = $effectiveTime.ToString("o")
             createdAt      = $d.CreationTime.ToString("o")
             sessionNumber  = "Arşiv"
+            effectiveTicks = $effectiveTime.Ticks
         }
         $newList.Add($entry)
+    }
 
-        if (-not $activeSessionsMap.ContainsKey($cid)) {
-            $returnList.Add($entry)
+    # Gerçek son yazılma zamanına göre azalan sırala (en son kullanılan en üstte - LRU)
+    $sortedArchive = @($newList | Sort-Object { $_.effectiveTicks } -Descending)
+    $script:discoveredArchiveCache = [System.Collections.Generic.List[hashtable]]::new()
+    foreach ($item in $sortedArchive) {
+        $script:discoveredArchiveCache.Add($item)
+        if (-not $activeSessionsMap.ContainsKey($item.conversationId)) {
+            $returnList.Add($item)
         }
     }
 
-    $script:discoveredArchiveCache = $newList
     $script:lastDiscoveryTime = $now
     return $returnList
 }
@@ -453,11 +512,13 @@ while ($listener.IsListening) {
                         $fixedIndex = $userSessions.Count + 1
                     }
 
+                    $projName = Get-ConversationProjectName -cid $cid -rawText ($cTitle + " " + $parsed.taskName) -wsHint $wsName
                     $sessionEntry = @{
                         conversationId = $cid
                         shortId        = if ($cid.Length -gt 8) { $cid.Substring(0, 8) + "..." } else { $cid }
                         chatTitle      = $cTitle
                         workspaceName  = $wsName
+                        projectName    = $projName
                         title          = if ($parsed.title) { [string]$parsed.title } else { "Canli Operasyon" }
                         sender         = if ($parsed.sender) { [string]$parsed.sender } else { "Antigravity" }
                         status         = if ($parsed.status) { [string]$parsed.status } else { "CALISIYOR" }
@@ -541,12 +602,11 @@ while ($listener.IsListening) {
 
             $sessList = [System.Collections.Generic.List[hashtable]]::new()
             
+            # En son aktif olan sohbet en üstte (Recency / LRU sıralaması)
             $rawList = @($sessions.Values)
             $sortedList = $rawList | Sort-Object { 
-                if ($_.sessionIndex -and [int]$_.sessionIndex -gt 0) { [int]$_.sessionIndex } else { 9999 } 
-            }, { 
-                if ($_.createdAt) { try { [datetime]$_.createdAt } catch { [datetime]::MaxValue } } else { [datetime]::MaxValue } 
-            }
+                if ($_.updatedAt) { try { [datetime]$_.updatedAt } catch { [datetime]::MinValue } } else { [datetime]::MinValue } 
+            } -Descending
 
             $userIndex = 1
             foreach ($s in $sortedList) {
@@ -570,12 +630,15 @@ while ($listener.IsListening) {
                     $timeStr = $dt.ToString("HH:mm")
                 } catch {}
 
+                $projName = if ($s.projectName) { $s.projectName } else { Get-ConversationProjectName -cid $s.conversationId -rawText $cTitle -wsHint $s.workspaceName }
+
                 $sessList.Add(@{
                     conversationId = $s.conversationId
                     shortId        = $shortCid
                     sessionNumber  = $sessionNum
                     chatTitle      = $cTitle
                     workspaceName  = $s.workspaceName
+                    projectName    = $projName
                     title          = $s.title
                     sender         = $s.sender
                     status         = $s.status

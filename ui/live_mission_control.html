@@ -252,7 +252,7 @@
         </button>
 
         <!-- Açılır Zengin Kart Paneli (Flyout Panel) -->
-        <div id="session-popover-panel" class="hidden absolute top-full left-0 mt-2 w-[340px] sm:w-[460px] bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-2xl z-[999] p-3 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
+        <div id="session-popover-panel" onclick="event.stopPropagation()" class="hidden absolute top-full left-0 mt-2 w-[340px] sm:w-[460px] bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-2xl z-[999] p-3 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
           <div class="flex items-center justify-between px-1 py-1 border-b border-[var(--border)] mb-2.5">
             <span class="text-xs font-extrabold tracking-wider text-[var(--foreground)] flex items-center gap-1.5">
               <span>📡</span> <span>SOHBET SEÇİMİ</span>
@@ -266,10 +266,17 @@
           </div>
 
           <!-- Canlı Arama Kutusu -->
-          <div class="px-0.5 mb-2.5">
+          <div class="px-0.5 mb-2">
             <div class="relative flex items-center">
               <input type="text" id="session-search-input" oninput="filterSessionsList(this.value)" placeholder="🔍 Sohbet ara (başlık, numara, id)..." class="w-full bg-[var(--background)] border border-[var(--border)] focus:border-emerald-500/50 rounded-xl px-2.5 py-1.5 text-xs text-[var(--foreground)] placeholder:text-zinc-500 font-sans outline-none transition shadow-inner">
               <button type="button" onclick="clearSessionSearch(event)" id="session-search-clear" class="hidden absolute right-2.5 top-1.5 text-zinc-500 hover:text-zinc-300 text-xs">✕</button>
+            </div>
+          </div>
+
+          <!-- Proje Filtre Hapları (Model A: Yatay Proje Butonları) -->
+          <div class="px-0.5 mb-2.5">
+            <div id="project-filter-pills" class="flex items-center gap-1.5 overflow-x-auto pb-1 custom-scrollbar">
+              <!-- Dinamik Proje Hapları JavaScript ile Doldurulur -->
             </div>
           </div>
 
@@ -1219,6 +1226,8 @@
     }
 
     document.addEventListener('click', function(e) {
+      if (!e.target || !e.target.isConnected) return;
+      if (e.target.closest && e.target.closest('#session-popover-panel')) return;
       const container = document.getElementById('session-popover-container');
       if (container && !container.contains(e.target)) {
         closeSessionPopover();
@@ -1232,6 +1241,105 @@
 
     let cachedAllSessions = [];
     let currentSearchQuery = "";
+    let selectedProject = "Antigravity Improvement";
+    let isUserProjectSelected = false;
+
+    const PROJECT_CONFIG = {
+      'Antigravity Improvement': { icon: '🚀', label: 'Antigravity' },
+      'QRMenuHotel': { icon: '📱', label: 'QRMenuHotel' },
+      'StatusLantern': { icon: '🏮', label: 'StatusLantern' },
+      'WispDock': { icon: '🖥️', label: 'WispDock' },
+      'UsageGauge': { icon: '📊', label: 'UsageGauge' },
+      'Genel': { icon: '💬', label: 'Genel' }
+    };
+
+    function getProjectInfo(projectName) {
+      if (!projectName) return { icon: '💬', label: 'Genel' };
+      if (PROJECT_CONFIG[projectName]) return PROJECT_CONFIG[projectName];
+      for (const key of Object.keys(PROJECT_CONFIG)) {
+        if (projectName.toLowerCase().includes(key.toLowerCase()) || key.toLowerCase().includes(projectName.toLowerCase())) {
+          return PROJECT_CONFIG[key];
+        }
+      }
+      return { icon: '📁', label: projectName };
+    }
+
+    function selectProjectFilter(e, projectName) {
+      if (e) {
+        if (e.preventDefault) e.preventDefault();
+        if (e.stopPropagation) e.stopPropagation();
+      }
+      selectedProject = projectName;
+      isUserProjectSelected = true;
+      renderProjectPills();
+      renderSessionsFromCache();
+    }
+
+    function renderProjectPills() {
+      const container = document.getElementById('project-filter-pills');
+      if (!container) return;
+
+      const userAndArchive = cachedAllSessions.filter(s => !s.isTest);
+      if (userAndArchive.length === 0) {
+        container.innerHTML = "";
+        return;
+      }
+
+      // Proje bazli oturum sayilari
+      const counts = {};
+      userAndArchive.forEach(s => {
+        const p = s.projectName || 'Genel';
+        counts[p] = (counts[p] || 0) + 1;
+      });
+
+      // Eger kullanici elle bir hap secmediyse o an acik olan oturumun projesini on tanimli sec
+      if (!isUserProjectSelected) {
+        const activeSess = cachedAllSessions.find(s => s.conversationId === currentConversationId);
+        if (activeSess && activeSess.projectName) {
+          selectedProject = activeSess.projectName;
+        } else if (counts['Antigravity Improvement']) {
+          selectedProject = 'Antigravity Improvement';
+        } else {
+          selectedProject = 'ALL';
+        }
+      }
+
+      let html = "";
+      const isAllSelected = (selectedProject === 'ALL' || selectedProject === 'Tümü');
+      const allClass = isAllSelected 
+        ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/50 shadow-sm ring-1 ring-emerald-500/20 font-bold" 
+        : "bg-[var(--background)] hover:bg-[var(--card)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] border-[var(--border)]";
+      
+      html += `
+        <button type="button" onclick="selectProjectFilter(event, 'ALL')" class="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-mono transition cursor-pointer select-none ${allClass}">
+          <span>🌐</span> <span>Tümü</span> <span class="text-[9px] px-1 py-0.2 rounded bg-black/20 opacity-80">${userAndArchive.length}</span>
+        </button>
+      `;
+
+      const orderedProjects = ['Antigravity Improvement', 'QRMenuHotel', 'StatusLantern', 'WispDock', 'UsageGauge', 'Genel'];
+      const uniqueProjects = Object.keys(counts).sort((a, b) => {
+        let idxA = orderedProjects.indexOf(a);
+        let idxB = orderedProjects.indexOf(b);
+        if (idxA === -1) idxA = 99;
+        if (idxB === -1) idxB = 99;
+        return idxA - idxB;
+      });
+
+      uniqueProjects.forEach(pName => {
+        const info = getProjectInfo(pName);
+        const isSel = (!isAllSelected && selectedProject.toLowerCase() === pName.toLowerCase());
+        const pillClass = isSel 
+          ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/50 shadow-sm ring-1 ring-emerald-500/20 font-bold" 
+          : "bg-[var(--background)] hover:bg-[var(--card)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] border-[var(--border)]";
+        html += `
+          <button type="button" onclick="selectProjectFilter(event, '${pName.replace(/'/g, "\\'")}')" class="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-mono transition cursor-pointer select-none ${pillClass}">
+            <span>${info.icon}</span> <span>${info.label}</span> <span class="text-[9px] px-1 py-0.2 rounded bg-black/20 opacity-80">${counts[pName]}</span>
+          </button>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
 
     function filterSessionsList(query) {
       currentSearchQuery = (query || "").trim().toLowerCase();
@@ -1274,22 +1382,31 @@
                (s.conversationId && s.conversationId.toLowerCase().includes(q)) ||
                (s.shortId && s.shortId.toLowerCase().includes(q)) ||
                (s.sessionNumber && s.sessionNumber.toLowerCase().includes(q)) ||
-               (s.workspaceName && s.workspaceName.toLowerCase().includes(q));
+               (s.workspaceName && s.workspaceName.toLowerCase().includes(q)) ||
+               (s.projectName && s.projectName.toLowerCase().includes(q));
+      };
+
+      const matchesProject = (s) => {
+        if (!selectedProject || selectedProject === 'ALL' || selectedProject === 'Tümü') return true;
+        const pName = (s.projectName || 'Genel').toLowerCase();
+        return pName === selectedProject.toLowerCase();
       };
 
       const userSessions = cachedAllSessions.filter(s => !s.isTest && !s.isArchived);
       const archiveSessions = cachedAllSessions.filter(s => !s.isTest && s.isArchived);
       const testSessions = cachedAllSessions.filter(s => s.isTest);
 
-      const filteredActive = userSessions.filter(matchesQuery);
-      const filteredArchive = archiveSessions.filter(matchesQuery);
-      const filteredTest = testSessions.filter(matchesQuery);
+      const filteredActive = userSessions.filter(s => matchesQuery(s) && matchesProject(s));
+      const filteredArchive = archiveSessions.filter(s => matchesQuery(s) && matchesProject(s));
+      const filteredTest = testSessions.filter(s => matchesQuery(s) && matchesProject(s));
 
       if (countBadge) {
         countBadge.innerText = `${userSessions.length} Canlı / ${archiveSessions.length} Arşiv`;
       }
       if (statsEl) {
-        statsEl.innerText = `${userSessions.length} Canlı | ${archiveSessions.length} Arşiv`;
+        const projInfo = getProjectInfo(selectedProject);
+        const projPrefix = (selectedProject === 'ALL' || selectedProject === 'Tümü') ? '' : `[${projInfo.label}] `;
+        statsEl.innerText = `${projPrefix}${filteredActive.length} Canlı | ${filteredArchive.length} Arşiv`;
       }
       if (activeCountEl) activeCountEl.innerText = filteredActive.length;
       if (archiveCountEl) archiveCountEl.innerText = filteredArchive.length;
@@ -1321,11 +1438,18 @@
         labelEl.innerText = `Sohbet (${currentConversationId.substring(0, 8)}...)`;
       }
 
+      const activeProjInfo = getProjectInfo(selectedProject);
+
       // 1. Canlı Kartları Render Et
       if (activeCardsContainer) {
         activeCardsContainer.innerHTML = "";
         if (filteredActive.length === 0) {
-          activeCardsContainer.innerHTML = `<div class="p-2.5 text-center text-xs text-[var(--muted-foreground)]">${currentSearchQuery ? 'Eşleşen canlı sohbet bulunamadı' : 'Aktif canlı sohbet yok'}</div>`;
+          const emptyText = currentSearchQuery 
+            ? 'Aramayla eşleşen canlı sohbet bulunamadı' 
+            : (selectedProject !== 'ALL' && selectedProject !== 'Tümü' 
+                ? `${activeProjInfo.label} projesinde canlı sohbet yok` 
+                : 'Aktif canlı sohbet yok');
+          activeCardsContainer.innerHTML = `<div class="p-2.5 text-center text-xs text-[var(--muted-foreground)]">${emptyText}</div>`;
         } else {
           filteredActive.forEach((sess, idx) => {
             const isCurrent = (sess.conversationId === currentConversationId);
@@ -1336,8 +1460,8 @@
             const title = fixMojibake(sess.chatTitle || sess.title || sess.workspaceName || 'Antigravity Sohbet');
             const sessionNum = sess.sessionNumber || `Sohbet #${idx + 1}`;
             const timeStr = sess.timeStr || '';
-            const wsName = sess.workspaceName || '';
             const stepTag = `Aşama ${sess.step || 1}/${sess.totalSteps || 15}`;
+            const pInfo = getProjectInfo(sess.projectName);
 
             const card = document.createElement('div');
             card.className = `p-2.5 rounded-xl border transition cursor-pointer select-none ${
@@ -1366,7 +1490,7 @@
                     <div class="text-[10px] text-[var(--muted-foreground)] font-mono flex items-center gap-1.5 mt-1 truncate">
                       <span class="${isDone ? 'text-blue-400' : 'text-emerald-400'} font-semibold">● ${stepTag}</span>
                       <span>•</span>
-                      <span class="truncate">${wsName}</span>
+                      <span class="text-[9px] px-1.5 py-0.2 rounded font-mono font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">${pInfo.icon} ${pInfo.label}</span>
                     </div>
                   </div>
                 </div>
@@ -1390,12 +1514,18 @@
       if (archiveCardsContainer) {
         archiveCardsContainer.innerHTML = "";
         if (filteredArchive.length === 0) {
-          archiveCardsContainer.innerHTML = `<div class="p-2 text-center text-[11px] text-[var(--muted-foreground)]">${currentSearchQuery ? 'Eşleşen arşiv sohbeti bulunamadı' : 'Arşivde sohbet yok'}</div>`;
+          const emptyText = currentSearchQuery 
+            ? 'Aramayla eşleşen arşiv sohbeti bulunamadı' 
+            : (selectedProject !== 'ALL' && selectedProject !== 'Tümü' 
+                ? `${activeProjInfo.label} projesinde arşiv sohbeti yok` 
+                : 'Arşivde sohbet yok');
+          archiveCardsContainer.innerHTML = `<div class="p-2 text-center text-[11px] text-[var(--muted-foreground)]">${emptyText}</div>`;
         } else {
           filteredArchive.forEach((sess, idx) => {
             const isCurrent = (sess.conversationId === currentConversationId);
             const title = fixMojibake(sess.chatTitle || sess.title || 'Antigravity Sohbet');
             const timeStr = sess.timeStr || '';
+            const pInfo = getProjectInfo(sess.projectName);
 
             const card = document.createElement('div');
             card.className = `p-2 rounded-xl border transition cursor-pointer select-none ${
@@ -1416,6 +1546,8 @@
                       ${isCurrent ? '<span class="text-[9px] px-1.5 py-0.2 rounded font-mono font-bold bg-amber-500/20 text-amber-400 border border-amber-500/40 leading-none">📌 Seçili</span>' : ''}
                     </div>
                     <div class="text-[10px] text-zinc-500 font-mono flex items-center gap-1.5 mt-0.5 truncate">
+                      <span class="text-[9px] px-1.5 py-0.2 rounded font-mono font-semibold bg-zinc-800 text-zinc-300 border border-zinc-700/60">${pInfo.icon} ${pInfo.label}</span>
+                      <span>•</span>
                       <span>${sess.shortId}</span>
                       <span>•</span>
                       <span>${timeStr}</span>
@@ -1466,6 +1598,7 @@
         const data = await resp.json();
         const list = Array.isArray(data) ? data : (data.sessions || []);
         cachedAllSessions = list;
+        renderProjectPills();
         renderSessionsFromCache();
       } catch (e) {}
     }
