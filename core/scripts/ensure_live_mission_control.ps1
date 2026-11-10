@@ -1,4 +1,4 @@
-﻿param()
+param()
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 [Console]::InputEncoding  = [System.Text.Encoding]::UTF8
@@ -10,6 +10,8 @@ if ([string]::IsNullOrWhiteSpace($rawInput)) {
     Write-Output "{}"
     exit 0
 }
+
+$rawInput = $rawInput.Trim().Trim([char]65279)
 
 try {
     $payload = $rawInput | ConvertFrom-Json
@@ -32,6 +34,26 @@ $artifactDir = $payload.artifactDirectoryPath
 
 if ([string]::IsNullOrWhiteSpace($artifactDir) -and -not [string]::IsNullOrWhiteSpace($conversationId)) {
     $artifactDir = "C:\Users\Dogukan\.gemini\antigravity\brain\$conversationId"
+}
+
+# Vigiles / Live İzolasyon Filtresi:
+# Yalnızca kullanıcı açıkça /vigiles veya /live komutu verdiğinde çalışır.
+# Normal sohbetlerde veya diğer eğik çizgi komutlarında (örn: /push, /plan, /browser, /lite vs.) ASLA çalışmaz.
+$isVigiles = ($userInput -match '^\s*/vigiles(\s|$)' -or $userInput -match '^\s*/(vigiles-light|lite)(\s|$)' -or $userInput -match 'vigiles mode|vigiles engine|veteran mode')
+$isLive = ($userInput -match '^\s*/(live|mission-control|hud)(\s|$)')
+
+if (-not ($isVigiles -or $isLive)) {
+    Write-Output "{}"
+    exit 0
+}
+
+# Oturum için .vigiles_active işaretçisini yerleştir
+if (-not [string]::IsNullOrWhiteSpace($artifactDir)) {
+    if (-not (Test-Path $artifactDir)) {
+        try { New-Item -ItemType Directory -Path $artifactDir -Force | Out-Null } catch {}
+    }
+    $vigilesMarker = Join-Path $artifactDir ".vigiles_active"
+    try { [System.IO.File]::WriteAllText($vigilesMarker, "vigiles", [System.Text.Encoding]::UTF8) } catch {}
 }
 
 $configDir = Join-Path $HOME ".gemini\config"
@@ -58,7 +80,7 @@ if ($cleanInput -match '^\s*/([a-zA-Z0-9\-_]+)\s*$') {
     $chatTitle = "Sohbet ($($conversationId.Substring(0, 8)))"
 }
 
-# 2. Aktif Görev Kütüğünü Güncelle (active_mission.json) - Her zaman güncel tut!
+# 2. Aktif Görev Kütüğünü Güncelle (active_mission.json) - Yalnızca Vigiles/Live oturumunda
 if (-not [string]::IsNullOrWhiteSpace($artifactDir)) {
     $missionInfo = @{
         conversationId        = $conversationId
@@ -74,12 +96,6 @@ if (-not [string]::IsNullOrWhiteSpace($artifactDir)) {
         $missionJson = $missionInfo | ConvertTo-Json -Depth 4
         [System.IO.File]::WriteAllText($activeMissionFile, $missionJson, [System.Text.Encoding]::UTF8)
     } catch {}
-}
-
-# Yalnızca '/' ile başlayan komutlarda tetiklen (Örn: /live, /vigiles, /push vs.)
-if (-not ($userInput -match '^\s*/')) {
-    Write-Output "{}"
-    exit 0
 }
 
 # 3. Canli Dosyalari ve Artifact Dosyalarini Hazirla

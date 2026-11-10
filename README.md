@@ -1,7 +1,7 @@
 # 🏛️ Vigiles Engine
 ### Kurşungeçirmez 20 Elemanlı Otonom Yazılım Şirketi ve Canlı Telemetri Merkezi
 
-[![Tests](https://img.shields.io/badge/Tests-8%2F8%20Passing-brightgreen?style=flat-square&logo=powershell)](./Run-MasterVerification.ps1)
+[![Tests](https://img.shields.io/badge/Tests-16%2F16%20Passing-brightgreen?style=flat-square&logo=powershell)](./Run-MasterVerification.ps1)
 [![Platform](https://img.shields.io/badge/Antigravity-2.0%20Ready-blue?style=flat-square&logo=google)](https://antigravity.google)
 [![Architecture](https://img.shields.io/badge/Protocol-Vigiles%2020--Element-purple?style=flat-square)](#-sistem-mimarisi)
 [![Telemetry](https://img.shields.io/badge/Mission%20Control-SSE%20Port%209999-orange?style=flat-square)](#-canlı-operasyon-merkezi-mission-control)
@@ -182,6 +182,20 @@ Tarayıcınızda açıp arkadaki fabrikayı canlı izleyebileceğiniz Server-Sen
 
 ---
 
+## 🏛️ Vitesler ve Komut Ekosistemi
+
+Antigravity ortamınızı tam donanımlı bir Ar-Ge ve Yazılım Fabrikasına dönüştüren 5 operasyonel vites:
+
+| Vites | Komut | Rol & Amaç | Kod Değiştirir mi? | Alt Ajan (Subagent)? |
+| :--- | :--- | :--- | :---: | :---: |
+| **Consilium (Strateji & Düşünce)** | `/think` veya `/consilium` | Kafa karışıklığı çözümü, trade-off kıyaslaması, sistem anlama (Feynman), mimari yol haritası (ADR) | ❌ **ASLA (Sıfır Mutasyon)** | 0 |
+| **Vigiles Classic (Ağır İnşaat)** | `/vigiles` | Sıfırdan modül inşası, ağır refactor, TDD kapalı döngü, Kaos testi, Bağımsız Yargıç onayı | ✅ Evet (20 Elemanlı Kadro) | Dinamik (1-10+) |
+| **Vigiles Light (Cerrahi Hız)** | `/lite` | Hızlı bugfix, CSS/Tailwind rötüşları, <30s müdahale, hedefli tekil sanity test | ✅ Evet (Nokta Atışı Cerrahi) | 0 |
+| **Git Push Manager (Dağıtım)** | `/push` | 3 adımlı güvenli Git pipeline'ı (`add -> commit -> push`) | ❌ Yalnızca Git Dağıtımı | 0 |
+| **Live Mission Control (Telemetri)** | `/live` | Port 9999 SSE telemetri HUD ve daktilo terminal ayna paneli | ❌ İzleme & Telemetri | 0 |
+
+---
+
 ## ⚡ Hızlı Kurulum ve Kullanım
 
 ### 1. Sistemin Bilgisayarınıza Kurulması
@@ -215,10 +229,19 @@ Baş Mimar anında `DURUM.md` ve `KURALLAR.md` sözleşmelerini açacak ve 20 el
 | `Test-Coupon.ps1` | Sepet Alt Limiti, Tek Kullanımlık Kupon Doğrulama | ✅ GEÇTİ |
 | `Test-Wallet.ps1` | Bakiye Yükleme, Harcama & 10.000 TL Strict Cap Sınırı | ✅ GEÇTİ |
 | `Test-TwoFactor.ps1` | 6 Haneli OTP, 60s Süre Sınırı & 3 Hatalı Denemede Kilit | ✅ GEÇTİ |
+| `Test-GitPushManager.ps1` | Güvenli Tek Komutla Manuel Git Dağıtım Pipeline'ı (/push) | ✅ GEÇTİ |
+| `Test-Heartbeat.ps1` | 1-Token Otonom Model Kota Dürtücüsü (Heartbeat Sentinel) | ✅ GEÇTİ |
+| `Test-MultiSessionTelemetri.ps1` | Çoklu Chat SSE İzolasyonu ve Oturum Seçici Mekanizması | ✅ GEÇTİ |
+| `Test-WorkersSubNodes.ps1` | Sınırsız Dinamik İşçi Ağacı ve CSS/DOM Render Kontrolü | ✅ GEÇTİ |
+| `Test-VigilesLightIntegrity.ps1` | Vigiles Light (/lite) Cerrahi Müdahale Protokol Bütünlüğü | ✅ GEÇTİ |
+| `Test-VigilesConsiliumIntegrity.ps1` | Vigiles Consilium (/think) Tefekkür & Sıfır Kod Dokunulmazlığı | ✅ GEÇTİ |
 | `Chaos-Coupon.ps1` | Eşzamanlı Çift Harcama Yarış Durumu (Race Condition) | ✅ PÜSKÜRTÜLDÜ |
 | `Chaos-Wallet.ps1` | 10 Paralel Çekim & 1.000.000 TL Bakiye Enjeksiyonu | ✅ PÜSKÜRTÜLDÜ |
 | `Chaos-TwoFactor.ps1` | 100 Seri Kaba Kuvvet (Brute-Force) & Replay Saldırısı | ✅ PÜSKÜRTÜLDÜ |
-| **KONSOLİDE RAPOR** | **Tüm Sistem Bileşenleri (7/7 Paket, 0 Kusur)** | **✅ %100 BAŞARILI** |
+| `Chaos-Heartbeat.ps1` | Process Kilitlenmesi, Ağ Kopması ve Deadlock Dayanıklılığı | ✅ PÜSKÜRTÜLDÜ |
+| `Chaos-MultiSession.ps1` | 10 Eşzamanlı Oturum Fırtınası ve Çapraz Karışma (Cross-Talk) | ✅ PÜSKÜRTÜLDÜ |
+| `Chaos-WorkersSubNodes.ps1` | 50-100 İşçili Yüksek Yük Altında Taşma ve Render Dayanıklılığı | ✅ PÜSKÜRTÜLDÜ |
+| **KONSOLİDE RAPOR** | **Tüm Sistem Bileşenleri (16/16 Paket, 0 Kusur)** | **✅ %100 BAŞARILI** |
 
 ---
 

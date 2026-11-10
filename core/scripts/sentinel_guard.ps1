@@ -11,6 +11,8 @@ if ([string]::IsNullOrWhiteSpace($rawInput)) {
     exit 0
 }
 
+$rawInput = $rawInput.Trim().Trim([char]65279)
+
 try {
     $payload = $rawInput | ConvertFrom-Json
 } catch {
@@ -35,6 +37,23 @@ $wsName = if ($payload.workspacePaths -and $payload.workspacePaths.Count -gt 0) 
 if ([string]::IsNullOrWhiteSpace($artifactDir) -and -not [string]::IsNullOrWhiteSpace($cid)) {
     $artifactDir = "C:\Users\Dogukan\.gemini\antigravity\brain\$cid"
 }
+
+# Vigiles İzolasyon Kontrolü:
+# Bu oturumda /vigiles veya /live komutu çalıştırılmamışsa (artifact dizininde .vigiles_active yoksa)
+# kanca hiçbir güvenlik kısıtlaması uygulamadan ve telemetri üretmeden anında 'allow' vererek çıkar.
+$isVigilesActive = $false
+if (-not [string]::IsNullOrWhiteSpace($artifactDir) -and (Test-Path $artifactDir)) {
+    $markerFile = Join-Path $artifactDir ".vigiles_active"
+    if (Test-Path $markerFile) {
+        $isVigilesActive = $true
+    }
+}
+
+if (-not $isVigilesActive) {
+    Write-Output '{"decision":"allow"}'
+    exit 0
+}
+
 if ([string]::IsNullOrWhiteSpace($artifactDir)) {
     $activeFile = Join-Path $HOME ".gemini\config\active_mission.json"
     if (Test-Path $activeFile) {
@@ -50,6 +69,50 @@ if ([string]::IsNullOrWhiteSpace($artifactDir)) {
 }
 
 # --- YARDIMCI: TELEMETRI YAYINI ---
+function Get-ActiveWorkers() {
+    $workersFile = Join-Path $artifactDir "active_workers.json"
+    $list = @()
+    if (Test-Path $workersFile) {
+        try {
+            $parsed = Get-Content -Raw -Encoding UTF8 $workersFile | ConvertFrom-Json
+            if ($parsed -is [array]) {
+                $list = $parsed
+            } elseif ($parsed) {
+                $list = @($parsed)
+            }
+        } catch {}
+    }
+    return $list
+}
+
+function Register-ActiveWorker([string]$role, [string]$detail) {
+    $workersFile = Join-Path $artifactDir "active_workers.json"
+    $list = [System.Collections.Generic.List[hashtable]]::new()
+    $existing = Get-ActiveWorkers
+    foreach ($w in $existing) {
+        $list.Add(@{
+            id          = $w.id
+            name        = $w.name
+            role        = $w.role
+            detail      = $w.detail
+            statusLabel = "Aktif 🟢"
+        })
+    }
+    $newIndex = $list.Count + 1
+    $list.Add(@{
+        id          = $newIndex
+        name        = "İşçi #$newIndex"
+        role        = $role
+        detail      = $detail
+        statusLabel = "Aktif 🟢"
+    })
+    try {
+        $json = ($list | ConvertTo-Json -Depth 4)
+        [System.IO.File]::WriteAllText($workersFile, $json, [System.Text.Encoding]::UTF8)
+    } catch {}
+    return $list
+}
+
 function Send-Telemetry([hashtable]$state) {
     try {
         if (-not $state.ContainsKey("conversationId") -and -not [string]::IsNullOrWhiteSpace($cid)) {
@@ -188,7 +251,7 @@ if (-not $isInternalStateFile) {
 
     if ($toolName -eq "run_command") {
         $cmd = if ($args.CommandLine) { $args.CommandLine } else { "" }
-        if ($cmd -match 'Test-|pester|pytest|npm test') {
+        if ($cmd -match 'Test-|pester|pytest|npm test|vitest|jest') {
             $telemetry = @{
                 step        = 5
                 totalSteps  = 15
@@ -216,7 +279,8 @@ if (-not $isInternalStateFile) {
                 timestamp   = $time
                 badge       = @{ id = "badge-chaos"; text = "Stres Saldırısı"; class = "bg-amber-500/20 text-amber-400 border-amber-500/40 font-bold animate-pulse" }
             }
-        } elseif ($cmd -match 'git') {
+        } elseif ($cmd -match 'git\s+(commit|push|checkout\s+-b|tag|merge|rebase|stash|cherry-pick)' -or 
+                  $cmd -match 'git_push_manager|git_pr_manager|gh\s+pr') {
             $telemetry = @{
                 step        = 12
                 totalSteps  = 15
@@ -225,10 +289,39 @@ if (-not $isInternalStateFile) {
                 status      = "GIT_ISLEMI"
                 title       = "AŞAMA 12 / 15: Git ve PR Fabrikası"
                 sender      = "[20. GİT VE PR FABRİKASI]"
-                message     = "Versiyonlama ve Branch Yönetimi: $cmd"
-                desc        = "Sürüm Yönetimi: Git deposu güncelleniyor."
+                message     = "Versiyonlama ve Dağıtım: $cmd"
+                desc        = "Sürüm Yönetimi: Git deposu güncelleniyor ve dağıtıma hazırlanıyor."
                 timestamp   = $time
                 badge       = @{ id = "badge-pr"; text = "Git Çalışıyor"; class = "bg-purple-500/20 text-purple-400 border-purple-500/40 font-bold" }
+            }
+        } elseif ($cmd -match 'git\s+(status|diff|log|show|branch|remote|describe|check-ignore|rev-parse)') {
+            $telemetry = @{
+                step        = 1
+                totalSteps  = 15
+                activeNode  = "node-architect"
+                animClass   = "node-active-architect"
+                status      = "GIT_KESFI"
+                title       = "AŞAMA 1 / 15: Baş Mimar Depo ve Versiyon Keşfi"
+                sender      = "[2. BAŞ MİMAR (Lead Planner)]"
+                message     = "Git Deposu ve Değişiklik Durumu İnceleniyor: $cmd"
+                desc        = "Mimari Zemin Etüdü: Depodaki branch, commit geçmişi ve çalışma ağacı inceleniyor."
+                timestamp   = $time
+                badge       = @{ id = "badge-architect"; text = "Depo İnceleniyor"; class = "bg-indigo-500/20 text-indigo-400 border-indigo-500/40 font-bold animate-pulse" }
+            }
+        } elseif ($cmd -match '^\s*(dir|ls|tree|Get-ChildItem|gci|Get-Content|gc|type|cat|head|tail|findstr|Select-String|grep|Test-Path|Get-Item|gi|Get-Command|gcm)(\s|$)' -or
+                  $cmd -match 'Get-ChildItem|Select-String|Compare-Object|Test-Path|Get-Item') {
+            $telemetry = @{
+                step        = 1
+                totalSteps  = 15
+                activeNode  = "node-architect"
+                animClass   = "node-active-architect"
+                status      = "SANTIYE_KESFI"
+                title       = "AŞAMA 1 / 15: Baş Mimar Şantiye Keşfi & Analiz"
+                sender      = "[2. BAŞ MİMAR (Lead Planner)]"
+                message     = "Dosya ve Dizinler Taranıyor: $cmd"
+                desc        = "Mimari Keşif: Proje dizin yapısı, konfigürasyonlar ve mevcut kod yapısı taranıyor."
+                timestamp   = $time
+                badge       = @{ id = "badge-architect"; text = "Şantiye Keşfi"; class = "bg-indigo-500/20 text-indigo-400 border-indigo-500/40 font-bold animate-pulse" }
             }
         } else {
             $telemetry = @{
@@ -243,6 +336,12 @@ if (-not $isInternalStateFile) {
                 desc        = "İşçi Birimi: Yerel ortamda komut çalıştırılıyor."
                 timestamp   = $time
                 badge       = @{ id = "badge-workers"; text = "Komut Yürütülüyor"; class = "bg-emerald-500/20 text-emerald-400 border-emerald-500/40 font-bold animate-pulse" }
+            }
+            $activeWorkers = Get-ActiveWorkers
+            if ($activeWorkers -and $activeWorkers.Count -gt 0) {
+                $telemetry["workerCount"] = $activeWorkers.Count
+                $telemetry["workers"] = $activeWorkers
+                $telemetry["badge"] = @{ id = "badge-workers"; text = "$($activeWorkers.Count) İşçi Aktif ⚡"; class = "bg-emerald-500/20 text-emerald-400 border-emerald-500/40 font-bold animate-pulse" }
             }
         }
     }
@@ -334,6 +433,12 @@ if (-not $isInternalStateFile) {
                 timestamp   = $time
                 badge       = @{ id = "badge-workers"; text = "Kod Yazılıyor"; class = "bg-emerald-500/20 text-emerald-400 border-emerald-500/40 font-bold animate-pulse" }
             }
+            $activeWorkers = Get-ActiveWorkers
+            if ($activeWorkers -and $activeWorkers.Count -gt 0) {
+                $telemetry["workerCount"] = $activeWorkers.Count
+                $telemetry["workers"] = $activeWorkers
+                $telemetry["badge"] = @{ id = "badge-workers"; text = "$($activeWorkers.Count) İşçi Aktif ⚡"; class = "bg-emerald-500/20 text-emerald-400 border-emerald-500/40 font-bold animate-pulse" }
+            }
         }
     }
     elseif ($toolName -eq "ask_question") {
@@ -353,18 +458,21 @@ if (-not $isInternalStateFile) {
     }
     elseif ($toolName -eq "invoke_subagent") {
         $role = if ($args.Role) { $args.Role } else { "Alt Ajan" }
+        $currentWorkers = Register-ActiveWorker -role $role -detail "Bağımsız alt ajan görevlendirildi."
         $telemetry = @{
             step        = 4
             totalSteps  = 15
-            activeNode  = "node-orch"
+            activeNode  = "node-chief"
             animClass   = "node-active-default"
             status      = "ALT_AJAN_DEVREDE"
-            title       = "AŞAMA 4 / 15: Orkestratör Alt Ajan Başlattı"
-            sender      = "[5. ORKESTRATÖR VE BEYİN]"
-            message     = "Görev Devredildi: $role"
-            desc        = "İş Dağıtımı: Bağımsız alt ajan arka planda görevlendirildi."
+            title       = "AŞAMA 7 / 15: Subagent Şefi İşçi Dağıttı"
+            sender      = "[7. SUBAGENT ŞEFİ (Saha Şefi)]"
+            message     = "Yeni İşçi Görevlendirildi: $role ($($currentWorkers.Count) İşçi Aktif)"
+            desc        = "İş Dağıtımı: Sahada $($currentWorkers.Count) otonom işçi paralel çalışıyor."
             timestamp   = $time
-            badge       = @{ id = "badge-orch"; text = "Ajan Devrede"; class = "bg-blue-500/20 text-blue-400 border-blue-500/40 font-bold animate-pulse" }
+            badge       = @{ id = "badge-chief"; text = "$($currentWorkers.Count) İşçi Sahada"; class = "bg-emerald-500/20 text-emerald-400 border-emerald-500/40 font-bold animate-pulse" }
+            workerCount = $currentWorkers.Count
+            workers     = $currentWorkers
         }
     }
     elseif ($toolName -eq "read_file") {
@@ -383,6 +491,20 @@ if (-not $isInternalStateFile) {
                 desc        = "Analiz: Önceden konulmuş kurallar ve durum kontrol ediliyor."
                 timestamp   = $time
                 badge       = @{ id = "badge-architect"; text = "İnceleniyor"; class = "bg-indigo-500/20 text-indigo-400 border-indigo-500/40 font-bold" }
+            }
+        } else {
+            $telemetry = @{
+                step        = 1
+                totalSteps  = 15
+                activeNode  = "node-architect"
+                animClass   = "node-active-architect"
+                status      = "KOD_INCELEME"
+                title       = "AŞAMA 1 / 15: Baş Mimar Mimari Kod İncelemesi"
+                sender      = "[2. BAŞ MİMAR (Lead Planner)]"
+                message     = "Kaynak Dosyası Analiz Ediliyor: $leaf"
+                desc        = "Mimari Analiz: Dosya içeriği ve kod mimarisi zemin etüdü için inceleniyor."
+                timestamp   = $time
+                badge       = @{ id = "badge-architect"; text = "Mimari Analiz"; class = "bg-indigo-500/20 text-indigo-400 border-indigo-500/40 font-bold animate-pulse" }
             }
         }
     }

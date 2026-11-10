@@ -65,8 +65,30 @@ function Get-ConversationDisplayName([string]$cid, [string]$wsName, [string]$fal
     if ($cid -match '^test-') { return "🧪 [Test] $cid" }
     if ($cid -match '^chaos-') { return "🐒 [Kaos] $cid" }
 
-    # 1. Transcript dosyasindan kullanicinin ilk komutunu/istegini oku
-    $tPath = Join-Path $HOME ".gemini\antigravity\brain\$cid\.system_generated\logs\transcript.jsonl"
+    $artDir = Join-Path $HOME ".gemini\antigravity\brain\$cid"
+
+    # 1. Once DURUM.md gorev adina bak
+    $artDurum = Join-Path $artDir "DURUM.md"
+    if (Test-Path $artDurum) {
+        try {
+            $lines = Get-Content $artDurum -TotalCount 20
+            foreach ($line in $lines) {
+                if ($line -match '\*\*Görev Adı:\*\*\s*(.+)') {
+                    $gName = $matches[1].Trim()
+                    if ($gName -match '—\s*(.+)') { $gName = $matches[1].Trim() }
+                    elseif ($gName -match ':\s*(.+)') { $gName = $matches[1].Trim() }
+                    if ($gName.Length -gt 36) { $gName = $gName.Substring(0, 33) + "..." }
+                    if (-not [string]::IsNullOrWhiteSpace($gName)) {
+                        return $gName
+                    }
+                }
+            }
+        } catch {}
+    }
+
+    # 2. Transcript'ten kullanici istegini oku
+    $tPath = Join-Path $artDir ".system_generated\logs\transcript.jsonl"
+    $rawUserText = ""
     if (Test-Path $tPath) {
         try {
             $file = [System.IO.File]::Open($tPath, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
@@ -78,44 +100,65 @@ function Get-ConversationDisplayName([string]$cid, [string]$wsName, [string]$fal
             if (-not [string]::IsNullOrWhiteSpace($firstLine)) {
                 $obj = $firstLine | ConvertFrom-Json
                 if ($obj.content -match '<USER_REQUEST>\s*([\s\S]*?)\s*</USER_REQUEST>') {
-                    $raw = $matches[1].Trim()
-                    $clean = ($raw -replace '[\r\n]+', ' ').Trim()
-
-                    if ($clean -match '^\s*/([a-zA-Z0-9\-_]+)\s*$') {
-                        return "⚡ Komut: /$($matches[1])"
-                    }
-
-                    if ($clean -match '^\s*/([a-zA-Z0-9\-_]+)\s+(.+)$') {
-                        $cName = $matches[1]
-                        $desc = $matches[2].Trim()
-                        if ($desc.Length -gt 38) { $desc = $desc.Substring(0, 35) + "..." }
-                        return "⚡ /$($cName): $desc"
-                    }
-
-                    if ($clean.Length -gt 38) {
-                        return $clean.Substring(0, 35) + "..."
-                    }
-                    if (-not [string]::IsNullOrWhiteSpace($clean)) {
-                        return $clean
-                    }
+                    $rawUserText = $matches[1].Trim()
                 }
             }
         } catch {}
     }
 
+    $textToAnalyze = if (-not [string]::IsNullOrWhiteSpace($rawUserText)) { $rawUserText } else { $fallbackTitle }
+    if (-not [string]::IsNullOrWhiteSpace($textToAnalyze)) {
+        $clean = ($textToAnalyze -replace '[\r\n]+', ' ').Trim()
+
+        # Semantik Modul ve Ozellik Tespiti
+        if ($clean -match 'alt\s*işçi|işçiler\s*kutu|küçük\s*kutu') {
+            return "Alt İşçi Ağacı Mimarisi"
+        }
+        if ($clean -match 'çoklu\s*oturum|çakış|3\s*tane|üç\s*tane|oturum\s*kısmı|multi-session') {
+            return "Çoklu Oturum İzolasyonu"
+        }
+        if ($clean -match 'vigiles\s*light|küçük\s*işler|hızlı\s*mod|fast-strike') {
+            return "Vigiles Light Hızlı Mod"
+        }
+        if ($clean -match 'kota|dürt|heartbeat') {
+            return "Otonom Kota Dürtücüsü"
+        }
+        if ($clean -match 'tasarım|renk|tema|ui|görsel|arayüz') {
+            return "Canlı Operasyon UI Tasarımı"
+        }
+        if ($clean -match 'otomatik|komutu\s*kullanılmad') {
+            return "Otomatik Vigiles Başlatma"
+        }
+        if ($clean -match 'baş\s*mimar|planla') {
+            return "Otonom Mimari & Planlama"
+        }
+        if ($clean -match 'mojibake|karakter\s*bozul|türkçe|utf-?8') {
+            return "UTF-8 & Mojibake Onarımı"
+        }
+        if ($clean -match 'push|git\s*push|github') {
+            return "Git & /push Pipeline"
+        }
+        if ($clean -match '^\s*/live\b') {
+            return "Canlı Operasyon Başlatıcı (/live)"
+        }
+
+        # Duz metin temizleme
+        $cleanNoSlash = ($clean -replace '^\s*/[a-zA-Z0-9\-_]+\s*', '').Trim()
+        if ($cleanNoSlash.Length -gt 32) {
+            return $cleanNoSlash.Substring(0, 30) + "..."
+        }
+        if (-not [string]::IsNullOrWhiteSpace($cleanNoSlash)) {
+            return $cleanNoSlash
+        }
+    }
+
     if (-not [string]::IsNullOrWhiteSpace($fallbackTitle) -and 
-        $fallbackTitle -ne "Canli Operasyon" -and 
-        $fallbackTitle -ne "CANLI OPERASYON MERKEZİ DEVREDE" -and 
-        $fallbackTitle -ne "OTURUM DEVREDE") {
-        if ($fallbackTitle.Length -gt 38) { return $fallbackTitle.Substring(0, 35) + "..." }
+        $fallbackTitle -notmatch '^(Canli|CANLI|OTURUM|GÖREV TAMAMLANDI)') {
+        if ($fallbackTitle.Length -gt 32) { return $fallbackTitle.Substring(0, 30) + "..." }
         return $fallbackTitle
     }
 
     $short = if ($cid.Length -gt 8) { $cid.Substring(0, 8) } else { $cid }
-    if (-not [string]::IsNullOrWhiteSpace($wsName) -and $wsName -ne "Antigravity Workspace") {
-        return "$wsName ($short)"
-    }
-
     return "Sohbet ($short)"
 }
 
@@ -355,11 +398,15 @@ while ($listener.IsListening) {
                 if ($_.updatedAt) { try { [datetime]$_.updatedAt } catch { [datetime]::MinValue } } else { [datetime]::MinValue } 
             } -Descending
 
+            $userIndex = 1
             foreach ($s in $sortedList) {
                 $cTitle = if ($s.chatTitle) { $s.chatTitle } else { Get-ConversationDisplayName -cid $s.conversationId -wsName $s.workspaceName -fallbackTitle $s.title }
                 $shortCid = if ($s.conversationId.Length -gt 8) { $s.conversationId.Substring(0, 8) + "..." } else { $s.conversationId }
                 $isTest = ($s.conversationId -match '^(test-|chaos-)')
                 
+                $sessionNum = if (-not $isTest) { "Sohbet #$userIndex" } else { "Test" }
+                if (-not $isTest) { $userIndex++ }
+
                 $timeStr = ""
                 try {
                     $dt = [datetime]$s.updatedAt
@@ -369,6 +416,7 @@ while ($listener.IsListening) {
                 $sessList.Add(@{
                     conversationId = $s.conversationId
                     shortId        = $shortCid
+                    sessionNumber  = $sessionNum
                     chatTitle      = $cTitle
                     workspaceName  = $s.workspaceName
                     title          = $s.title

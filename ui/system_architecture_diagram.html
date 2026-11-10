@@ -212,13 +212,35 @@
 
       <!-- İşçiler + Performans Muhafızı + Güvenlik Muhafızı -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
-        <!-- İşçiler -->
-        <div id="node-workers" onclick="jumpTo(5)" class="node-box cursor-pointer bg-[var(--card)] border-2 border-[var(--border)] rounded-xl p-3 shadow-sm">
-          <div class="flex items-center gap-2 mb-1">
-            <span class="text-base">🛠️</span>
-            <h5 class="font-bold text-xs">8. İŞÇİLER (TDD)</h5>
+        <!-- İşçiler Kolonu (Ana Kutu + Bağlı Alt İşçiler Ağacı) -->
+        <div class="flex flex-col">
+          <div id="node-workers" onclick="jumpTo(5)" class="node-box cursor-pointer bg-[var(--card)] border-2 border-[var(--border)] rounded-xl p-3 shadow-sm relative transition-all duration-300">
+            <div class="flex items-center justify-between mb-1">
+              <div class="flex items-center gap-2">
+                <span class="text-base">🛠️</span>
+                <h5 class="font-bold text-xs">8. İŞÇİLER (TDD)</h5>
+              </div>
+              <span class="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-mono border border-emerald-500/20">Sınırsız Ağaç</span>
+            </div>
+            <p class="text-[10px] text-[var(--muted-foreground)]">Kod + Birim Testini yazar.</p>
           </div>
-          <p class="text-[10px] text-[var(--muted-foreground)]">Kod + Birim Testini yazar.</p>
+
+          <!-- Alt İşçi Kutuları Ağacı -->
+          <div class="relative pl-3.5 mt-1.5 space-y-1">
+            <div class="absolute left-1.5 top-0 bottom-2 w-0.5 border-l-2 border-dashed border-emerald-500/40"></div>
+            <div class="relative flex items-center justify-between p-1.5 rounded-lg bg-[var(--card)] border border-emerald-500/30 text-[9px]">
+              <div class="absolute -left-2 top-1/2 w-2 h-0.5 border-t-2 border-dashed border-emerald-500/40"></div>
+              <span class="font-bold text-emerald-400">İşçi #1</span>
+              <span class="text-zinc-400">TDD Full-Stack</span>
+              <span class="text-emerald-400 font-bold">🟢</span>
+            </div>
+            <div class="relative flex items-center justify-between p-1.5 rounded-lg bg-[var(--card)] border border-emerald-500/30 text-[9px]">
+              <div class="absolute -left-2 top-1/2 w-2 h-0.5 border-t-2 border-dashed border-emerald-500/40"></div>
+              <span class="font-bold text-emerald-400">İşçi #2</span>
+              <span class="text-zinc-400">Birim Testçi</span>
+              <span class="text-emerald-400 font-bold">🟢</span>
+            </div>
+          </div>
         </div>
 
         <!-- Performans Muhafızı -->

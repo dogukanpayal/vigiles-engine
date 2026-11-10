@@ -11,12 +11,19 @@ $suites = @(
     "Test-GitPushManager.ps1",
     "Test-Heartbeat.ps1",
     "Test-MultiSessionTelemetri.ps1",
+    "Test-WorkersSubNodes.ps1",
+    "Test-AuxiliarySection.ps1",
     "Test-VigilesLightIntegrity.ps1",
+    "Test-VigilesIsolation.ps1",
+    "Test-VigilesConsiliumIntegrity.ps1",
+    "Test-ConsiliumScenarioSimulation.ps1",
     "Chaos-Coupon.ps1",
     "Chaos-Wallet.ps1",
     "Chaos-TwoFactor.ps1",
     "Chaos-Heartbeat.ps1",
-    "Chaos-MultiSession.ps1"
+    "Chaos-MultiSession.ps1",
+    "Chaos-WorkersSubNodes.ps1",
+    "Chaos-AuxiliarySection.ps1"
 )
 
 Write-Host "===========================================================" -ForegroundColor Cyan

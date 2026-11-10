@@ -3,8 +3,9 @@ name: vigiles
 description: >-
   Activates the Vigiles Engine Protocol for high-leverage software architecture,
   autonomous TDD/closed-loop execution, subagent orchestration, and strict code quality.
-  Triggered explicitly when the user types /vigiles or asks to activate 'vigiles mode',
-  'veteran mode', 'power mode', or 'architect mode'.
+  Triggered explicitly ONLY when the user types /vigiles or explicitly asks to activate
+  'vigiles mode', 'veteran mode', 'power mode', or 'architect mode'. NEVER self-activate for
+  general programming or standard requests without an explicit /vigiles command.
 ---
 
 # Vigiles Engine Protocol (VEP) — Kurşungeçirmez Otonom Yazılım Şirketi

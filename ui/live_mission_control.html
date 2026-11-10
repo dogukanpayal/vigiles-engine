@@ -191,6 +191,20 @@
       0% { transform: translateX(-100%); }
       100% { transform: translateX(100%); }
     }
+
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.25);
+      border-radius: 9999px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: rgba(148, 163, 184, 0.45);
+    }
   </style>
 </head>
 <body class="bg-[var(--background)] text-[var(--foreground)] antialiased p-5 min-h-screen">
@@ -219,14 +233,41 @@
         </div>
       </div>
 
-      <!-- Middle: Multi-Session Selector (Çoklu Oturum Seçici) -->
-      <div class="flex items-center gap-2 bg-[var(--background)] border border-[var(--border)] px-3 py-1.5 rounded-xl shadow-inner">
-        <span class="text-xs">🛰️</span>
-        <span class="text-[11px] font-bold text-[var(--muted-foreground)] font-mono uppercase tracking-wider">Oturum:</span>
-        <select id="session-select" onchange="onSessionSelectChange(this.value)" class="text-xs font-mono font-semibold bg-transparent text-emerald-400 outline-none cursor-pointer max-w-[240px] sm:max-w-[340px] truncate" title="İzlemek istediğiniz sohbeti seçin">
-          <option value="" class="bg-[var(--card)] text-[var(--foreground)]">Oturumlar Yükleniyor...</option>
-        </select>
-        <span id="session-count-badge" class="text-[10px] px-1.5 py-0.5 rounded font-mono font-bold bg-blue-500/15 text-blue-400 border border-blue-500/30">1 Oturum</span>
+      <!-- Middle: Multi-Session Rich Popover (Çoklu Oturum Zengin Kart Menüsü) -->
+      <div class="relative" id="session-popover-container">
+        <!-- Tetikleyici Düğme (Trigger Button) -->
+        <button type="button" onclick="toggleSessionPopover(event)" id="session-popover-btn" class="flex items-center gap-2.5 bg-[var(--background)] hover:bg-[var(--card)] border border-[var(--border)] hover:border-emerald-500/40 px-3 py-1.5 rounded-xl shadow-sm transition cursor-pointer select-none group text-left">
+          <span class="text-xs flex items-center justify-center w-5 h-5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 group-hover:scale-105 transition-transform">🛰️</span>
+          <div class="flex flex-col justify-center min-w-0">
+            <span class="text-[9px] font-bold text-[var(--muted-foreground)] font-mono uppercase tracking-wider leading-none">İZLENEN SOHBET</span>
+            <span id="current-session-label" class="text-xs font-bold text-emerald-400 font-sans tracking-tight truncate max-w-[190px] sm:max-w-[270px] leading-tight mt-0.5">Yükleniyor...</span>
+          </div>
+          <span id="session-count-badge" class="text-[10px] px-1.5 py-0.5 rounded font-mono font-bold bg-blue-500/15 text-blue-400 border border-blue-500/30 ml-1 shrink-0">1 Sohbet</span>
+          <span class="text-[10px] text-[var(--muted-foreground)] group-hover:text-[var(--foreground)] transition-transform duration-200 shrink-0" id="session-caret">▼</span>
+        </button>
+
+        <!-- Açılır Zengin Kart Paneli (Flyout Panel) -->
+        <div id="session-popover-panel" class="hidden absolute top-full left-0 mt-2 w-[340px] sm:w-[440px] bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-2xl z-50 p-2.5 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
+          <div class="flex items-center justify-between px-2 py-1.5 border-b border-[var(--border)] mb-2">
+            <span class="text-xs font-extrabold tracking-wider text-[var(--foreground)] flex items-center gap-1.5">
+              <span>📡</span> <span>AKTİF ANTIGRAVITY SOHBETLERİ</span>
+            </span>
+            <span class="text-[10px] text-[var(--muted-foreground)] font-mono" id="session-popover-stats">1 Çalışan Chat</span>
+          </div>
+
+          <!-- Gerçek Kullanıcı Sohbetleri Listesi -->
+          <div id="session-cards-list" class="max-h-[320px] overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
+            <!-- Dinamik 2 Satırlı Kartlar Buraya Basılır -->
+          </div>
+
+          <!-- Test Oturumları Akordeonu / Toggle Butonu -->
+          <div id="test-sessions-container" class="hidden mt-2 pt-2 border-t border-[var(--border)]">
+            <button type="button" onclick="toggleTestSessionsView(event)" id="btn-toggle-tests" class="w-full text-center text-[10px] font-mono text-zinc-400 hover:text-zinc-200 py-1 bg-[var(--background)]/60 rounded-lg border border-[var(--border)] flex items-center justify-center gap-1.5 transition">
+              <span>🧪</span> <span id="test-toggle-label">Test Oturumlarını Göster (0)</span>
+            </button>
+            <div id="test-cards-list" class="hidden mt-1.5 max-h-[140px] overflow-y-auto space-y-1 pr-1"></div>
+          </div>
+        </div>
       </div>
 
       <!-- Right: Live Controls -->
@@ -420,17 +461,6 @@
               <span id="badge-workers" class="text-[10px] px-2 py-0.5 rounded bg-[var(--background)] border border-[var(--border)] text-[var(--muted-foreground)] font-mono transition-colors">Beklemede</span>
             </div>
             <p class="text-[10px] text-[var(--muted-foreground)]">Kodu ve birim testlerini yazar, yeşile çevirir.</p>
-
-            <!-- Mini İşçi Havuz Denetleyicisi (Canlı Simülatör / Stepper) -->
-            <div class="mt-2.5 pt-2 border-t border-[var(--border)] flex items-center justify-between">
-              <span class="text-[9px] text-[var(--muted-foreground)] font-mono">İşçi Havuzu:</span>
-              <div class="flex items-center gap-1">
-                <button type="button" onclick="adjustSimulatedWorkers(-1)" title="İşçi Azalt" class="px-1.5 py-0.5 rounded text-[10px] bg-[var(--background)] hover:bg-emerald-500/20 text-[var(--foreground)] border border-[var(--border)] font-bold font-mono transition cursor-pointer select-none">-</button>
-                <span id="worker-count-display" class="text-[10px] font-mono font-bold text-emerald-400 px-1">0</span>
-                <button type="button" onclick="adjustSimulatedWorkers(1)" title="İşçi Ekle" class="px-1.5 py-0.5 rounded text-[10px] bg-[var(--background)] hover:bg-emerald-500/20 text-[var(--foreground)] border border-[var(--border)] font-bold font-mono transition cursor-pointer select-none">+</button>
-                <button type="button" onclick="setSimulatedWorkers(5)" title="5 İşçi Set Et" class="px-1.5 py-0.5 rounded text-[9px] bg-emerald-500/10 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 font-mono transition cursor-pointer select-none">5x</button>
-              </div>
-            </div>
           </div>
 
           <!-- Alt İşçi Kutuları Ağacı (İşçiler Kutusuna Doğrudan Bağlı) -->
@@ -514,45 +544,140 @@
       </div>
     </div>
 
-    <!-- Row 8: DESTEK & SÜRÜM & HAFIZA -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-      <!-- 19. Sentry Can Simidi -->
-      <div id="node-sentry" class="node-box bg-[var(--card)] border-2 border-[var(--border)] rounded-xl p-3 shadow-sm">
-        <div class="flex items-center gap-2 mb-1">
-          <span class="text-base">🩺</span>
-          <h5 class="font-bold text-xs text-rose-400">19. CANLI HATA DEDEKTİFİ</h5>
-        </div>
-        <p class="text-[10px] text-[var(--muted-foreground)]">Canlı logları dinler; hatayı TDD testine çevirir.</p>
-      </div>
-
-      <!-- 20. Git & PR Fabrikası -->
-      <div id="node-pr" class="node-box bg-[var(--card)] border-2 border-[var(--border)] rounded-xl p-3 shadow-sm">
-        <div class="flex items-center justify-between mb-1">
-          <div class="flex items-center gap-2">
-            <span class="text-base">🔀</span>
-            <h5 class="font-bold text-xs text-purple-400">20. GİT & PR FABRİKASI</h5>
+    <!-- ============================================================ -->
+    <!-- AYRI BÖLÜM: YARDIMCI VE STANDBY ELEMANLAR MASASI (GÖLGE DESTEK) -->
+    <!-- ============================================================ -->
+    <div id="auxiliary-section" class="mt-4 pt-4 border-t-2 border-dashed border-indigo-500/30 bg-gradient-to-b from-indigo-950/10 via-[var(--card)] to-[var(--card)] rounded-2xl p-4 border border-[var(--border)] shadow-sm relative overflow-hidden">
+      <!-- Section Header -->
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-3 pb-2.5 border-b border-[var(--border)]">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-xl bg-purple-500/15 border border-purple-500/30 text-purple-400 flex items-center justify-center text-base">
+            🛡️
           </div>
-          <span id="badge-pr" class="text-[9px] px-2 py-0.5 rounded font-bold bg-zinc-500/20 text-zinc-400 border border-zinc-500/40">KAPALI</span>
+          <div>
+            <div class="flex items-center gap-2">
+              <h4 class="font-extrabold text-xs tracking-wide text-purple-400 uppercase">
+                YARDIMCI ELEMANLAR & NÖBETÇİ BİRİMLER (STANDBY EKİP)
+              </h4>
+              <span class="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-300 font-mono border border-purple-500/20">
+                Gölge Destek
+              </span>
+            </div>
+            <p class="text-[10px] text-[var(--muted-foreground)]">
+              Sistem çalışırken sürekli aktif görev almaz; iş bitimi, kriz, gece nöbeti, kota döngüsü veya /push komutuyla tetiklenirler.
+            </p>
+          </div>
         </div>
-        <p class="text-[10px] text-[var(--muted-foreground)]">İsteğe bağlı: Feature branch açar ve PR üretir.</p>
-      </div>
-    </div>
-
-    <!-- Row 9: 3'LÜ ALT NÖBET -->
-    <div class="grid grid-cols-3 gap-2">
-      <div id="node-memory" class="node-box bg-[var(--card)] border border-purple-500/30 rounded-xl p-2.5 shadow-sm text-center">
-        <div class="text-[11px] font-bold text-purple-400">🧠 14. Hafıza Uzmanı</div>
-        <div class="text-[9px] text-[var(--muted-foreground)]">KURALLAR.md yazar</div>
+        <span id="badge-aux-summary" class="text-[10px] px-2.5 py-1 rounded-full font-mono font-bold bg-purple-500/15 text-purple-300 border border-purple-500/30 flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-purple-400 animate-pulse"></span>
+          5 Yardımcı Birim Standby 💤
+        </span>
       </div>
 
-      <div id="node-sentinel" class="node-box bg-[var(--card)] border border-cyan-500/30 rounded-xl p-2.5 shadow-sm text-center">
-        <div class="text-[11px] font-bold text-cyan-400">🌙 17. Gece Nöbetçisi</div>
-        <div class="text-[9px] text-[var(--muted-foreground)]">03:00 Devriyesi</div>
+      <!-- 1. Grup: 3'lü Arka Plan ve Nöbetçi Muhafızlar (Hafıza Uzmanı, Gece Nöbetçisi, Kota Dürtücüsü) -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5 mb-2.5">
+        <!-- 14. Hafıza Uzmanı -->
+        <div id="node-memory" class="node-box bg-[var(--card)] border-2 border-purple-500/30 hover:border-purple-500/60 rounded-xl p-3 shadow-sm transition-all duration-300 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <div class="flex items-center gap-2">
+                <span class="text-base">🧠</span>
+                <h5 class="font-bold text-xs text-purple-400">14. HAFIZA UZMANI</h5>
+              </div>
+              <span id="badge-memory" class="text-[9px] px-2 py-0.5 rounded font-mono font-semibold bg-purple-500/15 text-purple-300 border border-purple-500/30">Uyuyor 💤</span>
+            </div>
+            <p class="text-[10px] text-[var(--muted-foreground)] leading-relaxed">
+              İş bitiminde veya çözülen kriz sonrası 5 sn uyanır; dersi KURALLAR.md kütüğüne mühürler.
+            </p>
+          </div>
+          <div class="mt-2 pt-1.5 border-t border-[var(--border)] flex items-center justify-between text-[9px] font-mono text-[var(--muted-foreground)]">
+            <span class="text-purple-400 font-semibold">Tetikleme:</span>
+            <span>Görev Sonu / Post-Mortem</span>
+          </div>
+        </div>
+
+        <!-- 17. Gece Nöbetçisi -->
+        <div id="node-sentinel" class="node-box bg-[var(--card)] border-2 border-cyan-500/30 hover:border-cyan-500/60 rounded-xl p-3 shadow-sm transition-all duration-300 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <div class="flex items-center gap-2">
+                <span class="text-base">🌙</span>
+                <h5 class="font-bold text-xs text-cyan-400">17. GECE NÖBETÇİSİ</h5>
+              </div>
+              <span id="badge-sentinel" class="text-[9px] px-2 py-0.5 rounded font-mono font-semibold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">03:00 Bekliyor 🌙</span>
+            </div>
+            <p class="text-[10px] text-[var(--muted-foreground)] leading-relaxed">
+              Gece 03:00'te bağımsız uyanır; güvenlik açıklarını, paket güncellemelerini ve regresyon testlerini tarar.
+            </p>
+          </div>
+          <div class="mt-2 pt-1.5 border-t border-[var(--border)] flex items-center justify-between text-[9px] font-mono text-[var(--muted-foreground)]">
+            <span class="text-cyan-400 font-semibold">Tetikleme:</span>
+            <span>03:00 Cron Servisi</span>
+          </div>
+        </div>
+
+        <!-- 18. Kota Dürtücüsü -->
+        <div id="node-heartbeat" class="node-box bg-[var(--card)] border-2 border-amber-500/30 hover:border-amber-500/60 rounded-xl p-3 shadow-sm transition-all duration-300 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <div class="flex items-center gap-2">
+                <span class="text-base">⚡</span>
+                <h5 class="font-bold text-xs text-amber-400">18. KOTA DÜRTÜCÜSÜ</h5>
+              </div>
+              <span id="badge-heartbeat" class="text-[9px] px-2 py-0.5 rounded font-mono font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30">Standby ⏱️</span>
+            </div>
+            <p class="text-[10px] text-[var(--muted-foreground)] leading-relaxed">
+              Kota sıfırlanma döngüsünde 1-token micro-ping atarak sonraki kullanım penceresini zamanında açar.
+            </p>
+          </div>
+          <div class="mt-2 pt-1.5 border-t border-[var(--border)] flex items-center justify-between text-[9px] font-mono text-[var(--muted-foreground)]">
+            <span class="text-amber-400 font-semibold">Tetikleme:</span>
+            <span>5 Saatte Bir / Heartbeat</span>
+          </div>
+        </div>
       </div>
 
-      <div id="node-heartbeat" class="node-box bg-[var(--card)] border border-amber-500/30 rounded-xl p-2.5 shadow-sm text-center">
-        <div class="text-[11px] font-bold text-amber-400">⚡ 18. Kota Dürtücüsü</div>
-        <div class="text-[9px] text-[var(--muted-foreground)]">1-Token Ping</div>
+      <!-- 2. Grup: Çağrı ve Olay Üzerine Tetiklenen Birimler (Canlı Hata Dedektifi, Git & Dağıtım Fabrikası) -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+        <!-- 19. Canlı Hata Dedektifi -->
+        <div id="node-sentry" class="node-box bg-[var(--card)] border-2 border-rose-500/30 hover:border-rose-500/60 rounded-xl p-3 shadow-sm transition-all duration-300 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <div class="flex items-center gap-2">
+                <span class="text-base">🩺</span>
+                <h5 class="font-bold text-xs text-rose-400">19. CANLI HATA DEDEKTİFİ</h5>
+              </div>
+              <span id="badge-sentry" class="text-[9px] px-2 py-0.5 rounded font-mono font-semibold bg-rose-500/15 text-rose-300 border border-rose-500/30">Dinlemede 📡</span>
+            </div>
+            <p class="text-[10px] text-[var(--muted-foreground)] leading-relaxed">
+              Canlı log veya telemetriyi dinler; patlayan istisnaları yakalayıp çözücü TDD birim testine çevirir.
+            </p>
+          </div>
+          <div class="mt-2 pt-1.5 border-t border-[var(--border)] flex items-center justify-between text-[9px] font-mono text-[var(--muted-foreground)]">
+            <span class="text-rose-400 font-semibold">Tetikleme:</span>
+            <span>İstisna / Exception Anında</span>
+          </div>
+        </div>
+
+        <!-- 20. Git & Dağıtım Fabrikası -->
+        <div id="node-pr" class="node-box bg-[var(--card)] border-2 border-indigo-500/30 hover:border-indigo-500/60 rounded-xl p-3 shadow-sm transition-all duration-300 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <div class="flex items-center gap-2">
+                <span class="text-base">🔀</span>
+                <h5 class="font-bold text-xs text-indigo-400">20. GİT & DAĞITIM FABRİKASI</h5>
+              </div>
+              <span id="badge-pr" class="text-[9px] px-2 py-0.5 rounded font-bold bg-zinc-500/20 text-zinc-400 border border-zinc-500/40">KAPALI</span>
+            </div>
+            <p class="text-[10px] text-[var(--muted-foreground)] leading-relaxed">
+              Sıfır Otomatik Git ilkesi: Kodlama anında uyur. Yargıç onayından sonra /push komutuyla tek hamlede GitHub'a iletir.
+            </p>
+          </div>
+          <div class="mt-2 pt-1.5 border-t border-[var(--border)] flex items-center justify-between text-[9px] font-mono text-[var(--muted-foreground)]">
+            <span class="text-indigo-400 font-semibold">Tetikleme:</span>
+            <span>Kullanıcı /push Komutu</span>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -749,7 +874,7 @@
       }
     }
 
-    // --- 8. İŞÇİLER ALT AĞACI VE SINIRSIZ DİNAMİK KUTU MOTORU ---
+    // --- 8. İŞÇİLER ALT AĞACI VE SINIRSIZ DİNAMİK KUTU MOTORU (OTONOM) ---
     const defaultWorkerRoles = [
       { role: "TDD Full-Stack", detail: "Kaynak kod ve birim test geliştiriliyor" },
       { role: "Birim Testçi", detail: "Test senaryoları çalıştırılıyor" },
@@ -761,14 +886,10 @@
       { role: "Kaos Denetçisi", detail: "Sınır durum ve dayanıklılık testi" }
     ];
 
-    let simulatedWorkerCount = 0;
-    let currentWorkerState = null;
-
     function renderWorkers(s) {
       const treeContainer = document.getElementById('workers-sub-tree');
       const listContainer = document.getElementById('workers-sub-list');
       const badgeWorkers = document.getElementById('badge-workers');
-      const countDisplay = document.getElementById('worker-count-display');
       if (!treeContainer || !listContainer) return;
 
       const isWorkersActive = (s && s.activeNode === 'node-workers') || (s && (s.step === 6 || s.step === 7));
@@ -787,17 +908,6 @@
             statusLabel: 'Aktif 🟢'
           });
         }
-      } else if (simulatedWorkerCount > 0) {
-        for (let i = 0; i < simulatedWorkerCount; i++) {
-          const rolePreset = defaultWorkerRoles[i % defaultWorkerRoles.length];
-          workerItems.push({
-            id: i + 1,
-            name: `İşçi #${i + 1}`,
-            role: rolePreset.role,
-            detail: rolePreset.detail,
-            statusLabel: 'Aktif 🟢'
-          });
-        }
       } else if (isWorkersActive) {
         workerItems.push({
           id: 1,
@@ -809,9 +919,8 @@
       }
 
       const totalCount = workerItems.length;
-      if (countDisplay) countDisplay.innerText = totalCount;
 
-      if (totalCount > 0 && (isWorkersActive || simulatedWorkerCount > 0 || (s && s.workers && s.workers.length > 0))) {
+      if (totalCount > 0 && (isWorkersActive || (s && s.workers && s.workers.length > 0))) {
         treeContainer.classList.remove('hidden');
         if (badgeWorkers) {
           badgeWorkers.innerText = `${totalCount} İşçi Aktif ⚡`;
@@ -864,20 +973,9 @@
       }
     }
 
-    function adjustSimulatedWorkers(delta) {
-      simulatedWorkerCount = Math.max(0, simulatedWorkerCount + delta);
-      renderWorkers(currentWorkerState || { activeNode: 'node-workers', step: 6 });
-    }
-
-    function setSimulatedWorkers(n) {
-      simulatedWorkerCount = Math.max(0, n);
-      renderWorkers(currentWorkerState || { activeNode: 'node-workers', step: 6 });
-    }
-
     // Strictly State-Driven Renderer (No auto-timers, no fake progression!)
     function renderState(s) {
       if (!s) return;
-      currentWorkerState = s;
       document.getElementById('live-sender').innerText = fixMojibake(s.sender || "Antigravity");
       document.getElementById('live-step-tag').innerText = fixMojibake(s.title || `AŞAMA ${s.step} / ${s.totalSteps || 15}`);
       document.getElementById('live-message').innerText = fixMojibake(s.message || "");
@@ -894,7 +992,6 @@
       renderWorkers(s);
 
       if (s.activeNode === 'node-user') {
-        simulatedWorkerCount = 0;
         const pr = document.getElementById('badge-pr');
         if (pr) { pr.innerText = 'KAPALI'; pr.className = 'text-[9px] px-2 py-0.5 rounded font-bold bg-zinc-500/20 text-zinc-400 border border-zinc-500/40'; }
         const tester = document.getElementById('badge-tester');
@@ -903,6 +1000,14 @@
         if (chaos) { chaos.innerText = 'Beklemede'; chaos.className = 'text-[10px] px-2 py-0.5 rounded bg-[var(--background)] border border-[var(--border)] text-[var(--muted-foreground)]'; }
         const chief = document.getElementById('badge-chief');
         if (chief) { chief.innerText = 'Beklemede'; chief.className = 'text-[10px] px-2 py-0.5 rounded bg-[var(--background)] border border-[var(--border)] text-[var(--muted-foreground)]'; }
+        const badgeMem = document.getElementById('badge-memory');
+        if (badgeMem) { badgeMem.innerText = 'Uyuyor 💤'; badgeMem.className = 'text-[9px] px-2 py-0.5 rounded font-mono font-semibold bg-purple-500/15 text-purple-300 border border-purple-500/30'; }
+        const badgeSent = document.getElementById('badge-sentinel');
+        if (badgeSent) { badgeSent.innerText = '03:00 Bekliyor 🌙'; badgeSent.className = 'text-[9px] px-2 py-0.5 rounded font-mono font-semibold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30'; }
+        const badgeHb = document.getElementById('badge-heartbeat');
+        if (badgeHb) { badgeHb.innerText = 'Standby ⏱️'; badgeHb.className = 'text-[9px] px-2 py-0.5 rounded font-mono font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30'; }
+        const badgeSentry = document.getElementById('badge-sentry');
+        if (badgeSentry) { badgeSentry.innerText = 'Dinlemede 📡'; badgeSentry.className = 'text-[9px] px-2 py-0.5 rounded font-mono font-semibold bg-rose-500/15 text-rose-300 border border-rose-500/30'; }
       }
 
       if (s.badge) {
@@ -996,6 +1101,45 @@
     let currentConversationId = detectConversationId();
     let evtSource = null;
     let fetchTimeout = null;
+    let showTestsInPopover = false;
+
+    function toggleSessionPopover(e) {
+      if (e) e.stopPropagation();
+      const panel = document.getElementById('session-popover-panel');
+      const caret = document.getElementById('session-caret');
+      if (!panel) return;
+      const isHidden = panel.classList.contains('hidden');
+      if (isHidden) {
+        panel.classList.remove('hidden');
+        if (caret) caret.style.transform = 'rotate(180deg)';
+        fetchSessionsList();
+      } else {
+        closeSessionPopover();
+      }
+    }
+
+    function closeSessionPopover() {
+      const panel = document.getElementById('session-popover-panel');
+      const caret = document.getElementById('session-caret');
+      if (panel) panel.classList.add('hidden');
+      if (caret) caret.style.transform = 'rotate(0deg)';
+    }
+
+    function toggleTestSessionsView(e) {
+      if (e) e.stopPropagation();
+      showTestsInPopover = !showTestsInPopover;
+      const testList = document.getElementById('test-cards-list');
+      if (testList) {
+        testList.classList.toggle('hidden', !showTestsInPopover);
+      }
+    }
+
+    document.addEventListener('click', function(e) {
+      const container = document.getElementById('session-popover-container');
+      if (container && !container.contains(e.target)) {
+        closeSessionPopover();
+      }
+    });
 
     function debouncedFetchSessions() {
       if (fetchTimeout) clearTimeout(fetchTimeout);
@@ -1010,83 +1154,135 @@
         const data = await resp.json();
         const list = Array.isArray(data) ? data : (data.sessions || []);
 
-        const selectEl = document.getElementById('session-select');
+        const labelEl = document.getElementById('current-session-label');
         const countBadge = document.getElementById('session-count-badge');
-        if (!selectEl) return;
-
-        if (countBadge) {
-          countBadge.innerText = `${list.length} Sohbet`;
-        }
-
-        selectEl.innerHTML = "";
-
-        if (list.length === 0) {
-          const opt = document.createElement('option');
-          opt.value = currentConversationId || "";
-          opt.innerText = currentConversationId ? `Varsayılan (${currentConversationId.substring(0, 8)})` : "Aktif Sohbet Aranıyor...";
-          selectEl.appendChild(opt);
-          return;
-        }
+        const cardsContainer = document.getElementById('session-cards-list');
+        const statsEl = document.getElementById('session-popover-stats');
+        const testContainer = document.getElementById('test-sessions-container');
+        const testList = document.getElementById('test-cards-list');
+        const testToggleLabel = document.getElementById('test-toggle-label');
 
         const userSessions = list.filter(s => !s.isTest);
         const testSessions = list.filter(s => s.isTest);
 
         if (countBadge) {
-          countBadge.innerText = `${userSessions.length || list.length} Sohbet`;
+          countBadge.innerText = `${userSessions.length || 1} Sohbet`;
+        }
+        if (statsEl) {
+          statsEl.innerText = `${userSessions.length} Çalışan Chat`;
         }
 
-        let hasMatch = false;
-
-        function createOption(sess) {
-          const opt = document.createElement('option');
-          opt.value = sess.conversationId;
-          const statusDot = sess.status === 'TESLIM_EDILDI' ? '✅' : (sess.status === 'HAZIR' ? '⚪' : '🟢');
-          const title = fixMojibake(sess.chatTitle || sess.title || sess.workspaceName || 'Antigravity Sohbet');
-          const stepInfo = `[Aşama ${sess.step || 1}]`;
-          const timeInfo = sess.timeStr ? `(${sess.timeStr})` : '';
-          const isCurrent = (sess.conversationId === currentConversationId);
-          const currentTag = isCurrent ? ' ★' : '';
-
-          opt.innerText = `${statusDot} ${title}${currentTag} ${stepInfo} ${timeInfo}`.replace(/\s+/g, ' ').trim();
-          opt.className = "bg-[var(--card)] text-[var(--foreground)]";
-
-          if (isCurrent) {
-            opt.selected = true;
-            hasMatch = true;
+        // Aktif sohbetin etiketini guncelle
+        let currentMatched = false;
+        for (let s of list) {
+          if (s.conversationId === currentConversationId) {
+            currentMatched = true;
+            if (labelEl) {
+              const num = s.sessionNumber ? `${s.sessionNumber}: ` : '';
+              labelEl.innerText = `${num}${s.chatTitle || 'Sohbet'}`;
+            }
+            break;
           }
-          return opt;
+        }
+        if (!currentMatched && currentConversationId && labelEl) {
+          labelEl.innerText = `Sohbet (${currentConversationId.substring(0, 8)}...)`;
         }
 
-        userSessions.forEach(sess => {
-          selectEl.appendChild(createOption(sess));
+        if (!cardsContainer) return;
+        cardsContainer.innerHTML = "";
+
+        if (userSessions.length === 0) {
+          cardsContainer.innerHTML = `<div class="p-3 text-center text-xs text-[var(--muted-foreground)]">Aktif sohbet aranıyor...</div>`;
+          return;
+        }
+
+        userSessions.forEach((sess, idx) => {
+          const isCurrent = (sess.conversationId === currentConversationId);
+          const card = document.createElement('div');
+          
+          const isDone = (sess.status === 'TESLIM_EDILDI');
+          const statusDot = isDone ? '✅' : '🟢';
+          const statusText = isDone ? 'Tamamlandı' : 'Çalışıyor';
+          const statusColor = isDone ? 'text-blue-400 bg-blue-500/10 border-blue-500/30' : 'text-emerald-400 bg-emerald-500/15 border-emerald-500/30';
+          
+          const title = fixMojibake(sess.chatTitle || sess.title || sess.workspaceName || 'Antigravity Sohbet');
+          const sessionNum = sess.sessionNumber || `Sohbet #${idx + 1}`;
+          const timeStr = sess.timeStr || '';
+          const wsName = sess.workspaceName || '';
+          const stepTag = `Aşama ${sess.step || 1}/${sess.totalSteps || 15}`;
+
+          card.className = `p-2.5 rounded-xl border transition cursor-pointer select-none ${
+            isCurrent 
+              ? 'bg-emerald-500/10 border-emerald-500/40 shadow-sm ring-1 ring-emerald-500/20' 
+              : 'bg-[var(--background)] hover:bg-[var(--card)] border-[var(--border)] hover:border-blue-500/30'
+          }`;
+
+          card.onclick = function() {
+            selectSession(sess.conversationId);
+          };
+
+          card.innerHTML = `
+            <div class="flex items-start justify-between gap-2.5">
+              <div class="flex items-start gap-2.5 min-w-0">
+                <span class="w-6 h-6 rounded-lg ${isCurrent ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'bg-zinc-700/30 text-zinc-400 border border-zinc-700/50'} flex items-center justify-center text-[10px] font-bold font-mono shrink-0 mt-0.5">
+                  #${idx + 1}
+                </span>
+                <div class="min-w-0">
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="text-xs font-bold text-[var(--foreground)] tracking-tight truncate">${title}</span>
+                    ${isCurrent ? '<span class="text-[9px] px-1.5 py-0.5 rounded font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 leading-none">📍 Bu Sohbet</span>' : ''}
+                  </div>
+                  <div class="text-[10px] text-[var(--muted-foreground)] font-mono flex items-center gap-1.5 mt-1 truncate">
+                    <span class="${isDone ? 'text-blue-400' : 'text-emerald-400'} font-semibold">● ${stepTag}</span>
+                    <span>•</span>
+                    <span class="truncate">${wsName}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="text-right shrink-0 flex flex-col items-end">
+                <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-md border ${statusColor} leading-none">
+                  ${statusText} ${statusDot}
+                </span>
+                <span class="text-[9px] text-[var(--muted-foreground)] font-mono mt-1">${timeStr}</span>
+              </div>
+            </div>
+          `;
+          cardsContainer.appendChild(card);
         });
 
-        if (testSessions.length > 0) {
-          const grp = document.createElement('optgroup');
-          grp.label = "🧪 Otomatik Testler";
-          grp.className = "bg-[var(--card)] text-[var(--muted-foreground)] font-mono text-[10px]";
-          testSessions.forEach(sess => {
-            grp.appendChild(createOption(sess));
-          });
-          selectEl.appendChild(grp);
-        }
-
-        if (!hasMatch && currentConversationId) {
-          const opt = document.createElement('option');
-          opt.value = currentConversationId;
-          opt.innerText = `🟢 Bu Sohbet (${currentConversationId.substring(0, 8)}...) ★`;
-          opt.selected = true;
-          selectEl.insertBefore(opt, selectEl.firstChild);
+        // Test Oturumları Kısmı
+        if (testContainer && testList) {
+          if (testSessions.length > 0) {
+            testContainer.classList.remove('hidden');
+            if (testToggleLabel) {
+              testToggleLabel.innerText = `Test Oturumlarını Göster (${testSessions.length})`;
+            }
+            testList.innerHTML = "";
+            testSessions.forEach(sess => {
+              const tCard = document.createElement('div');
+              tCard.className = "p-1.5 rounded-lg border border-[var(--border)] bg-[var(--background)] hover:bg-[var(--card)] text-[10px] font-mono flex items-center justify-between cursor-pointer text-zinc-400 hover:text-zinc-200";
+              tCard.onclick = function() { selectSession(sess.conversationId); };
+              tCard.innerHTML = `
+                <span class="truncate">🧪 ${sess.conversationId} [Aşama ${sess.step || 1}]</span>
+                <span class="shrink-0 text-[9px] text-zinc-500 ml-1">${sess.timeStr || ''}</span>
+              `;
+              testList.appendChild(tCard);
+            });
+          } else {
+            testContainer.classList.add('hidden');
+          }
         }
       } catch (e) {}
     }
 
-    function onSessionSelectChange(selectedCid) {
-      if (!selectedCid || selectedCid === currentConversationId) return;
+    function selectSession(selectedCid) {
+      if (!selectedCid) return;
       currentConversationId = selectedCid;
       addEventLog("SİSTEM", `İzlenen oturum değiştirildi: ${selectedCid}`);
+      closeSessionPopover();
       initSSE();
       fetchSessionState(selectedCid);
+      fetchSessionsList();
     }
 
     async function fetchSessionState(cid) {

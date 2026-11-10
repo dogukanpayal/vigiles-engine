@@ -1,4 +1,4 @@
-﻿param()
+param()
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 [Console]::InputEncoding  = [System.Text.Encoding]::UTF8
@@ -11,6 +11,7 @@ $conversationId = ""
 
 $wsName = "Antigravity Workspace"
 if (-not [string]::IsNullOrWhiteSpace($rawInput)) {
+    $rawInput = $rawInput.Trim().Trim([char]65279)
     try {
         $payload = $rawInput | ConvertFrom-Json
         if ($payload.artifactDirectoryPath) { $artifactDir = $payload.artifactDirectoryPath }
@@ -32,6 +33,22 @@ if ([string]::IsNullOrWhiteSpace($artifactDir)) {
 
 if ([string]::IsNullOrWhiteSpace($artifactDir) -and -not [string]::IsNullOrWhiteSpace($conversationId)) {
     $artifactDir = "C:\Users\Dogukan\.gemini\antigravity\brain\$conversationId"
+}
+
+# Vigiles İzolasyon Kontrolü:
+# Bu oturumda /vigiles veya /live komutu çalıştırılmamışsa (artifact dizininde .vigiles_active yoksa)
+# kanca hiçbir işlem yapmadan ve telemetri yayınlamadan anında çıkar.
+$isVigilesActive = $false
+if (-not [string]::IsNullOrWhiteSpace($artifactDir) -and (Test-Path $artifactDir)) {
+    $markerFile = Join-Path $artifactDir ".vigiles_active"
+    if (Test-Path $markerFile) {
+        $isVigilesActive = $true
+    }
+}
+
+if (-not $isVigilesActive) {
+    Write-Output "{}"
+    exit 0
 }
 
 # Görev Tamamlandı Durumu (1. SİZ - Şirket Sahibi / Vibe Coder)
@@ -61,6 +78,15 @@ $completionState = @{
         defectsOpen    = 0
         secretsBlocked = 0
         bloatBlocked   = 0
+    }
+}
+
+$completionState["workerCount"] = 0
+$completionState["workers"] = @()
+if (-not [string]::IsNullOrWhiteSpace($artifactDir)) {
+    $workersFile = Join-Path $artifactDir "active_workers.json"
+    if (Test-Path $workersFile) {
+        Remove-Item $workersFile -Force -ErrorAction SilentlyContinue
     }
 }
 
