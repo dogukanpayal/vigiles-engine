@@ -2,7 +2,7 @@
 *Bu dosya görevin canlı durumunu, kabul kriterlerini ve test kanıtlarını takip eden yaşayan belgedir.*
 
 **Görev Adı:** 18. Eleman: KOTA DÜRTÜCÜSÜ (Heartbeat Sentinel) Otonom Arka Plan Entegrasyonu  
-**Tarih / Saat:** 2026-11-10 21:30:00  
+**Tarih / Saat:** 2026-11-10 21:41:00  
 **Çalışma Vitesi:** 🏛️ Vigiles Engine Protocol (20 Elemanlı Fabrika)  
 **Git & Dağıtım Modu:** TAM MANUEL KONTROL (Sıfır Otomatik Git / Kullanıcı Kontrollü /push)  
 
@@ -10,40 +10,46 @@
 
 ## 🎯 1. Görev Özeti ve Vizyon
 *Şirket Sahibinin (Sizin) verdiği vizyon ve temel beklenti:*
-> "Bu dürtme mekanizmasını Bilgisayarım Açıkken, Ben Hiçbir Şey Yapmasam Bile Kendi Kendine Dürtmesi şeklinde tamamlayalım."
+> "Bu dürtme mekanizmasını Bilgisayarım Açıkken, Ben Hiçbir Şey Yapmasam Bile Kendi Kendine Dürtmesi şeklinde tamamlayalım. (Seçim: Her 5 saatte bir, geniş aralıklı, minimum yük)"
 
 ---
 
 ## 📐 2. Baş Mimar Kabul Kriterleri
 | # | Kabul Kriteri | Beklenen Çıktı / Davranış | Doğrulama Yöntemi | Durum |
 | :-: | :--- | :--- | :--- | :-: |
-| 1 | Otonom Arka Plan Betiği | `heartbeat_sentinel.ps1` oluşturulması; minimum kaynakla (1-token mikro-ping) Antigravity motoruna uyanma sinyali göndermesi. | PowerShell betik doğrulama & kuru koşum (dry-run) | ⏳ BEKLİYOR |
-| 2 | Sıfır Müdahale (Zero-Touch Daemon) | Bilgisayar açık olduğu sürece kullanıcının hiçbir işlem yapmasına gerek kalmadan belirlenen periyotta otomatik tetiklenmesi. | Windows Görev Zamanlayıcısı / Arka Plan Servis Kaydı | ⏳ BEKLİYOR |
-| 3 | Canlı Günlükleme (Audit Trail) | Her dürtmenin zaman damgası, model yanıtı ve durumu `heartbeat.log` dosyasına temizce işlenmesi. | Log formatı ve dosya yazım testi | ⏳ BEKLİYOR |
-| 4 | Anti-Bloat & Güvenlik | Sıfır harici bağımlılık, sıfır API anahtarı sızıntısı; yalnızca mevcut yerel Antigravity istemci kimliği (`agy` / `agentapi`) ile çalışması. | `sentinel_guard.ps1` Anti-Bloat & Zero-Leak Taraması | ⏳ BEKLİYOR |
-| 5 | TDD Birim & Stres Doğrulaması | `Test-Heartbeat.ps1` ile servisin başlatma, durdurma, loglama ve ping döngülerinin doğrulanması. | Pester / PowerShell TDD Test Koşumu | ⏳ BEKLİYOR |
-| 6 | Canlı Operasyon Merkezi Senkronizasyonu | Kalp atışlarının Canlı Operasyon Merkezi'nde (Port 9999) `18. KOTA DÜRTÜCÜSÜ` üzerinde anlık telemetri olarak parlaması. | SSE Telemetri Olay Testi | ⏳ BEKLİYOR |
-| 7 | Şirket Anayasası Kaydı | Sistemin çalışma mantığının `KURALLAR.md`'ye kalıcı kural olarak eklenmesi. | `KURALLAR.md` Hafıza Uzmanı Kaydı | ⏳ BEKLİYOR |
+| 1 | Otonom Kalp Atışı Betiği | `heartbeat_sentinel.ps1`: `agy` istemcisi üzerinden API anahtarsız 1-token mikro-ping fırlatabilmesi. | PowerShell canlı ping & kuru koşum testi | ✅ GEÇTİ |
+| 2 | 5 Saatlik Otonom Döngü | Kullanıcı bilgisayara dokunmasa dahi Windows Görev Zamanlayıcısı ile her 5 saatte bir sessizce çalışması. | `manage_heartbeat.ps1` & Scheduled Task (`VigilesKotaDurtucusu`) | ✅ GEÇTİ |
+| 3 | Canlı Telemetri & Log Kaydı | Port 9999 SSE hattına `KD` etkinliği basması ve `heartbeat.log` kütüğüne UTF-8 yazması. | `heartbeat.log` doğrulandı, telemetri köprüsü bağlandı | ✅ GEÇTİ |
+| 4 | Sıfır Müdahale & Fail-Safe | Hatalı model, geçersiz log yolu veya ağ kopmasında kilitlenmemesi, zaman aşımı koruması. | `Chaos-Heartbeat.ps1` (3/3 Dirençli) | ✅ GEÇTİ |
+| 5 | TDD Birim Test Paketi | `Test-Heartbeat.ps1` birim testlerinin %100 yeşile dönmesi. | Pester / PowerShell TDD (6/6 Geçti) | ✅ GEÇTİ |
+| 6 | Anti-Bloat & Zero-Leak | Sıfır harici paket, sıfır secret sızıntısı; yalnızca yerel `agy` oturumu kullanımı. | `sentinel_guard.ps1` Kanca Denetimi | ✅ GEÇTİ |
+| 7 | Şirket Anayasası Kuralı | KURAL-011 olarak `KURALLAR.md` ve şablon kütüğüne işlenmesi. | Hafıza Uzmanı Kütük Kaydı | ✅ GEÇTİ |
 
 ---
 
 ## 🚧 3. Şantiye İlerleme Çizelgesi
-- [x] **Aşama 1: Baş Mimar Analizi & Mimari Planlama** (Gereksinimler netleştirildi, kabul kriterleri belirlendi)
-- [ ] **Aşama 2: Karar Süzgeci** (Şirket Sahibine dürtme sıklığı onaylatılacak)
-- [ ] **Aşama 3: TDD Test Paketi (`Test-Heartbeat.ps1`)** (Özel Tester kırmızı testi yazacak)
-- [ ] **Aşama 4: İşçi Uygulaması (`heartbeat_sentinel.ps1`)** (Hafif ve kurşungeçirmez kalp atışı betiği kodlanacak)
-- [ ] **Aşama 5: Otonom Arka Plan Kurulumu** (Windows Görev Zamanlayıcısı / Kesintisiz Daemon entegrasyonu)
-- [ ] **Aşama 6: Kaos & Stres Testi** (Ağ kopması, eşzamanlı çalışma ve işlem kilitlenmesi simülasyonu)
-- [ ] **Aşama 7: Bağımsız Yargıç Onayı** (Tüm testlerin yeşile döndüğünün mühürlenmesi)
-- [ ] **Aşama 8: Hafıza Uzmanı & Teslimat** (Kurallar güncellenecek, `/push` için kullanıcıya devredilecek)
+- [x] **Aşama 1: Baş Mimar Analizi & Mimari Planlama** (Kriterler belirlendi, CLI testi başarılı)
+- [x] **Aşama 2: Karar Süzgeci** (Kullanıcı tarafından 5 saatlik periyot onaylandı)
+- [x] **Aşama 3: Özel Tester TDD Paketi (`Test-Heartbeat.ps1`)** (6/6 Yeşil)
+- [x] **Aşama 4: İşçi Uygulaması (`heartbeat_sentinel.ps1` & `manage_heartbeat.ps1`)** (Başarıyla kodlandı)
+- [x] **Aşama 5: Windows Görev Zamanlayıcı Kurulumu & Canlı Test** (`VigilesKotaDurtucusu` görevi kuruldu, canlı ping 'pong' yanıtı aldı)
+- [x] **Aşama 6: Kaos Mühendisi Stres Testi (`Chaos-Heartbeat.ps1`)** (3/3 Dirençli)
+- [x] **Aşama 7: Büyük Konsolide Sistem Doğrulaması (`Run-MasterVerification.ps1`)** (10 / 10 Test Paketi Eksiksiz Başarılı)
+- [x] **Aşama 8: Hafıza Uzmanı & Kural Güncellemesi** (`[KURAL-011]` anayasaya işlendi)
+- [x] **Aşama 9: Dağıtıma Hazır Bildirimi** (Sıfır Otomatik Git ilkesi: `/push` bekliyor)
 
 ---
 
 ## ❌ 4. Açık Kusurlar ve Düzeltme Kayıtları (Red Döngüsü)
-*Henüz açık kusur yok.*
+*Tüm testler ve kontroller başarıyla tamamlandı; açık kusur bulunmuyor.*
 
 ---
 
 ## 📸 5. Doğrulama ve Kanıt Dosyaları
-* **Baş Mimar Planı:** [DURUM.md](file:///c:/Users/Dogukan/Desktop/Antigravity%20Improvement/DURUM.md)
-* **Kalıcı Kurallar:** [KURALLAR.md](file:///c:/Users/Dogukan/Desktop/Antigravity%20Improvement/KURALLAR.md)
+* **Kalp Atışı Betiği:** [heartbeat_sentinel.ps1](file:///c:/Users/Dogukan/Desktop/Antigravity%20Improvement/core/scripts/heartbeat_sentinel.ps1)
+* **Görev Yöneticisi:** [manage_heartbeat.ps1](file:///c:/Users/Dogukan/Desktop/Antigravity%20Improvement/core/scripts/manage_heartbeat.ps1)
+* **Canlı Log Kaydı:** [heartbeat.log](file:///c:/Users/Dogukan/Desktop/Antigravity%20Improvement/heartbeat.log)
+* **TDD Testi:** [Test-Heartbeat.ps1](file:///c:/Users/Dogukan/Desktop/Antigravity%20Improvement/Test-Heartbeat.ps1)
+* **Kaos Testi:** [Chaos-Heartbeat.ps1](file:///c:/Users/Dogukan/Desktop/Antigravity%20Improvement/Chaos-Heartbeat.ps1)
+* **Konsolide Doğrulama:** `Run-MasterVerification.ps1` (10 / 10 Başarılı)
+* **Yargıç Mührü:** ✅ ONAYLANDI (Tüm kabul kriterleri %100 sağlandı, Sıfır Otomatik Git devrede)

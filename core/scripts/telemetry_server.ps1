@@ -24,9 +24,36 @@ function Repair-Utf8String([string]$str) {
             $rawBytes = [System.Text.Encoding]::GetEncoding(1252).GetBytes($str)
             $candidate = [System.Text.Encoding]::UTF8.GetString($rawBytes)
             if (-not $candidate.Contains([char]0xFFFD)) {
-                return $candidate
+                $str = $candidate
             }
         } catch {}
+
+        # Guvenli Regex Kurtarma (Kalan veya karisik bozukluklari onarir)
+        $str = $str -replace 'GÃ–REV|GÃ-REV', 'GÖREV' `
+                    -replace 'SÄ°Z|SÃ°Z', 'SİZ' `
+                    -replace 'ÅžÄ°RKET|ÅŽÄ°RKET|ÅžİRKET|ÅŽİRKET', 'ŞİRKET' `
+                    -replace 'Åžirket|ÅŽirket', 'Şirket' `
+                    -replace 'TÃ¼m', 'Tüm' `
+                    -replace 'iÅŸlemler', 'işlemler' `
+                    -replace 'tamamlandÄ±', 'tamamlandı' `
+                    -replace 'Ã§Ä±ktÄ±', 'çıktı' `
+                    -replace 'kontrolÃ¼', 'kontrolü' `
+                    -replace 'elemanlÄ±', 'elemanlı' `
+                    -replace 'gÃ¶revini', 'görevini' `
+                    -replace 'AlÄ±ndÄ±', 'Alındı' `
+                    -replace 'HazÄ±r', 'Hazır' `
+                    -replace 'Åž|ÅŽ', 'Ş' `
+                    -replace 'ÅŸ', 'ş' `
+                    -replace 'Ä°|Ã°', 'İ' `
+                    -replace 'Ä±|Ã±', 'ı' `
+                    -replace 'Ã–|Ã-', 'Ö' `
+                    -replace 'Ã¶', 'ö' `
+                    -replace 'Ãœ', 'Ü' `
+                    -replace 'Ã¼', 'ü' `
+                    -replace 'Ã‡', 'Ç' `
+                    -replace 'Ã§', 'ç' `
+                    -replace 'Äž|ÄŽ', 'Ğ' `
+                    -replace 'ÄŸ', 'ğ'
     }
     return $str
 }

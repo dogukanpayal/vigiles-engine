@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
@@ -537,7 +537,7 @@
   </div>
 
   <!-- Zero-CORS Dynamic Script Bridge -->
-  <script id="live-state-script" src="live_state.js"></script>
+  <script id="live-state-script" src="live_state.js" charset="UTF-8"></script>
 
   <script>
     let audioEnabled = true;
@@ -572,7 +572,7 @@
 
     function fixMojibake(str) {
       if (!str || typeof str !== 'string') return str;
-      if (!/(?:[\u00C2-\u00C5]|[\u00E0-\u00EF]|Ã|Å|Ä)/.test(str)) return str;
+      if (!/(?:[\u00C2-\u00C5]|Ã|Å|Ä)/.test(str)) return str;
       try {
         const bytes = [];
         for (let i = 0; i < str.length; i++) {
@@ -589,10 +589,10 @@
         return decoded;
       } catch (e) {
         return str
-          .replace(/GÃ–REV/g, 'GÖREV')
-          .replace(/SÄ°Z/g, 'SİZ')
-          .replace(/ÅžÄ°RKET/g, 'ŞİRKET')
-          .replace(/Åžirket/g, 'Şirket')
+          .replace(/GÃ–REV|GÃ-REV/g, 'GÖREV')
+          .replace(/SÄ°Z|SÃ°Z/g, 'SİZ')
+          .replace(/ÅžÄ°RKET|ÅŽÄ°RKET|ÅžİRKET|ÅŽİRKET/g, 'ŞİRKET')
+          .replace(/Åžirket|ÅŽirket/g, 'Şirket')
           .replace(/TÃ¼m/g, 'Tüm')
           .replace(/iÅŸlemler/g, 'işlemler')
           .replace(/tamamlandÄ±/g, 'tamamlandı')
@@ -602,12 +602,12 @@
           .replace(/gÃ¶revini/g, 'görevini')
           .replace(/AlÄ±ndÄ±/g, 'Alındı')
           .replace(/HazÄ±r/g, 'Hazır')
-          .replace(/Åž/g, 'Ş').replace(/ÅŸ/g, 'ş')
-          .replace(/Ä°/g, 'İ').replace(/Ä±/g, 'ı')
-          .replace(/Ã–/g, 'Ö').replace(/Ã¶/g, 'ö')
+          .replace(/Åž|ÅŽ/g, 'Ş').replace(/ÅŸ/g, 'ş')
+          .replace(/Ä°|Ã°/g, 'İ').replace(/Ä±|Ã±/g, 'ı')
+          .replace(/Ã–|Ã-/g, 'Ö').replace(/Ã¶/g, 'ö')
           .replace(/Ãœ/g, 'Ü').replace(/Ã¼/g, 'ü')
           .replace(/Ã‡/g, 'Ç').replace(/Ã§/g, 'ç')
-          .replace(/Äž/g, 'Ğ').replace(/ÄŸ/g, 'ğ');
+          .replace(/Äž|ÄŽ/g, 'Ğ').replace(/ÄŸ/g, 'ğ');
       }
     }
 
@@ -717,7 +717,7 @@
       document.getElementById('live-sender').innerText = fixMojibake(s.sender || "Antigravity");
       document.getElementById('live-step-tag').innerText = fixMojibake(s.title || `AŞAMA ${s.step} / ${s.totalSteps || 15}`);
       document.getElementById('live-message').innerText = fixMojibake(s.message || "");
-      document.getElementById('live-desc').innerHTML = `<span class="text-emerald-400 font-bold">ℹ️</span> <span>${s.desc || ""}</span>`;
+      document.getElementById('live-desc').innerHTML = `<span class="text-emerald-400 font-bold">ℹ️</span> <span>${fixMojibake(s.desc || "")}</span>`;
       document.getElementById('live-time').innerText = s.timestamp || new Date().toLocaleTimeString();
 
       const pct = ((s.step || 1) / (s.totalSteps || 15)) * 100;
@@ -853,6 +853,7 @@
       if (old) old.remove();
       const s = document.createElement('script');
       s.id = 'live-state-script';
+      s.charset = 'UTF-8';
       s.src = 'live_state.js?t=' + Date.now();
       document.head.appendChild(s);
     }

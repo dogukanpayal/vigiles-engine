@@ -72,7 +72,15 @@ if (-not [string]::IsNullOrWhiteSpace($artifactDir)) {
     $templateHtml = Join-Path $templatesDir "live_mission_control.html"
     $wsFallbackHtml = "C:\Users\Dogukan\Desktop\Antigravity Improvement\ui\live_mission_control.html"
 
+    $needCopy = $false
     if (-not (Test-Path $destHtml)) {
+        $needCopy = $true
+    } elseif (Test-Path $templateHtml) {
+        if ((Get-Item $templateHtml).LastWriteTime -gt (Get-Item $destHtml).LastWriteTime) {
+            $needCopy = $true
+        }
+    }
+    if ($needCopy) {
         if (Test-Path $templateHtml) {
             Copy-Item $templateHtml $destHtml -Force
         } elseif (Test-Path $wsFallbackHtml) {

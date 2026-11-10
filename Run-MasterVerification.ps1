@@ -9,9 +9,11 @@ $suites = @(
     "Test-Wallet.ps1",
     "Test-TwoFactor.ps1",
     "Test-GitPushManager.ps1",
+    "Test-Heartbeat.ps1",
     "Chaos-Coupon.ps1",
     "Chaos-Wallet.ps1",
-    "Chaos-TwoFactor.ps1"
+    "Chaos-TwoFactor.ps1",
+    "Chaos-Heartbeat.ps1"
 )
 
 Write-Host "===========================================================" -ForegroundColor Cyan
