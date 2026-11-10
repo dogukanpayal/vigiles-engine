@@ -17,6 +17,7 @@ $suites = @(
     "Test-VigilesIsolation.ps1",
     "Test-VigilesConsiliumIntegrity.ps1",
     "Test-ConsiliumScenarioSimulation.ps1",
+    "Test-SentinelGuardRoleDispatch.ps1",
     "Chaos-Coupon.ps1",
     "Chaos-Wallet.ps1",
     "Chaos-TwoFactor.ps1",

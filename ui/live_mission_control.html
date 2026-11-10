@@ -327,34 +327,17 @@
   <!-- Main Architecture Grid (Visual Hierarchy) -->
   <div class="max-w-4xl mx-auto space-y-3">
 
-    <!-- Row 1: SİZ & CANLI DENEME TAHTASI -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-      <!-- 1. Siz -->
-      <div id="node-user" class="node-box bg-[var(--card)] border-2 border-amber-500/40 rounded-2xl p-3.5 shadow-sm node-active-default">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <div class="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-lg font-bold">👔</div>
-            <div>
-              <h4 class="font-bold text-xs">1. SİZ (Şirket Sahibi / Vibe Coder)</h4>
-              <p class="text-[10px] text-[var(--muted-foreground)]">Vizyonu belirler, nihai ürünü yan panelde test eder.</p>
-            </div>
+    <!-- Row 1: SİZ (ŞİRKET SAHİBİ & VİZYON) -->
+    <div id="node-user" class="node-box bg-[var(--card)] border-2 border-amber-500/40 rounded-2xl p-4 shadow-sm node-active-default">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3.5">
+          <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-xl font-bold">👔</div>
+          <div>
+            <h4 class="font-bold text-sm tracking-tight">1. SİZ (Şirket Sahibi / Vibe Coder)</h4>
+            <p class="text-xs text-[var(--muted-foreground)]">Vizyonu belirler, kritik kararları onaylar ve nihai ürünü teslim alır.</p>
           </div>
-          <span id="badge-user" class="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/40 font-bold">Beklemede</span>
         </div>
-      </div>
-
-      <!-- 16. Canlı Deneme Tahtası -->
-      <div id="node-playground" class="node-box bg-[var(--card)] border-2 border-[var(--border)] rounded-2xl p-3.5 shadow-sm">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <div class="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg font-bold">🎮</div>
-            <div>
-              <h4 class="font-bold text-xs text-emerald-400">16. CANLI DENEME TAHTASI</h4>
-              <p class="text-[10px] text-[var(--muted-foreground)]">İş bitince yan panelde açılır; canlı denersiniz.</p>
-            </div>
-          </div>
-          <span id="badge-playground" class="text-[10px] px-2 py-0.5 rounded bg-[var(--background)] border border-[var(--border)] text-[var(--muted-foreground)]">Hazırlanıyor</span>
-        </div>
+        <span id="badge-user" class="text-xs px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/40 font-bold font-mono">Beklemede</span>
       </div>
     </div>
 
