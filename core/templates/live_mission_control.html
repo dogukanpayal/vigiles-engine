@@ -343,34 +343,17 @@
       </div>
     </div>
 
-    <!-- Row 2: BAŞ MİMAR & FİGMA -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-      <!-- 2. Baş Mimar -->
-      <div id="node-architect" class="node-box bg-[var(--card)] border-2 border-[var(--border)] rounded-2xl p-3.5 shadow-sm">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <span class="text-xl">📐</span>
-            <div>
-              <h4 class="font-bold text-xs text-indigo-400">2. BAŞ MİMAR (Lead Planner)</h4>
-              <p class="text-[10px] text-[var(--muted-foreground)]">Kabul kriterlerini ve statik planı çizer (DURUM.md).</p>
-            </div>
+    <!-- Row 2: BAŞ MİMAR -->
+    <div id="node-architect" class="node-box bg-[var(--card)] border-2 border-[var(--border)] rounded-2xl p-4 shadow-sm">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3.5">
+          <div class="w-9 h-9 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-lg font-bold">📐</div>
+          <div>
+            <h4 class="font-bold text-xs text-indigo-400">2. BAŞ MİMAR (Lead Planner)</h4>
+            <p class="text-[10px] text-[var(--muted-foreground)]">Kabul kriterlerini, veri modellerini ve statik planı çizer (DURUM.md).</p>
           </div>
-          <span id="badge-architect" class="text-[10px] px-2 py-0.5 rounded bg-[var(--background)] border border-[var(--border)] text-[var(--muted-foreground)]">Beklemede</span>
         </div>
-      </div>
-
-      <!-- 3. Figma Tasarım Köprüsü -->
-      <div id="node-figma" class="node-box bg-[var(--card)] border-2 border-[var(--border)] rounded-2xl p-3.5 shadow-sm">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <span class="text-xl">🎨</span>
-            <div>
-              <h4 class="font-bold text-xs text-pink-400">3. FİGMA TASARIM KÖPRÜSÜ</h4>
-              <p class="text-[10px] text-[var(--muted-foreground)]">HEX renkler, fontlar ve padding değerleri aktarılır.</p>
-            </div>
-          </div>
-          <span id="badge-figma" class="text-[10px] px-2 py-0.5 rounded bg-[var(--background)] border border-[var(--border)] text-[var(--muted-foreground)]">Bağlı</span>
-        </div>
+        <span id="badge-architect" class="text-[10px] px-2.5 py-1 rounded-lg bg-[var(--background)] border border-[var(--border)] text-[var(--muted-foreground)] font-mono">Beklemede</span>
       </div>
     </div>
 
@@ -388,33 +371,30 @@
       </div>
     </div>
 
-    <!-- Row 4: GENEL ORKESTRATÖR & DURUM.md -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-      <!-- 5. Genel Orkestratör -->
-      <div id="node-orch" class="node-box bg-[var(--card)] border-2 border-[var(--border)] rounded-2xl p-3.5 shadow-sm">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <span class="text-xl">👔</span>
-            <div>
+    <!-- Row 4: GENEL ORKESTRATÖR & ŞANTİYE DEFTERİ -->
+    <div id="node-orch" class="node-box bg-[var(--card)] border-2 border-[var(--border)] rounded-2xl p-4 shadow-sm">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-3.5">
+          <div class="w-9 h-9 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center text-lg font-bold">👔</div>
+          <div>
+            <div class="flex items-center gap-2">
               <h4 class="font-bold text-xs text-blue-400">5. GENEL ORKESTRATÖR (COO)</h4>
-              <p class="text-[10px] text-[var(--muted-foreground)]">Mimarın planını tüm ekibe harfiyen uygulatır.</p>
+              <span id="badge-orch" class="text-[10px] px-2 py-0.5 rounded bg-[var(--background)] border border-[var(--border)] text-[var(--muted-foreground)] font-mono">Hazır</span>
             </div>
+            <p class="text-[10px] text-[var(--muted-foreground)]">Mimarın planını tüm ekibe harfiyen uygulatır; sahadaki tüm çarkları koordine eder.</p>
           </div>
-          <span id="badge-orch" class="text-[10px] px-2 py-0.5 rounded bg-[var(--background)] border border-[var(--border)] text-[var(--muted-foreground)]">Hazır</span>
         </div>
-      </div>
 
-      <!-- 6. DURUM.md -->
-      <div id="node-state" class="node-box bg-[var(--card)] border-2 border-[var(--border)] rounded-2xl p-3.5 shadow-sm">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <span class="text-xl">📁</span>
-            <div>
-              <h4 class="font-bold text-xs">6. DURUM.md (Şantiye Defteri)</h4>
-              <p class="text-[10px] text-[var(--muted-foreground)]">Adımların canlı durumu, kabul kriterleri ve kanıtlar buradadır.</p>
+        <!-- Entegre 6. DURUM.md Canlı Şantiye Kütüğü -->
+        <div id="node-state" class="node-box flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-[var(--background)] border border-[var(--border)] shadow-inner">
+          <span class="text-base">📁</span>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <span class="font-bold text-[11px] text-[var(--foreground)]">6. DURUM.md</span>
+              <span id="badge-state" class="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono">Canlı Kütük</span>
             </div>
+            <span class="text-[9px] text-[var(--muted-foreground)]">Şantiye Defteri Senkronize</span>
           </div>
-          <span id="badge-state" class="text-[10px] px-2 py-0.5 rounded bg-[var(--background)] border border-[var(--border)] text-[var(--muted-foreground)]">Canlı</span>
         </div>
       </div>
     </div>
@@ -432,10 +412,10 @@
         </div>
       </div>
 
-      <!-- 3'lü Saha Masası -->
+      <!-- 3'lü Saha Masası (İşçiler 2/3 Genişlik + Saha Kalkanları 1/3 Genişlik) -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5 items-start">
-        <!-- 8. İşçiler Kolonu (Ana Kutu + Sınırsız Bağlı Alt Ağaç) -->
-        <div class="flex flex-col">
+        <!-- 8. İşçiler Kolonu (Ana Kutu + Sınırsız Bağlı Alt Ağaç - 2/3 Genişlik) -->
+        <div class="flex flex-col md:col-span-2">
           <!-- 8. İşçiler Ana Kutusu -->
           <div id="node-workers" class="node-box bg-[var(--card)] border-2 border-[var(--border)] rounded-xl p-3 shadow-sm relative transition-all duration-300">
             <div class="flex items-center justify-between mb-1">
@@ -460,22 +440,31 @@
           </div>
         </div>
 
-        <!-- 9. Performans Muhafızı -->
-        <div id="node-perf" class="node-box bg-[var(--card)] border-2 border-[var(--border)] rounded-xl p-3 shadow-sm">
-          <div class="flex items-center gap-2 mb-1">
-            <span class="text-base">⚡</span>
-            <h5 class="font-bold text-xs text-yellow-400">9. PERFORMANS</h5>
+        <!-- Saha Kalkanları Kolonu: 9. Performans & 10. Zero-Leak (md:col-span-1) -->
+        <div class="flex flex-col gap-2 md:col-span-1">
+          <!-- 9. Performans Muhafızı (Anti-Bloat Kalkanı) -->
+          <div id="node-perf" class="node-box bg-[var(--card)] border-2 border-yellow-500/30 hover:border-yellow-500/60 rounded-xl p-2.5 shadow-sm transition-all duration-300">
+            <div class="flex items-center justify-between mb-1">
+              <div class="flex items-center gap-1.5">
+                <span class="text-sm">⚡</span>
+                <h5 class="font-bold text-[11px] text-yellow-400">9. PERFORMANS</h5>
+              </div>
+              <span id="badge-perf" class="text-[9px] px-1.5 py-0.2 rounded font-mono bg-yellow-500/10 text-yellow-300 border border-yellow-500/20">Anti-Bloat</span>
+            </div>
+            <p class="text-[9px] text-[var(--muted-foreground)]">15MB paketleri engeller; yerel hafif kodu korur.</p>
           </div>
-          <p class="text-[10px] text-[var(--muted-foreground)]">15MB paketleri engeller; yerel hafif kodu korur.</p>
-        </div>
 
-        <!-- 10. Gizli Veri Muhafızı -->
-        <div id="node-shield" class="node-box bg-[var(--card)] border-2 border-[var(--border)] rounded-xl p-3 shadow-sm">
-          <div class="flex items-center gap-2 mb-1">
-            <span class="text-base">🛡️</span>
-            <h5 class="font-bold text-xs text-cyan-400">10. ZERO-LEAK BEKÇİSİ</h5>
+          <!-- 10. Gizli Veri Muhafızı (Zero-Leak Kalkanı) -->
+          <div id="node-shield" class="node-box bg-[var(--card)] border-2 border-cyan-500/30 hover:border-cyan-500/60 rounded-xl p-2.5 shadow-sm transition-all duration-300">
+            <div class="flex items-center justify-between mb-1">
+              <div class="flex items-center gap-1.5">
+                <span class="text-sm">🛡️</span>
+                <h5 class="font-bold text-[11px] text-cyan-400">10. ZERO-LEAK</h5>
+              </div>
+              <span id="badge-shield" class="text-[9px] px-1.5 py-0.2 rounded font-mono bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">Güvenlik</span>
+            </div>
+            <p class="text-[9px] text-[var(--muted-foreground)]">API anahtarı ve .env sızıntılarını anında kilitler!</p>
           </div>
-          <p class="text-[10px] text-[var(--muted-foreground)]">API anahtarı ve .env sızıntılarını kilitler!</p>
         </div>
       </div>
     </div>
@@ -572,7 +561,7 @@
         </div>
         <span id="badge-aux-summary" class="text-[10px] px-2.5 py-1 rounded-full font-mono font-bold bg-purple-500/15 text-purple-300 border border-purple-500/30 flex items-center gap-1.5">
           <span class="w-2 h-2 rounded-full bg-purple-400 animate-pulse"></span>
-          5 Yardımcı Birim Standby 💤
+          6 Yardımcı Birim Standby 💤
         </span>
       </div>
 
@@ -639,8 +628,28 @@
         </div>
       </div>
 
-      <!-- 2. Grup: Çağrı ve Olay Üzerine Tetiklenen Birimler (Canlı Hata Dedektifi, Git & Dağıtım Fabrikası) -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+      <!-- 2. Grup: Çağrı ve Dış Entegrasyon Masası (Figma, Canlı Hata Dedektifi, Git Dağıtım Fabrikası) -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+        <!-- 3. Figma Tasarım Köprüsü -->
+        <div id="node-figma" class="node-box bg-[var(--card)] border-2 border-pink-500/30 hover:border-pink-500/60 rounded-xl p-3 shadow-sm transition-all duration-300 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <div class="flex items-center gap-2">
+                <span class="text-base">🎨</span>
+                <h5 class="font-bold text-xs text-pink-400">3. FİGMA TASARIM KÖPRÜSÜ</h5>
+              </div>
+              <span id="badge-figma" class="text-[9px] px-2 py-0.5 rounded font-mono font-semibold bg-pink-500/15 text-pink-300 border border-pink-500/30">Standby 🎨</span>
+            </div>
+            <p class="text-[10px] text-[var(--muted-foreground)] leading-relaxed">
+              Tasarım tokenlarını (HEX renkler, fontlar, padding ve grid aralıkları) doğrudan aktarır.
+            </p>
+          </div>
+          <div class="mt-2 pt-1.5 border-t border-[var(--border)] flex items-center justify-between text-[9px] font-mono text-[var(--muted-foreground)]">
+            <span class="text-pink-400 font-semibold">Tetikleme:</span>
+            <span>UI / Frontend Görevi</span>
+          </div>
+        </div>
+
         <!-- 19. Canlı Hata Dedektifi -->
         <div id="node-sentry" class="node-box bg-[var(--card)] border-2 border-rose-500/30 hover:border-rose-500/60 rounded-xl p-3 shadow-sm transition-all duration-300 flex flex-col justify-between">
           <div>
@@ -1010,6 +1019,8 @@
         if (badgeHb) { badgeHb.innerText = 'Standby ⏱️'; badgeHb.className = 'text-[9px] px-2 py-0.5 rounded font-mono font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30'; }
         const badgeSentry = document.getElementById('badge-sentry');
         if (badgeSentry) { badgeSentry.innerText = 'Dinlemede 📡'; badgeSentry.className = 'text-[9px] px-2 py-0.5 rounded font-mono font-semibold bg-rose-500/15 text-rose-300 border border-rose-500/30'; }
+        const badgeFigma = document.getElementById('badge-figma');
+        if (badgeFigma) { badgeFigma.innerText = 'Standby 🎨'; badgeFigma.className = 'text-[9px] px-2 py-0.5 rounded font-mono font-semibold bg-pink-500/15 text-pink-300 border border-pink-500/30'; }
       }
 
       if (s.badge) {
