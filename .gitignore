@@ -1,0 +1,20 @@
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+*.swp
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+
+# Sensitive environment variables
+.env
+.env.*
+!.env.example
+
+# Scratch and test caches
+scratch/
+.system_generated/

@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Antigravity Eksiksiz Süper Şirket Mimarisi</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    .node-box {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .node-active {
+      transform: scale(1.02);
+      border-color: #3b82f6 !important;
+      box-shadow: 0 0 25px 4px rgba(59, 130, 246, 0.4) !important;
+    }
+    .node-red {
+      transform: scale(1.02);
+      border-color: #ef4444 !important;
+      box-shadow: 0 0 25px 4px rgba(239, 68, 68, 0.45) !important;
+    }
+    .node-green {
+      transform: scale(1.02);
+      border-color: #10b981 !important;
+      box-shadow: 0 0 25px 4px rgba(168, 85, 247, 0.45) !important;
+    }
+    .node-purple {
+      transform: scale(1.02);
+      border-color: #a855f7 !important;
+      box-shadow: 0 0 25px 4px rgba(168, 85, 247, 0.45) !important;
+    }
+    .node-chaos {
+      transform: scale(1.02);
+      border-color: #ea580c !important;
+      box-shadow: 0 0 25px 4px rgba(234, 88, 12, 0.45) !important;
+    }
+    .node-shield {
+      transform: scale(1.02);
+      border-color: #06b6d4 !important;
+      box-shadow: 0 0 25px 4px rgba(6, 182, 212, 0.45) !important;
+    }
+    .node-pr {
+      transform: scale(1.02);
+      border-color: #8b5cf6 !important;
+      box-shadow: 0 0 25px 4px rgba(139, 92, 246, 0.45) !important;
+    }
+  </style>
+</head>
+<body class="bg-[var(--background)] text-[var(--foreground)] antialiased p-6 min-h-screen">
+
+  <!-- Header -->
+  <div class="max-w-4xl mx-auto mb-6 text-center">
+    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-semibold mb-2 border border-emerald-500/20">
+      <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+      SİLİKON VADİSİ STANDARDINDA 20 ELEMANLI NİHAİ MİMARİ
+    </div>
+    <h1 class="text-3xl font-extrabold tracking-tight mb-1">Kurşungeçirmez Otonom Yazılım Şirketi</h1>
+    <p class="text-[var(--muted-foreground)] text-xs max-w-2xl mx-auto">
+      Gizli Veri Muhafızı, Sentry Can Simidi, Açılıp-Kapanabilir Git & PR Fabrikası, Kaos Testçisi ve Yan Panelde Canlı Deneme Tahtası ile eksiksiz üretim fabrikası.
+    </p>
+  </div>
+
+  <!-- Interactive Control Bar -->
+  <div class="max-w-3xl mx-auto mb-6 bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 shadow-sm flex flex-wrap items-center justify-between gap-3">
+    <div class="flex items-center gap-2">
+      <button onclick="prevStep()" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--background)] border border-[var(--border)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition">
+        ⏮️ Önceki
+      </button>
+      <button onclick="togglePlay()" id="btn-play" class="px-4 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white shadow-md shadow-blue-600/30 hover:bg-blue-500 transition flex items-center gap-1.5">
+        <span id="play-icon">▶️</span> <span id="play-text">Otomatik Oynat</span>
+      </button>
+      <button onclick="nextStep()" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--background)] border border-[var(--border)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition">
+        Sonraki ⏭️
+      </button>
+      <button onclick="resetFlow()" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition">
+        🔄 Başa Sar
+      </button>
+    </div>
+
+    <!-- Step Indicator Progress -->
+    <div class="flex items-center gap-3">
+      <span class="text-xs text-[var(--muted-foreground)]">Aşama: <strong id="step-number" class="text-emerald-400">1</strong> / 15</span>
+      <div class="w-32 h-2 bg-[var(--background)] rounded-full overflow-hidden border border-[var(--border)]">
+        <div id="progress-bar" class="h-full bg-emerald-500 transition-all duration-300" style="width: 6.6%;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Live Message Box -->
+  <div class="max-w-3xl mx-auto mb-6 bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 shadow-sm">
+    <div class="flex items-center justify-between mb-2">
+      <div class="flex items-center gap-2">
+        <span id="status-dot" class="w-2.5 h-2.5 rounded-full bg-blue-500 animate-ping"></span>
+        <span class="text-xs font-bold uppercase tracking-wider text-blue-400" id="msg-sender">1. SİZ ➔ BAŞ MİMAR</span>
+      </div>
+      <span class="text-[11px] px-2 py-0.5 rounded bg-[var(--background)] border border-[var(--border)] font-mono text-[var(--muted-foreground)]" id="msg-step-tag">
+        AŞAMA 1
+      </span>
+    </div>
+    <div class="p-3 bg-[var(--background)] rounded-xl border border-[var(--border)] text-xs font-mono leading-relaxed" id="msg-text">
+      "/veteran Kullanıcı kayıt ve giriş akışını kur. Boş şifre girilince 400 hatası dönmeli ve sistem kilitlenmeli."
+    </div>
+    <div class="mt-2 text-[11px] text-[var(--muted-foreground)] flex items-center gap-1.5" id="msg-desc">
+      <span class="text-emerald-400 font-bold">ℹ️</span> <span>Siz vizyonu söylediniz. Görev doğrudan Baş Mimar'a iletildi!</span>
+    </div>
+  </div>
+
+  <!-- Vertical Interactive Hierarchy -->
+  <div class="max-w-3xl mx-auto space-y-3">
+
+    <!-- 1. SİZ & CANLI DENEME TAHTASI -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <!-- Siz -->
+      <div id="node-user" onclick="jumpTo(1)" class="node-box cursor-pointer bg-[var(--card)] border-2 border-[var(--border)] rounded-2xl p-4 shadow-sm">
+        <div class="flex items-center gap-3 mb-1">
+          <div class="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-lg font-bold">👔</div>
+          <div>
+            <h4 class="font-bold text-xs">1. SİZ (Şirket Sahibi / Vibe Coder)</h4>
+            <p class="text-[10px] text-[var(--muted-foreground)]">Vizyonu verir, nihai ürünü yan panelde test eder.</p>
+          </div>
+        </div>
+        <span id="badge-user" class="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">Aktif</span>
+      </div>
+
+      <!-- Canlı Deneme Tahtası -->
+      <div id="node-playground" onclick="jumpTo(13)" class="node-box cursor-pointer bg-[var(--card)] border-2 border-emerald-500/40 rounded-2xl p-4 shadow-sm bg-emerald-500/5">
+        <div class="flex items-center gap-3 mb-1">
+          <div class="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg font-bold">🎮</div>
+          <div>
+            <h4 class="font-bold text-xs text-emerald-400">16. CANLI DENEME TAHTASI</h4>
+            <p class="text-[10px] text-[var(--muted-foreground)]">Yan panelde açılır; canlı tıklayıp test edersiniz!</p>
+          </div>
+        </div>
+        <span id="badge-playground" class="text-[10px] px-2 py-0.5 rounded bg-[var(--background)] border border-[var(--border)] text-[var(--muted-foreground)]">Hazırlanıyor</span>
+      </div>
+    </div>
+
+    <div class="text-center text-indigo-500 font-bold text-xs select-none py-0.5">↓ 1. Mimar Planı Çizer (Figma Tasarımı Destekli)</div>
+
+    <!-- 2. BAŞ MİMAR & FİGMA -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <!-- Baş Mimar -->
+      <div id="node-architect" onclick="jumpTo(2)" class="node-box cursor-pointer bg-[var(--card)] border-2 border-indigo-500/40 rounded-2xl p-4 shadow-sm bg-indigo-500/5">
+        <div class="flex items-center gap-2.5 mb-1">
+          <span class="text-lg">📐</span>
+          <h5 class="font-bold text-xs text-indigo-400">2. BAŞ MİMAR (Lead Planner)</h5>
+        </div>
+        <p class="text-[11px] text-[var(--muted-foreground)]">★ SADECE PLANLAR ★ Statiği hesaplar, kabul şartlarını DURUM.md'ye yazar.</p>
+      </div>
+
+      <!-- Figma Köprüsü -->
+      <div id="node-figma" onclick="jumpTo(2)" class="node-box cursor-pointer bg-[var(--card)] border-2 border-pink-500/40 rounded-2xl p-4 shadow-sm bg-pink-500/5">
+        <div class="flex items-center gap-2.5 mb-1">
+          <span class="text-lg">🎨</span>
+          <h5 class="font-bold text-xs text-pink-400">3. FİGMA TASARIM KÖPRÜSÜ</h5>
+        </div>
+        <p class="text-[11px] text-[var(--muted-foreground)]">Renk kodları, fontlar ve buton aralıkları milimetrik çekilir.</p>
+      </div>
+    </div>
+
+    <div class="text-center text-pink-500 font-bold text-xs select-none py-0.5">↕️ Kritik Kararlar & İletişim Filtresi</div>
+
+    <!-- 3. KARAR SÜZGECİ -->
+    <div id="node-gatekeeper" onclick="jumpTo(3)" class="node-box cursor-pointer bg-[var(--card)] border-2 border-pink-500/40 rounded-2xl p-4 shadow-sm bg-pink-500/5">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <span class="text-lg">🚦</span>
+          <div>
+            <h4 class="font-bold text-xs text-pink-400">4. KARAR SÜZGECİ (Stratejik Danışman)</h4>
+            <p class="text-[10px] text-[var(--muted-foreground)]">Önemsiz şeyleri kendi çözer, tek yönlü kritik kararları pop-up ile Patrona sorar.</p>
+          </div>
+        </div>
+        <span id="badge-gatekeeper" class="text-[10px] px-2 py-0.5 rounded bg-[var(--background)] border border-[var(--border)] text-[var(--muted-foreground)]">Soru Bekçisi</span>
+      </div>
+    </div>
+
+    <div class="text-center text-blue-500 font-bold text-xs select-none py-0.5">↓ Onaylanan Plan Operasyona Devredilir</div>
+
+    <!-- 4. GENEL ORKESTRATÖR & DURUM.MD -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div id="node-orch" onclick="jumpTo(4)" class="node-box cursor-pointer bg-[var(--card)] border-2 border-blue-500/40 rounded-2xl p-4 shadow-sm bg-blue-500/5">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="text-base">👔</span>
+          <h5 class="font-bold text-xs text-blue-400">5. GENEL ORKESTRATÖR (COO)</h5>
+        </div>
+        <p class="text-[11px] text-[var(--muted-foreground)]">★ SADECE YÖNETİR ★ Mimarın onaylı planını tüm ekibe harfiyen uygulatır.</p>
+      </div>
+
+      <div id="node-state" onclick="jumpTo(4)" class="node-box cursor-pointer bg-[var(--card)] border-2 border-[var(--border)] rounded-2xl p-4 shadow-sm">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="text-base">📁</span>
+          <h5 class="font-bold text-xs">6. DURUM.md</h5>
+        </div>
+        <p class="text-[11px] text-[var(--muted-foreground)]">Şantiye defteri; adımların canlı durumu burada işaretlenir.</p>
+      </div>
+    </div>
+
+    <div class="text-center text-indigo-500 font-bold text-xs select-none py-0.5">↓ Sahaya Uygulama & Güvenlik Kalkanı</div>
+
+    <!-- 5. SUBAGENT ŞEFİ & İŞÇİLER & PERFORMANS & GÜVENLİK MUHAFIZI -->
+    <div class="space-y-2">
+      <!-- Şef -->
+      <div id="node-chief" onclick="jumpTo(5)" class="node-box cursor-pointer bg-[var(--card)] border-2 border-[var(--border)] rounded-2xl p-3 shadow-sm">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="text-base">👷‍♂️</span>
+            <h5 class="font-bold text-xs">7. SUBAGENT ŞEFİ (Saha Şefi)</h5>
+          </div>
+          <span id="badge-chief" class="text-[10px] px-2 py-0.5 rounded bg-[var(--background)] border border-[var(--border)] text-[var(--muted-foreground)]">Beklemede</span>
+        </div>
+      </div>
+
+      <!-- İşçiler + Performans Muhafızı + Güvenlik Muhafızı -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+        <!-- İşçiler -->
+        <div id="node-workers" onclick="jumpTo(5)" class="node-box cursor-pointer bg-[var(--card)] border-2 border-[var(--border)] rounded-xl p-3 shadow-sm">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-base">🛠️</span>
+            <h5 class="font-bold text-xs">8. İŞÇİLER (TDD)</h5>
+          </div>
+          <p class="text-[10px] text-[var(--muted-foreground)]">Kod + Birim Testini yazar.</p>
+        </div>
+
+        <!-- Performans Muhafızı -->
+        <div id="node-perf" onclick="jumpTo(5)" class="node-box cursor-pointer bg-[var(--card)] border-2 border-yellow-500/40 rounded-xl p-3 shadow-sm bg-yellow-500/5">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-base">⚡</span>
+            <h5 class="font-bold text-xs text-yellow-400">9. PERFORMANS</h5>
+          </div>
+          <p class="text-[10px] text-[var(--muted-foreground)]">Gereksiz 20MB kütüphaneyi engeller.</p>
+        </div>
+
+        <!-- Güvenlik Muhafızı -->
+        <div id="node-shield" onclick="jumpTo(6)" class="node-box cursor-pointer bg-[var(--card)] border-2 border-cyan-500/40 rounded-xl p-3 shadow-sm bg-cyan-500/5">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-base">🛡️</span>
+            <h5 class="font-bold text-xs text-cyan-400">10. GİZLİ VERİ BEKÇİSİ</h5>
+          </div>
+          <p class="text-[10px] text-[var(--muted-foreground)]">.env ve API key sızıntısını kilitler!</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="text-center text-cyan-500 font-bold text-xs select-none py-0.5">↓ Çift Kanatlı Test: Canlı Kullanıcı vs Kaos Saldırısı</div>
+
+    <!-- 6. TEST DEPARTMANI: TESTER & KAOS MAYMUNU -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <!-- Özel Tester -->
+      <div id="node-tester" onclick="jumpTo(7)" class="node-box cursor-pointer bg-[var(--card)] border-2 border-cyan-500/40 rounded-2xl p-4 shadow-sm bg-cyan-500/5">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="text-base">📱</span>
+          <h5 class="font-bold text-xs text-cyan-400">11. ÖZEL TESTER (Görsel QA)</h5>
+        </div>
+        <p class="text-[10px] text-[var(--muted-foreground)]">Canlı açar, tıklar, gerçek ekran görüntüsü alır.</p>
+      </div>
+
+      <!-- Kaos Mühendisi -->
+      <div id="node-chaos" onclick="jumpTo(8)" class="node-box cursor-pointer bg-[var(--card)] border-2 border-orange-500/40 rounded-2xl p-4 shadow-sm bg-orange-500/5">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="text-base">🐒</span>
+          <h5 class="font-bold text-xs text-orange-400">12. KAOS MÜHENDİSİ (Chaos Monkey)</h5>
+        </div>
+        <p class="text-[10px] text-[var(--muted-foreground)]">Butonları spamlar, interneti keser, sınırları zorlar!</p>
+      </div>
+    </div>
+
+    <div class="text-center text-rose-500 font-bold text-xs select-none py-0.5">↓ Çift Kanıt, Güvenlik ve Stres Raporu Yargıca Sunulur</div>
+
+    <!-- 7. BAĞIMSIZ YARGIÇ -->
+    <div id="node-judge" onclick="jumpTo(9)" class="node-box cursor-pointer bg-[var(--card)] border-2 border-rose-500/40 rounded-2xl p-4 shadow-sm bg-rose-500/5">
+      <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center gap-3">
+          <span class="text-lg">⚖️</span>
+          <div>
+            <h4 class="font-bold text-xs">13. BAĞIMSIZ YARGIÇ (Sıfır Güven)</h4>
+            <p class="text-[10px] text-[var(--muted-foreground)]">Kod + Güvenlik + Tester Fotoğrafı + Kaos Stresini denetleyip mühür basar.</p>
+          </div>
+        </div>
+        <span id="badge-judge" class="text-[10px] px-2 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20 font-bold">Mutlak Otorite</span>
+      </div>
+      <div class="grid grid-cols-2 gap-2 text-[10px] pt-1 border-t border-[var(--border)]">
+        <div id="path-red" class="p-1 rounded bg-rose-500/5 border border-rose-500/20 text-rose-400 font-semibold">❌ Red: Şefe Geri Gönder</div>
+        <div id="path-green" class="p-1 rounded bg-emerald-500/5 border border-emerald-500/20 text-emerald-400 font-semibold">✅ Çift Onay: Geçer</div>
+      </div>
+    </div>
+
+    <div class="text-center text-purple-500 font-bold text-xs select-none py-0.5">↓ Onay Sonrası: Hafıza, Can Simidi & İsteğe Bağlı Git PR</div>
+
+    <!-- 8. CANLI HATA & HAFIZA & GECE NÖBETİ & KOTA & GİT SWITCH -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <!-- Canlı Hata Dedektifi (Sentry) -->
+      <div id="node-sentry" onclick="jumpTo(12)" class="node-box cursor-pointer bg-[var(--card)] border border-rose-500/40 rounded-xl p-3 shadow-sm bg-rose-500/5">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="text-base">🩺</span>
+          <h5 class="font-bold text-xs text-rose-400">19. CANLI HATA DEDEKTİFİ (Sentry MCP)</h5>
+        </div>
+        <p class="text-[10px] text-[var(--muted-foreground)]">Canlıdaki patlayan hatayı ve stack-trace'i yakalayıp TDD testine çevirir.</p>
+      </div>
+
+      <!-- Git & PR Fabrikası (Açılır / Kapanır Switch) -->
+      <div id="node-pr" onclick="jumpTo(14)" class="node-box cursor-pointer bg-[var(--card)] border-2 border-purple-500/40 rounded-xl p-3 shadow-sm bg-purple-500/5">
+        <div class="flex items-center justify-between mb-1">
+          <div class="flex items-center gap-2">
+            <span class="text-base">🔀</span>
+            <h5 class="font-bold text-xs text-purple-400">20. GİT & PR FABRİKASI</h5>
+          </div>
+          <button id="toggle-pr-btn" onclick="event.stopPropagation(); togglePrMode();" class="text-[9px] px-2 py-0.5 rounded font-bold border transition bg-emerald-500/20 text-emerald-400 border-emerald-500/40">
+            AÇIK (PR Açar)
+          </button>
+        </div>
+        <p class="text-[10px] text-[var(--muted-foreground)]" id="pr-desc">
+          İsteğe bağlı: Temiz feature branch açar, Conventional Commit atar ve GitHub PR'ı oluşturur.
+        </p>
+      </div>
+    </div>
+
+    <!-- 9. HAFIZA & NÖBETÇİ & KOTA -->
+    <div class="grid grid-cols-3 gap-2">
+      <div id="node-memory" onclick="jumpTo(11)" class="node-box cursor-pointer bg-[var(--card)] border border-purple-500/40 rounded-xl p-2.5 shadow-sm text-center">
+        <div class="text-[11px] font-bold text-purple-400">🧠 14. Hafıza Uzmanı</div>
+        <div class="text-[9px] text-[var(--muted-foreground)]">KURALLAR.md yazar</div>
+      </div>
+
+      <div id="node-sentinel" class="node-box bg-[var(--card)] border border-cyan-500/40 rounded-xl p-2.5 shadow-sm text-center">
+        <div class="text-[11px] font-bold text-cyan-400">🌙 17. Gece Nöbetçisi</div>
+        <div class="text-[9px] text-[var(--muted-foreground)]">03:00 Devriyesi</div>
+      </div>
+
+      <div id="node-heartbeat" class="node-box bg-[var(--card)] border border-amber-500/40 rounded-xl p-2.5 shadow-sm text-center">
+        <div class="text-[11px] font-bold text-amber-400">⚡ 18. Kota Dürtücüsü</div>
+        <div class="text-[9px] text-[var(--muted-foreground)]">1-Token Heartbeat</div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let currentStep = 1;
+    let isPlaying = false;
+    let timer = null;
+    let isPrEnabled = true;
+
+    function togglePrMode() {
+      isPrEnabled = !isPrEnabled;
+      const btn = document.getElementById('toggle-pr-btn');
+      const desc = document.getElementById('pr-desc');
+      if (isPrEnabled) {
+        btn.innerText = "AÇIK (PR Açar)";
+        btn.className = "text-[9px] px-2 py-0.5 rounded font-bold border transition bg-emerald-500/20 text-emerald-400 border-emerald-500/40";
+        desc.innerText = "İsteğe bağlı: Temiz feature branch açar, Conventional Commit atar ve GitHub PR'ı oluşturur.";
+      } else {
+        btn.innerText = "KAPALI (Direkt Lokal)";
+        btn.className = "text-[9px] px-2 py-0.5 rounded font-bold border transition bg-zinc-500/20 text-zinc-400 border-zinc-500/40";
+        desc.innerText = "Kapalı: Değişiklikler direkt yerel çalışma dizininde kalır; PR kuyruğuyla vakit kaybetmezsiniz.";
+      }
+    }
+
+    const steps = [
+      {
+        step: 1,
+        sender: "👔 1. SİZ ➔ BAŞ MİMAR",
+        stepTag: "AŞAMA 1: İSTEK İNİŞİ",
+        message: "\"/veteran Kullanıcı kayıt ve giriş akışını kur. Boş şifre girilince 400 hatası dönmeli ve buton kırmızı yanmalı.\"",
+        desc: "Siz vizyonu söylediniz. Görev doğrudan Baş Mimar'a iletildi.",
+        activeNode: "node-user",
+        statusClass: "node-active",
+        dotColor: "bg-amber-500",
+        badge: { id: "badge-user", text: "İstek Gönderildi", class: "bg-amber-500/20 text-amber-400 border-amber-500/40" }
+      },
+      {
+        step: 2,
+        sender: "📐 BAŞ MİMAR ➔ FİGMA VE PLANLAMA",
+        stepTag: "AŞAMA 2: FİGMA TASARIMI VE PLAN",
+        message: "Baş Mimar Figma'dan projenin tasarım tokenlarını çekti:\n- Buton rengi: #3B82F6, Border: 8px rounded, Hata rengi: #EF4444.\n- Mimar kabul kriterlerini DURUM.md'ye işledi.",
+        desc: "Mimar kafasına göre tasarım uydurmadı; Figma'daki tasarım sistemine bağlandı!",
+        activeNode: "node-architect",
+        statusClass: "node-active",
+        dotColor: "bg-indigo-500"
+      },
+      {
+        step: 3,
+        sender: "🚦 KARAR SÜZGECİ ➔ SİZ (POP-UP)",
+        stepTag: "AŞAMA 3: 🛑 TEK YÖNLÜ KAPI ONAYI",
+        message: "Karar Süzgeci: 'Şifre hashing algoritması tek yönlü kritik kapıdır!'\n\n📌 EKRANINIZDA POP-UP BELİRDİ:\n[?] Şifreleme algoritması hangisi olsun?\n  (A) Argon2id (Tavsiye Edilen)\n  (B) Bcrypt\n\nSiz (A) seçeneğini onayladınız!",
+        desc: "Kritik karar netleşti. Mimarın onaylanan planı Genel Orkestratör'e devredildi.",
+        activeNode: "node-gatekeeper",
+        statusClass: "node-active",
+        dotColor: "bg-pink-500",
+        badge: { id: "badge-gatekeeper", text: "Pop-Up Onaylandı", class: "bg-pink-500/20 text-pink-400 border-pink-500/40 font-bold" }
+      },
+      {
+        step: 4,
+        sender: "👔 GENEL ORKESTRATÖR ➔ ŞEF",
+        stepTag: "AŞAMA 4: OPERASYON EMRİ",
+        message: "Genel Orkestratör Mimarın onaylı planını eline aldı:\n'Plan hazır, kriterler net. Subagent Şefi sahaya işçileri, Muhafızları ve Test Ekibini sür!'",
+        desc: "Genel Orkestratör fabrikadaki tüm çarkları onaylı plana göre çalıştırdı.",
+        activeNode: "node-orch",
+        statusClass: "node-active",
+        dotColor: "bg-blue-500"
+      },
+      {
+        step: 5,
+        sender: "⚡ PERFORMANS MUHAFIZI ➔ İŞÇİLER",
+        stepTag: "AŞAMA 5: ŞİŞKİNLİK DENETİMİ (ANTI-BLOAT)",
+        message: "İşçi-2 basit bir hash için 20MB'lık dev kütüphane indirmeye kalktı!\n\n⚡ Performans Muhafızı devreye girdi:\n'DUR! 20MB paket yükleyemezsin. 15 satırlık hafif yerel kütüphaneyle çöz!'\nİşçi kodu optimize etti, paket boyutu tertemiz kaldı.",
+        desc: "Performans Muhafızı projenin hantallaşmasını ve şişmesini engelledi!",
+        activeNode: "node-perf",
+        statusClass: "node-active",
+        dotColor: "bg-yellow-500"
+      },
+      {
+        step: 6,
+        sender: "🛡️ GİZLİ VERİ BEKÇİSİ ➔ SIZINTI BLOKAJI",
+        stepTag: "AŞAMA 6: SIFIR SIZINTI KALKANI (ZERO-LEAK)",
+        message: "İşçi-1 test ederken geçici olarak Stripe API anahtarını kod satırına yazdı!\n\n🛡️ Gizli Veri Muhafızı anında devreye girdi:\n'ALARM: Gizli anahtar tespit edildi! Kod diske yazılamaz.'\nKod temizlendi ve process.env.STRIPE_SECRET_KEY referansına çekildi.",
+        desc: "Gizli anahtar veya şifrenin koda ya da git geçmişine sızması sıfır toleransla engellendi!",
+        activeNode: "node-shield",
+        statusClass: "node-shield",
+        dotColor: "bg-cyan-500"
+      },
+      {
+        step: 7,
+        sender: "📱 ÖZEL TESTER ➔ CANLI GÖRSEL TEST",
+        stepTag: "AŞAMA 7: UYGULAMA AYAĞA KALKTI",
+        message: "Tester tarayıcıyı açtı, boş şifre girdi:\n📸 EKRAN GÖRÜNTÜSÜ: '500 Server Error çökmesi fotoğraflandı!'",
+        desc: "Tester bizzat butonlara bastı ve boş şifrede sistemin patladığını fotoğrafladı.",
+        activeNode: "node-tester",
+        statusClass: "node-active",
+        dotColor: "bg-cyan-500"
+      },
+      {
+        step: 8,
+        sender: "🐒 KAOS MÜHENDİSİ ➔ STRES TESTİ",
+        stepTag: "AŞAMA 8: KAOS SALDIRISI (CHAOS MONKEY)",
+        message: "Kaos Maymunu butona 1 saniyede 15 kere bastı ve interneti 2 saniye kesti:\n'Uyarı: Çift istek gönderimi race-condition yarattı!'\nKaos raporu Yargıca sunuldu.",
+        desc: "Kaos Mühendisi sabırsız veya kötü niyetli kullanıcı saldırısını simüle etti.",
+        activeNode: "node-chaos",
+        statusClass: "node-chaos",
+        dotColor: "bg-orange-500"
+      },
+      {
+        step: 9,
+        sender: "⚖️ BAĞIMSIZ YARGIÇ ➔ ŞEF",
+        stepTag: "AŞAMA 9: ❌ REDDEDİLDİ (KUSUR RAPORU)",
+        message: "❌ DENETİM BAŞARISIZ (RED!)\n'1. Tester'ın fotoğrafında 500 hatası var.\n2. Kaos Mühendisi buton spamında açık buldu.\nİki açık da kapatılmadan ONAY yok!'",
+        desc: "Yargıç sıfır güvenle hem fotoğrafı hem kaos raporunu inceleyip işi Şefe geri fırlattı!",
+        activeNode: "node-judge",
+        statusClass: "node-red",
+        dotColor: "bg-red-500",
+        highlightPath: "path-red"
+      },
+      {
+        step: 10,
+        sender: "👷‍♂️ ŞEF ➔ İŞÇİLER ➔ TEST EKİBİ",
+        stepTag: "AŞAMA 10: ÇİFT ONARIM VE TEKRAR TEST",
+        message: "İşçi-2 hem 400 kontrolünü ekledi hem de butona debounce (spam engeli) koydu.\n\nTester: '📸 EKRAN GÖRÜNTÜSÜ: Temiz kırmızı uyarı çıktı.'\nKaos Maymunu: '15 kere basıldı, tek istek gitti; test başarılı!'",
+        desc: "İki açık da kapatıldı; hem normal test hem kaos testi yeşile döndü!",
+        activeNode: "node-tester",
+        statusClass: "node-active",
+        dotColor: "bg-cyan-500"
+      },
+      {
+        step: 11,
+        sender: "🧠 HAFIZA UZMANI ➔ KURALLAR.MD",
+        stepTag: "AŞAMA 11: DERS ÇIKARMA VE ANILAN KURAL",
+        message: "🧠 Hafıza Uzmanı uyandı:\nKURALLAR.md'ye yazıldı:\n- KURAL: Tüm form butonlarında minimum 300ms debounce uygulanmalıdır.\nHafıza Uzmanı kapandı (0 gereksiz token).",
+        desc: "Kaos saldırısından kalıcı bir kural damıtıldı. Gelecekte Mimar ve İşçiler bu kuralı bilerek başlayacak!",
+        activeNode: "node-memory",
+        statusClass: "node-purple",
+        dotColor: "bg-purple-500"
+      },
+      {
+        step: 12,
+        sender: "🩺 CANLI HATA DEDEKTİFİ (SENTRY CAN SİMİDİ)",
+        stepTag: "AŞAMA 12: CANLI ORTAMDA GÖZÜ KULAĞI AÇIK",
+        message: "🩺 Canlı Hata Dedektifi devrede:\n'Canlı loglar ve Sentry MCP dinleniyor. Sıfır çökme, sıfır unhandled rejection. Sistem jilet gibi.'",
+        desc: "Canlı ortamda bir hata çıksa bile anında stack-trace'i yakalayıp TDD testine dönüştürecek dedektif devrede.",
+        activeNode: "node-sentry",
+        statusClass: "node-active",
+        dotColor: "bg-rose-500"
+      },
+      {
+        step: 13,
+        sender: "🎮 CANLI DENEME TAHTASI ➔ SİZ",
+        stepTag: "AŞAMA 13: CANLI ETKİLEŞİM PANELİ AÇILDI!",
+        message: "🎉 Yan panelde 'Canlı Deneme Tahtası' açıldı!\n\nPatron (Siz), projeyi kurmakla uğraşmadan sağ paneldeki butona tıklayıp formu deniyorsunuz: 'Harika, tam istediğim gibi çalışıyor!'",
+        desc: "Vibe Coder konforu: Projeyi ayağa kaldırmadan yan panelde canlı canlı deneyip onay verdiniz!",
+        activeNode: "node-playground",
+        statusClass: "node-green",
+        dotColor: "bg-emerald-500",
+        badge: { id: "badge-playground", text: "Canlı Deneme Aktif", class: "bg-emerald-500/20 text-emerald-400 border-emerald-500/40 font-bold" }
+      },
+      {
+        step: 14,
+        sender: "🔀 GİT & PR FABRİKASI (OTOMASYON)",
+        stepTag: "AŞAMA 14: İSTEĞE BAĞLI PR VEYA LOKAL TESLİM",
+        message: "PR Modu AÇIK:\n'feat/kullanici-giris branch'i açıldı.\nfeat(auth): add argon2 and 400 validation commit'i atıldı.\nGitHub Pull Request açıldı ve Tester ekran görüntüleri PR açıklamasına iliştirildi!'",
+        desc: "Eğer PR modu KAPALI olsaydı değişiklikler direkt yerel dosyalarda kalır, gereksiz PR ile vakit kaybedilmezdi.",
+        activeNode: "node-pr",
+        statusClass: "node-pr",
+        dotColor: "bg-purple-500"
+      },
+      {
+        step: 15,
+        sender: "⚖️ BAĞIMSIZ YARGIÇ ➔ MÜHÜR",
+        stepTag: "AŞAMA 15: ✅ KUSURSUZ TESLİMAT TAMAMLANDI",
+        message: "✅ GÖREV EKSİKSİZ TAMAMLANDI\n'Güvenlik temiz, performans hafif, görsel testler yeşil, kaos testi geçildi, PR açıldı veya lokal kaydedildi. Şirket Sahibi onayladı.'",
+        desc: "20 elemanlı sistem tek bir satır çöp veya güvenlik açığı bırakmadan işi teslim etti.",
+        activeNode: "node-judge",
+        statusClass: "node-green",
+        dotColor: "bg-emerald-500",
+        highlightPath: "path-green"
+      }
+    ];
+
+    function renderStep(idx) {
+      const s = steps[idx - 1];
+      document.getElementById('step-number').innerText = s.step;
+      document.getElementById('progress-bar').style.width = (s.step / steps.length * 100) + '%';
+
+      document.getElementById('msg-sender').innerText = s.sender;
+      document.getElementById('msg-step-tag').innerText = s.stepTag;
+      document.getElementById('msg-text').innerText = s.message;
+      document.getElementById('msg-desc').innerHTML = `<span class="text-emerald-400 font-bold">ℹ️</span> <span>${s.desc}</span>`;
+
+      const nodeIds = ['node-user', 'node-playground', 'node-architect', 'node-figma', 'node-gatekeeper', 'node-orch', 'node-state', 'node-chief', 'node-workers', 'node-perf', 'node-shield', 'node-tester', 'node-chaos', 'node-judge', 'node-memory', 'node-sentry', 'node-pr'];
+      nodeIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove('node-active', 'node-red', 'node-green', 'node-purple', 'node-chaos', 'node-shield', 'node-pr');
+      });
+
+      if (s.activeNode) {
+        const el = document.getElementById(s.activeNode);
+        if (el) el.classList.add(s.statusClass);
+      }
+
+      if (s.badge) {
+        const b = document.getElementById(s.badge.id);
+        if (b) {
+          b.innerText = s.badge.text;
+          b.className = "text-[10px] px-2 py-0.5 rounded border " + s.badge.class;
+        }
+      }
+
+      document.getElementById('path-red').className = "p-1 rounded bg-rose-500/5 border border-rose-500/20 text-rose-400 font-semibold";
+      document.getElementById('path-green').className = "p-1 rounded bg-emerald-500/5 border border-emerald-500/20 text-emerald-400 font-semibold";
+      if (s.highlightPath) {
+        const p = document.getElementById(s.highlightPath);
+        if (s.highlightPath === 'path-red') {
+          p.className = "p-1 rounded bg-rose-500/25 border-2 border-rose-500 text-rose-300 font-bold shadow-sm shadow-rose-500/30";
+        } else if (s.highlightPath === 'path-green') {
+          p.className = "p-1 rounded bg-emerald-500/25 border-2 border-emerald-500 text-emerald-300 font-bold shadow-sm shadow-emerald-500/30";
+        }
+      }
+    }
+
+    function nextStep() {
+      if (currentStep < steps.length) {
+        currentStep++;
+        renderStep(currentStep);
+      } else {
+        stopPlay();
+      }
+    }
+
+    function prevStep() {
+      if (currentStep > 1) {
+        currentStep--;
+        renderStep(currentStep);
+      }
+    }
+
+    function jumpTo(stepNum) {
+      stopPlay();
+      currentStep = stepNum;
+      renderStep(currentStep);
+    }
+
+    function resetFlow() {
+      stopPlay();
+      currentStep = 1;
+      renderStep(currentStep);
+    }
+
+    function togglePlay() {
+      if (isPlaying) {
+        stopPlay();
+      } else {
+        startPlay();
+      }
+    }
+
+    function startPlay() {
+      isPlaying = true;
+      document.getElementById('play-icon').innerText = "⏸️";
+      document.getElementById('play-text').innerText = "Durdur";
+      if (currentStep >= steps.length) currentStep = 0;
+
+      timer = setInterval(() => {
+        if (currentStep < steps.length) {
+          currentStep++;
+          renderStep(currentStep);
+        } else {
+          stopPlay();
+        }
+      }, 3400);
+    }
+
+    function stopPlay() {
+      isPlaying = false;
+      document.getElementById('play-icon').innerText = "▶️";
+      document.getElementById('play-text').innerText = "Otomatik Oynat";
+      if (timer) clearInterval(timer);
+    }
+
+    renderStep(1);
+  </script>
+</body>
+</html>

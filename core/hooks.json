@@ -1,0 +1,44 @@
+{
+    "statuslantern": {
+        "PreInvocation": [
+            {
+                "command": "C:\\Users\\Dogukan\\Desktop\\Work\\projects\\statuslantern\\scripts\\statuslantern_hook.bat pre_invocation",
+                "type": "command"
+            }
+        ],
+        "Stop": [
+            {
+                "command": "C:\\Users\\Dogukan\\Desktop\\Work\\projects\\statuslantern\\scripts\\statuslantern_hook.bat stop",
+                "type": "command"
+            }
+        ]
+    },
+    "statuslantern_personal": {
+        "PreInvocation": [
+            {
+                "command": "C:\\Users\\Dogukan\\Desktop\\statuslantern-personal\\scripts\\statuslantern_personal_hook.bat pre_invocation",
+                "type": "command"
+            }
+        ],
+        "Stop": [
+            {
+                "command": "C:\\Users\\Dogukan\\Desktop\\statuslantern-personal\\scripts\\statuslantern_personal_hook.bat stop",
+                "type": "command"
+            }
+        ]
+    },
+    "sentinel-guard": {
+        "PreToolUse": [
+            {
+                "matcher": "run_command|write_file|edit_file|ask_question|invoke_subagent|read_file",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "powershell -ExecutionPolicy Bypass -NoProfile -File C:\\Users\\Dogukan\\.gemini\\config\\scripts\\sentinel_guard.ps1",
+                        "timeout": 10
+                    }
+                ]
+            }
+        ]
+    }
+}

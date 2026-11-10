@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "figma-design-bridge": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-figma"],
+      "env": {
+        "FIGMA_ACCESS_TOKEN": "BURAYA_FIGMA_TOKEN_YAZIN"
+      },
+      "description": "Figma tasarım tokenlarını (HEX renkler, tipografi, padding) doğrudan Baş Mimar ve UI İşçisine çeker."
+    },
+    "sentry-error-hunter": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-sentry"],
+      "env": {
+        "SENTRY_AUTH_TOKEN": "BURAYA_SENTRY_TOKEN_YAZIN"
+      },
+      "description": "Canlı ortamdaki hataları ve stack-trace'leri otomatik yakalayıp yerel TDD testine dönüştürür."
+    }
+  }
+}
