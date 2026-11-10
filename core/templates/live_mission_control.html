@@ -252,8 +252,8 @@
         </button>
 
         <!-- Açılır Zengin Kart Paneli (Flyout Panel) -->
-        <div id="session-popover-panel" class="hidden absolute top-full left-0 mt-2 w-[340px] sm:w-[440px] bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-2xl z-[999] p-2.5 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
-          <div class="flex items-center justify-between px-2 py-1.5 border-b border-[var(--border)] mb-2">
+        <div id="session-popover-panel" class="hidden absolute top-full left-0 mt-2 w-[340px] sm:w-[460px] bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-2xl z-[999] p-3 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
+          <div class="flex items-center justify-between px-1 py-1 border-b border-[var(--border)] mb-2.5">
             <span class="text-xs font-extrabold tracking-wider text-[var(--foreground)] flex items-center gap-1.5">
               <span>📡</span> <span>SOHBET SEÇİMİ</span>
             </span>
@@ -265,9 +265,32 @@
             </div>
           </div>
 
-          <!-- Gerçek Kullanıcı Sohbetleri Listesi -->
-          <div id="session-cards-list" class="max-h-[320px] overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
-            <!-- Dinamik 2 Satırlı Kartlar Buraya Basılır -->
+          <!-- Canlı Arama Kutusu -->
+          <div class="px-0.5 mb-2.5">
+            <div class="relative flex items-center">
+              <input type="text" id="session-search-input" oninput="filterSessionsList(this.value)" placeholder="🔍 Sohbet ara (başlık, numara, id)..." class="w-full bg-[var(--background)] border border-[var(--border)] focus:border-emerald-500/50 rounded-xl px-2.5 py-1.5 text-xs text-[var(--foreground)] placeholder:text-zinc-500 font-sans outline-none transition shadow-inner">
+              <button type="button" onclick="clearSessionSearch(event)" id="session-search-clear" class="hidden absolute right-2.5 top-1.5 text-zinc-500 hover:text-zinc-300 text-xs">✕</button>
+            </div>
+          </div>
+
+          <!-- Grup 1: Canlı & Aktif Kullanıcı Sohbetleri -->
+          <div id="active-group-header" class="flex items-center justify-between text-[10px] font-bold text-emerald-400 font-mono px-1 mb-1.5">
+            <span class="flex items-center gap-1"><span>🟢</span> <span>CANLI & AKTİF SOHBETLER</span> (<span id="active-count">0</span>)</span>
+            <span class="text-[9px] text-zinc-500 font-normal">Telemetri Yayını</span>
+          </div>
+          <div id="session-cards-list" class="max-h-[170px] overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
+            <!-- Dinamik Canlı Kartlar Buraya Basılır -->
+          </div>
+
+          <!-- Grup 2: Tüm Antigravity Sohbetleri (Arşiv) -->
+          <div id="archive-group-container" class="mt-2.5 pt-2 border-t border-[var(--border)]">
+            <div class="flex items-center justify-between text-[10px] font-bold text-zinc-400 font-mono px-1 mb-1.5">
+              <span class="flex items-center gap-1"><span>📁</span> <span>TÜM ANTİGRAVİTY SOHBETLERİ</span> (<span id="archive-count">0</span>)</span>
+              <span class="text-[9px] text-zinc-500 font-normal">Tarih Sıralı</span>
+            </div>
+            <div id="archive-cards-list" class="max-h-[170px] overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
+              <!-- Dinamik Arşiv Kartları Buraya Basılır -->
+            </div>
           </div>
 
           <!-- Test Oturumları Akordeonu / Toggle Butonu -->
@@ -275,7 +298,7 @@
             <button type="button" onclick="toggleTestSessionsView(event)" id="btn-toggle-tests" class="w-full text-center text-[10px] font-mono text-zinc-400 hover:text-zinc-200 py-1 bg-[var(--background)]/60 rounded-lg border border-[var(--border)] flex items-center justify-center gap-1.5 transition">
               <span>🧪</span> <span id="test-toggle-label">Test Oturumlarını Göster (0)</span>
             </button>
-            <div id="test-cards-list" class="hidden mt-1.5 max-h-[140px] overflow-y-auto space-y-1 pr-1"></div>
+            <div id="test-cards-list" class="hidden mt-1.5 max-h-[120px] overflow-y-auto space-y-1 pr-1"></div>
           </div>
         </div>
       </div>
@@ -984,25 +1007,25 @@
           const isDone = w.status === 'done';
 
           htmlBuffer += `
-            <div class="worker-sub-card relative flex items-center justify-between p-2 rounded-lg bg-[var(--card)] border ${isDone ? 'border-emerald-500/20 opacity-75' : 'border-emerald-500/40 hover:border-emerald-500/70 shadow-sm shadow-emerald-500/10'} transition-all duration-200">
+            <div class="worker-sub-card relative flex items-start justify-between p-2 rounded-lg bg-[var(--card)] border ${isDone ? 'border-emerald-500/20 opacity-75' : 'border-emerald-500/40 hover:border-emerald-500/70 shadow-sm shadow-emerald-500/10'} transition-all duration-200">
               <!-- Sol Yatay Bağlantı Kolu (Dikey stem hattından kutuya uzanan köprü) -->
-              <div class="absolute -left-2 top-1/2 w-2 h-0.5 border-t-2 border-dashed border-emerald-500/50"></div>
+              <div class="absolute -left-2 top-3 w-2 h-0.5 border-t-2 border-dashed border-emerald-500/50"></div>
               
-              <div class="flex items-center gap-2 min-w-0 pr-1">
-                <span class="relative flex h-2 w-2 flex-shrink-0">
+              <div class="flex items-start gap-2.5 flex-1 min-w-0 pr-2">
+                <span class="relative flex h-2 w-2 flex-shrink-0 mt-1">
                   <span class="${isDone ? 'hidden' : 'animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75'}"></span>
                   <span class="relative inline-flex rounded-full h-2 w-2 ${isDone ? 'bg-zinc-400' : 'bg-emerald-500'}"></span>
                 </span>
-                <div class="min-w-0">
-                  <div class="flex items-center gap-1.5">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-1.5 flex-wrap">
                     <span class="font-bold text-[11px] text-emerald-400 font-mono tracking-tight">${wName}</span>
                     <span class="text-[9px] px-1 py-0.2 rounded bg-emerald-500/10 text-emerald-300 font-mono border border-emerald-500/20">${wRole}</span>
                   </div>
-                  <p class="text-[9px] text-[var(--muted-foreground)] truncate max-w-[130px]">${wDetail}</p>
+                  <p class="text-[9.5px] text-[var(--muted-foreground)] leading-relaxed mt-0.5 break-words">${wDetail}</p>
                 </div>
               </div>
               
-              <span class="text-[9px] px-1.5 py-0.5 rounded font-mono font-bold ${isDone ? 'bg-zinc-500/20 text-zinc-400 border border-zinc-500/30' : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'} flex-shrink-0">
+              <span class="text-[9px] px-1.5 py-0.5 rounded font-mono font-bold ${isDone ? 'bg-zinc-500/20 text-zinc-400 border border-zinc-500/30' : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'} flex-shrink-0 self-start mt-0.5">
                 ${wStatus}
               </span>
             </div>
@@ -1207,6 +1230,234 @@
       fetchTimeout = setTimeout(fetchSessionsList, 1200);
     }
 
+    let cachedAllSessions = [];
+    let currentSearchQuery = "";
+
+    function filterSessionsList(query) {
+      currentSearchQuery = (query || "").trim().toLowerCase();
+      const clearBtn = document.getElementById('session-search-clear');
+      if (clearBtn) {
+        if (currentSearchQuery.length > 0) {
+          clearBtn.classList.remove('hidden');
+        } else {
+          clearBtn.classList.add('hidden');
+        }
+      }
+      renderSessionsFromCache();
+    }
+
+    function clearSessionSearch(e) {
+      if (e) e.stopPropagation();
+      const input = document.getElementById('session-search-input');
+      if (input) input.value = "";
+      filterSessionsList("");
+    }
+
+    function renderSessionsFromCache() {
+      const labelEl = document.getElementById('current-session-label');
+      const countBadge = document.getElementById('session-count-badge');
+      const activeCardsContainer = document.getElementById('session-cards-list');
+      const archiveCardsContainer = document.getElementById('archive-cards-list');
+      const statsEl = document.getElementById('session-popover-stats');
+      const activeCountEl = document.getElementById('active-count');
+      const archiveCountEl = document.getElementById('archive-count');
+      const testContainer = document.getElementById('test-sessions-container');
+      const testList = document.getElementById('test-cards-list');
+      const testToggleLabel = document.getElementById('test-toggle-label');
+      const pinBadge = document.getElementById('session-pin-indicator');
+
+      const matchesQuery = (s) => {
+        if (!currentSearchQuery) return true;
+        const q = currentSearchQuery;
+        return (s.chatTitle && s.chatTitle.toLowerCase().includes(q)) ||
+               (s.title && s.title.toLowerCase().includes(q)) ||
+               (s.conversationId && s.conversationId.toLowerCase().includes(q)) ||
+               (s.shortId && s.shortId.toLowerCase().includes(q)) ||
+               (s.sessionNumber && s.sessionNumber.toLowerCase().includes(q)) ||
+               (s.workspaceName && s.workspaceName.toLowerCase().includes(q));
+      };
+
+      const userSessions = cachedAllSessions.filter(s => !s.isTest && !s.isArchived);
+      const archiveSessions = cachedAllSessions.filter(s => !s.isTest && s.isArchived);
+      const testSessions = cachedAllSessions.filter(s => s.isTest);
+
+      const filteredActive = userSessions.filter(matchesQuery);
+      const filteredArchive = archiveSessions.filter(matchesQuery);
+      const filteredTest = testSessions.filter(matchesQuery);
+
+      if (countBadge) {
+        countBadge.innerText = `${userSessions.length} Canlı / ${archiveSessions.length} Arşiv`;
+      }
+      if (statsEl) {
+        statsEl.innerText = `${userSessions.length} Canlı | ${archiveSessions.length} Arşiv`;
+      }
+      if (activeCountEl) activeCountEl.innerText = filteredActive.length;
+      if (archiveCountEl) archiveCountEl.innerText = filteredArchive.length;
+
+      // Sabitlik / Otomatik mod indikatörünü güncelle
+      if (pinBadge) {
+        if (isUserPinned) {
+          pinBadge.innerText = '📌 SABİT';
+          pinBadge.className = 'text-[9px] px-1.5 py-0.2 rounded font-mono font-bold bg-amber-500/20 text-amber-400 border border-amber-500/40 leading-none';
+        } else {
+          pinBadge.innerText = '⚡ OTO';
+          pinBadge.className = 'text-[9px] px-1.5 py-0.2 rounded font-mono font-bold bg-zinc-700/40 text-zinc-400 border border-zinc-600/40 leading-none';
+        }
+      }
+
+      // Aktif sohbetin etiketini guncelle
+      let currentMatched = false;
+      for (let s of cachedAllSessions) {
+        if (s.conversationId === currentConversationId) {
+          currentMatched = true;
+          if (labelEl) {
+            const prefix = s.isArchived ? '📁 ' : (s.sessionNumber ? `${s.sessionNumber}: ` : '');
+            labelEl.innerText = `${prefix}${s.chatTitle || 'Sohbet'}`;
+          }
+          break;
+        }
+      }
+      if (!currentMatched && currentConversationId && labelEl) {
+        labelEl.innerText = `Sohbet (${currentConversationId.substring(0, 8)}...)`;
+      }
+
+      // 1. Canlı Kartları Render Et
+      if (activeCardsContainer) {
+        activeCardsContainer.innerHTML = "";
+        if (filteredActive.length === 0) {
+          activeCardsContainer.innerHTML = `<div class="p-2.5 text-center text-xs text-[var(--muted-foreground)]">${currentSearchQuery ? 'Eşleşen canlı sohbet bulunamadı' : 'Aktif canlı sohbet yok'}</div>`;
+        } else {
+          filteredActive.forEach((sess, idx) => {
+            const isCurrent = (sess.conversationId === currentConversationId);
+            const isDone = (sess.status === 'TESLIM_EDILDI');
+            const statusDot = isDone ? '✅' : '🟢';
+            const statusText = isDone ? 'Tamamlandı' : 'Çalışıyor';
+            const statusColor = isDone ? 'text-blue-400 bg-blue-500/10 border-blue-500/30' : 'text-emerald-400 bg-emerald-500/15 border-emerald-500/30';
+            const title = fixMojibake(sess.chatTitle || sess.title || sess.workspaceName || 'Antigravity Sohbet');
+            const sessionNum = sess.sessionNumber || `Sohbet #${idx + 1}`;
+            const timeStr = sess.timeStr || '';
+            const wsName = sess.workspaceName || '';
+            const stepTag = `Aşama ${sess.step || 1}/${sess.totalSteps || 15}`;
+
+            const card = document.createElement('div');
+            card.className = `p-2.5 rounded-xl border transition cursor-pointer select-none ${
+              isCurrent 
+                ? (isUserPinned 
+                    ? 'bg-amber-500/10 border-amber-500/40 shadow-sm ring-1 ring-amber-500/20' 
+                    : 'bg-emerald-500/10 border-emerald-500/40 shadow-sm ring-1 ring-emerald-500/20')
+                : 'bg-[var(--background)] hover:bg-[var(--card)] border-[var(--border)] hover:border-emerald-500/30'
+            }`;
+            card.onclick = function() { selectSession(sess.conversationId, true); };
+            card.innerHTML = `
+              <div class="flex items-start justify-between gap-2.5">
+                <div class="flex items-start gap-2.5 min-w-0">
+                  <span class="w-6 h-6 rounded-lg ${isCurrent ? (isUserPinned ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40') : 'bg-zinc-700/30 text-zinc-400 border border-zinc-700/50'} flex items-center justify-center text-[10px] font-bold font-mono shrink-0 mt-0.5">
+                    #${idx + 1}
+                  </span>
+                  <div class="min-w-0">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                      <span class="text-xs font-bold text-[var(--foreground)] tracking-tight truncate">${title}</span>
+                      ${isCurrent 
+                        ? (isUserPinned 
+                            ? '<span class="text-[9px] px-1.5 py-0.5 rounded font-mono font-bold bg-amber-500/20 text-amber-400 border border-amber-500/40 leading-none">📌 Sabit</span>' 
+                            : '<span class="text-[9px] px-1.5 py-0.5 rounded font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 leading-none">📍 Aktif</span>')
+                        : ''}
+                    </div>
+                    <div class="text-[10px] text-[var(--muted-foreground)] font-mono flex items-center gap-1.5 mt-1 truncate">
+                      <span class="${isDone ? 'text-blue-400' : 'text-emerald-400'} font-semibold">● ${stepTag}</span>
+                      <span>•</span>
+                      <span class="truncate">${wsName}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="text-right shrink-0 flex flex-col items-end">
+                  <div class="flex items-center gap-1">
+                    <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-md border ${statusColor} leading-none">
+                      ${statusText} ${statusDot}
+                    </span>
+                    <button type="button" onclick="deleteSessionFromList(event, '${sess.conversationId}')" title="Bu sohbeti panodan kaldır" class="w-4 h-4 rounded hover:bg-rose-500/20 text-zinc-500 hover:text-rose-400 flex items-center justify-center text-[10px] font-bold transition cursor-pointer select-none">✕</button>
+                  </div>
+                  <span class="text-[9px] text-[var(--muted-foreground)] font-mono mt-1">${timeStr}</span>
+                </div>
+              </div>
+            `;
+            activeCardsContainer.appendChild(card);
+          });
+        }
+      }
+
+      // 2. Arşiv Sohbetlerini Render Et
+      if (archiveCardsContainer) {
+        archiveCardsContainer.innerHTML = "";
+        if (filteredArchive.length === 0) {
+          archiveCardsContainer.innerHTML = `<div class="p-2 text-center text-[11px] text-[var(--muted-foreground)]">${currentSearchQuery ? 'Eşleşen arşiv sohbeti bulunamadı' : 'Arşivde sohbet yok'}</div>`;
+        } else {
+          filteredArchive.forEach((sess, idx) => {
+            const isCurrent = (sess.conversationId === currentConversationId);
+            const title = fixMojibake(sess.chatTitle || sess.title || 'Antigravity Sohbet');
+            const timeStr = sess.timeStr || '';
+
+            const card = document.createElement('div');
+            card.className = `p-2 rounded-xl border transition cursor-pointer select-none ${
+              isCurrent 
+                ? 'bg-amber-500/10 border-amber-500/40 shadow-sm ring-1 ring-amber-500/20' 
+                : 'bg-[var(--background)] hover:bg-[var(--card)] border-[var(--border)] hover:border-zinc-500/40'
+            }`;
+            card.onclick = function() { selectSession(sess.conversationId, true); };
+            card.innerHTML = `
+              <div class="flex items-start justify-between gap-2">
+                <div class="flex items-start gap-2 min-w-0">
+                  <span class="w-5 h-5 rounded-md ${isCurrent ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40' : 'bg-zinc-800 text-zinc-400 border border-zinc-700/60'} flex items-center justify-center text-[10px] font-bold font-mono shrink-0 mt-0.5">
+                    📁
+                  </span>
+                  <div class="min-w-0">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                      <span class="text-xs font-semibold text-[var(--foreground)] tracking-tight truncate">${title}</span>
+                      ${isCurrent ? '<span class="text-[9px] px-1.5 py-0.2 rounded font-mono font-bold bg-amber-500/20 text-amber-400 border border-amber-500/40 leading-none">📌 Seçili</span>' : ''}
+                    </div>
+                    <div class="text-[10px] text-zinc-500 font-mono flex items-center gap-1.5 mt-0.5 truncate">
+                      <span>${sess.shortId}</span>
+                      <span>•</span>
+                      <span>${timeStr}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="text-right shrink-0">
+                  <span class="text-[9px] font-mono px-1.5 py-0.5 rounded border bg-zinc-800/60 text-zinc-400 border-zinc-700 leading-none">
+                    Arşiv
+                  </span>
+                </div>
+              </div>
+            `;
+            archiveCardsContainer.appendChild(card);
+          });
+        }
+      }
+
+      // 3. Test Oturumları Kısmı
+      if (testContainer && testList) {
+        if (filteredTest.length > 0) {
+          testContainer.classList.remove('hidden');
+          if (testToggleLabel) {
+            testToggleLabel.innerText = `Test Oturumlarını Göster (${filteredTest.length})`;
+          }
+          testList.innerHTML = "";
+          filteredTest.forEach(sess => {
+            const tCard = document.createElement('div');
+            tCard.className = "p-1.5 rounded-lg border border-[var(--border)] bg-[var(--background)] hover:bg-[var(--card)] text-[10px] font-mono flex items-center justify-between cursor-pointer text-zinc-400 hover:text-zinc-200";
+            tCard.onclick = function() { selectSession(sess.conversationId, true); };
+            tCard.innerHTML = `
+              <span class="truncate">🧪 ${sess.conversationId} [Aşama ${sess.step || 1}]</span>
+              <span class="shrink-0 text-[9px] text-zinc-500 ml-1">${sess.timeStr || ''}</span>
+            `;
+            testList.appendChild(tCard);
+          });
+        } else {
+          testContainer.classList.add('hidden');
+        }
+      }
+    }
+
     async function fetchSessionsList() {
       try {
         const host = window.location.origin.includes("localhost:9999") ? "" : "http://localhost:9999";
@@ -1214,146 +1465,8 @@
         if (!resp.ok) return;
         const data = await resp.json();
         const list = Array.isArray(data) ? data : (data.sessions || []);
-
-        const labelEl = document.getElementById('current-session-label');
-        const countBadge = document.getElementById('session-count-badge');
-        const cardsContainer = document.getElementById('session-cards-list');
-        const statsEl = document.getElementById('session-popover-stats');
-        const testContainer = document.getElementById('test-sessions-container');
-        const testList = document.getElementById('test-cards-list');
-        const testToggleLabel = document.getElementById('test-toggle-label');
-
-        const userSessions = list.filter(s => !s.isTest);
-        const testSessions = list.filter(s => s.isTest);
-        const pinBadge = document.getElementById('session-pin-indicator');
-
-        if (countBadge) {
-          countBadge.innerText = `${userSessions.length || 1} Sohbet`;
-        }
-        if (statsEl) {
-          statsEl.innerText = `${userSessions.length} Sohbet`;
-        }
-
-        // Sabitlik / Otomatik mod indikatörünü güncelle
-        if (pinBadge) {
-          if (isUserPinned) {
-            pinBadge.innerText = '📌 SABİT';
-            pinBadge.className = 'text-[9px] px-1.5 py-0.2 rounded font-mono font-bold bg-amber-500/20 text-amber-400 border border-amber-500/40 leading-none';
-          } else {
-            pinBadge.innerText = '⚡ OTO';
-            pinBadge.className = 'text-[9px] px-1.5 py-0.2 rounded font-mono font-bold bg-zinc-700/40 text-zinc-400 border border-zinc-600/40 leading-none';
-          }
-        }
-
-        // Aktif sohbetin etiketini guncelle
-        let currentMatched = false;
-        for (let s of list) {
-          if (s.conversationId === currentConversationId) {
-            currentMatched = true;
-            if (labelEl) {
-              const num = s.sessionNumber ? `${s.sessionNumber}: ` : '';
-              labelEl.innerText = `${num}${s.chatTitle || 'Sohbet'}`;
-            }
-            break;
-          }
-        }
-        if (!currentMatched && currentConversationId && labelEl) {
-          labelEl.innerText = `Sohbet (${currentConversationId.substring(0, 8)}...)`;
-        }
-
-        if (!cardsContainer) return;
-        cardsContainer.innerHTML = "";
-
-        if (userSessions.length === 0) {
-          cardsContainer.innerHTML = `<div class="p-3 text-center text-xs text-[var(--muted-foreground)]">Aktif sohbet aranıyor...</div>`;
-          return;
-        }
-
-        userSessions.forEach((sess, idx) => {
-          const isCurrent = (sess.conversationId === currentConversationId);
-          const card = document.createElement('div');
-          
-          const isDone = (sess.status === 'TESLIM_EDILDI');
-          const statusDot = isDone ? '✅' : '🟢';
-          const statusText = isDone ? 'Tamamlandı' : 'Çalışıyor';
-          const statusColor = isDone ? 'text-blue-400 bg-blue-500/10 border-blue-500/30' : 'text-emerald-400 bg-emerald-500/15 border-emerald-500/30';
-          
-          const title = fixMojibake(sess.chatTitle || sess.title || sess.workspaceName || 'Antigravity Sohbet');
-          const sessionNum = sess.sessionNumber || `Sohbet #${idx + 1}`;
-          const timeStr = sess.timeStr || '';
-          const wsName = sess.workspaceName || '';
-          const stepTag = `Aşama ${sess.step || 1}/${sess.totalSteps || 15}`;
-
-          card.className = `p-2.5 rounded-xl border transition cursor-pointer select-none ${
-            isCurrent 
-              ? (isUserPinned 
-                  ? 'bg-amber-500/10 border-amber-500/40 shadow-sm ring-1 ring-amber-500/20' 
-                  : 'bg-emerald-500/10 border-emerald-500/40 shadow-sm ring-1 ring-emerald-500/20')
-              : 'bg-[var(--background)] hover:bg-[var(--card)] border-[var(--border)] hover:border-blue-500/30'
-          }`;
-
-          card.onclick = function() {
-            selectSession(sess.conversationId, true);
-          };
-
-          card.innerHTML = `
-            <div class="flex items-start justify-between gap-2.5">
-              <div class="flex items-start gap-2.5 min-w-0">
-                <span class="w-6 h-6 rounded-lg ${isCurrent ? (isUserPinned ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40') : 'bg-zinc-700/30 text-zinc-400 border border-zinc-700/50'} flex items-center justify-center text-[10px] font-bold font-mono shrink-0 mt-0.5">
-                  #${idx + 1}
-                </span>
-                <div class="min-w-0">
-                  <div class="flex items-center gap-1.5 flex-wrap">
-                    <span class="text-xs font-bold text-[var(--foreground)] tracking-tight truncate">${title}</span>
-                    ${isCurrent 
-                      ? (isUserPinned 
-                          ? '<span class="text-[9px] px-1.5 py-0.5 rounded font-mono font-bold bg-amber-500/20 text-amber-400 border border-amber-500/40 leading-none">📌 Sabitlendi</span>' 
-                          : '<span class="text-[9px] px-1.5 py-0.5 rounded font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 leading-none">📍 Bu Sohbet</span>')
-                      : ''}
-                  </div>
-                  <div class="text-[10px] text-[var(--muted-foreground)] font-mono flex items-center gap-1.5 mt-1 truncate">
-                    <span class="${isDone ? 'text-blue-400' : 'text-emerald-400'} font-semibold">● ${stepTag}</span>
-                    <span>•</span>
-                    <span class="truncate">${wsName}</span>
-                  </div>
-                </div>
-              </div>
-              <div class="text-right shrink-0 flex flex-col items-end">
-                <div class="flex items-center gap-1">
-                  <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-md border ${statusColor} leading-none">
-                    ${statusText} ${statusDot}
-                  </span>
-                  <button type="button" onclick="deleteSessionFromList(event, '${sess.conversationId}')" title="Bu sohbeti panodan kaldır" class="w-4 h-4 rounded hover:bg-rose-500/20 text-zinc-500 hover:text-rose-400 flex items-center justify-center text-[10px] font-bold transition cursor-pointer select-none">✕</button>
-                </div>
-                <span class="text-[9px] text-[var(--muted-foreground)] font-mono mt-1">${timeStr}</span>
-              </div>
-            </div>
-          `;
-          cardsContainer.appendChild(card);
-        });
-
-        // Test Oturumları Kısmı
-        if (testContainer && testList) {
-          if (testSessions.length > 0) {
-            testContainer.classList.remove('hidden');
-            if (testToggleLabel) {
-              testToggleLabel.innerText = `Test Oturumlarını Göster (${testSessions.length})`;
-            }
-            testList.innerHTML = "";
-            testSessions.forEach(sess => {
-              const tCard = document.createElement('div');
-              tCard.className = "p-1.5 rounded-lg border border-[var(--border)] bg-[var(--background)] hover:bg-[var(--card)] text-[10px] font-mono flex items-center justify-between cursor-pointer text-zinc-400 hover:text-zinc-200";
-              tCard.onclick = function() { selectSession(sess.conversationId, true); };
-              tCard.innerHTML = `
-                <span class="truncate">🧪 ${sess.conversationId} [Aşama ${sess.step || 1}]</span>
-                <span class="shrink-0 text-[9px] text-zinc-500 ml-1">${sess.timeStr || ''}</span>
-              `;
-              testList.appendChild(tCard);
-            });
-          } else {
-            testContainer.classList.add('hidden');
-          }
-        }
+        cachedAllSessions = list;
+        renderSessionsFromCache();
       } catch (e) {}
     }
 
@@ -1402,15 +1515,35 @@
       await fetchSessionsList();
     }
 
+    function renderArchivedState(s) {
+      if (!s) return;
+      const title = fixMojibake(s.chatTitle || s.title || "Geçmiş Sohbet");
+      document.getElementById('live-sender').innerText = "Antigravity Arşiv";
+      document.getElementById('live-step-tag').innerText = "📁 GEÇMİŞ SOHBET";
+      document.getElementById('live-message').innerText = title;
+      document.getElementById('live-desc').innerHTML = `<span class="text-amber-400 font-bold">📁</span> <span>Bu sohbet Antigravity geçmiş metin oturumudur (Canlı telemetri yayını bulunmamaktadır).</span>`;
+      document.getElementById('live-time').innerText = s.timeStr || new Date().toLocaleTimeString();
+      document.getElementById('live-progress').style.width = '100%';
+      applyActiveNode('node-state', 'node-active-default');
+      setPathHighlight(null);
+      renderWorkers({ workerCount: 0 });
+      addEventLog("ARŞİV", `📁 Geçmiş sohbet yüklendi: ${title}`);
+    }
+
     async function fetchSessionState(cid) {
       try {
         const host = window.location.origin.includes("localhost:9999") ? "" : "http://localhost:9999";
         const resp = await fetch(host + `/state?cid=${encodeURIComponent(cid)}`);
         if (!resp.ok) return;
         const state = await resp.json();
-        if (state && state.step) {
-          eventQueue.length = 0;
-          renderState(state);
+        if (state) {
+          if (state.isArchived || state.status === 'ARŞİV') {
+            eventQueue.length = 0;
+            renderArchivedState(state);
+          } else if (state.step) {
+            eventQueue.length = 0;
+            renderState(state);
+          }
         }
       } catch (e) {}
     }

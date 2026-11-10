@@ -58,7 +58,7 @@ function Repair-Utf8String([string]$str) {
     return $str
 }
 
-# Insan-Okur Sohbet Basligi Cozucusu (Human-Readable Chat Title)
+# Insan-Okur Sohbet Basligi Cozucusu (%100 Antigravity Aynasi)
 function Get-ConversationDisplayName([string]$cid, [string]$wsName, [string]$fallbackTitle) {
     if ([string]::IsNullOrWhiteSpace($cid)) { return "Antigravity Sohbet" }
 
@@ -67,7 +67,51 @@ function Get-ConversationDisplayName([string]$cid, [string]$wsName, [string]$fal
 
     $artDir = Join-Path $HOME ".gemini\antigravity\brain\$cid"
 
-    # 1. Once DURUM.md gorev adina bak
+    # 1. Once Transcript'ten kullanicinin klavyeden girdigi ilk istemi oku (%100 Antigravity Aynasi)
+    $tPath = Join-Path $artDir ".system_generated\logs\transcript.jsonl"
+    $rawUserText = ""
+    if (Test-Path $tPath) {
+        try {
+            $file = [System.IO.File]::Open($tPath, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+            $reader = New-Object System.IO.StreamReader($file, [System.Text.Encoding]::UTF8)
+            $lCount = 0
+            while (-not $reader.EndOfStream -and $lCount -lt 10) {
+                $line = $reader.ReadLine()
+                $lCount++
+                if (-not [string]::IsNullOrWhiteSpace($line)) {
+                    try {
+                        $obj = $line | ConvertFrom-Json
+                        if ($obj.content -match '<USER_REQUEST>\s*([\s\S]*?)\s*</USER_REQUEST>') {
+                            $rawUserText = $matches[1].Trim()
+                            break
+                        }
+                    } catch {}
+                }
+            }
+            $reader.Dispose()
+            $file.Dispose()
+        } catch {}
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($rawUserText)) {
+        $clean = ($rawUserText -replace '[\r\n]+', ' ').Trim()
+        $clean = ($clean -replace '^(\\+n)+', '').Trim()
+        if ($clean -match '^@\[.*?([^\\/]+)\]\s*(.*)') {
+            $f = $matches[1]
+            $r = $matches[2].Trim()
+            $clean = if ($r) { $f + ": " + $r } else { $f }
+        }
+        $clean = ($clean -replace '^\s*/[a-zA-Z0-9\-_]+\s*', '').Trim()
+
+        if ($clean.Length -gt 36) {
+            return $clean.Substring(0, 33) + "..."
+        }
+        if (-not [string]::IsNullOrWhiteSpace($clean)) {
+            return $clean
+        }
+    }
+
+    # 2. transcript yoksa DURUM.md gorev adina bak
     $artDurum = Join-Path $artDir "DURUM.md"
     if (Test-Path $artDurum) {
         try {
@@ -86,80 +130,119 @@ function Get-ConversationDisplayName([string]$cid, [string]$wsName, [string]$fal
         } catch {}
     }
 
-    # 2. Transcript'ten kullanici istegini oku
-    $tPath = Join-Path $artDir ".system_generated\logs\transcript.jsonl"
-    $rawUserText = ""
-    if (Test-Path $tPath) {
-        try {
-            $file = [System.IO.File]::Open($tPath, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
-            $reader = New-Object System.IO.StreamReader($file, [System.Text.Encoding]::UTF8)
-            $firstLine = $reader.ReadLine()
-            $reader.Dispose()
-            $file.Dispose()
-
-            if (-not [string]::IsNullOrWhiteSpace($firstLine)) {
-                $obj = $firstLine | ConvertFrom-Json
-                if ($obj.content -match '<USER_REQUEST>\s*([\s\S]*?)\s*</USER_REQUEST>') {
-                    $rawUserText = $matches[1].Trim()
-                }
-            }
-        } catch {}
-    }
-
-    $textToAnalyze = if (-not [string]::IsNullOrWhiteSpace($rawUserText)) { $rawUserText } else { $fallbackTitle }
-    if (-not [string]::IsNullOrWhiteSpace($textToAnalyze)) {
-        $clean = ($textToAnalyze -replace '[\r\n]+', ' ').Trim()
-
-        # Semantik Modul ve Ozellik Tespiti
-        if ($clean -match 'alt\s*işçi|işçiler\s*kutu|küçük\s*kutu') {
-            return "Alt İşçi Ağacı Mimarisi"
-        }
-        if ($clean -match 'çoklu\s*oturum|çakış|3\s*tane|üç\s*tane|oturum\s*kısmı|multi-session') {
-            return "Çoklu Oturum İzolasyonu"
-        }
-        if ($clean -match 'vigiles\s*light|küçük\s*işler|hızlı\s*mod|fast-strike') {
-            return "Vigiles Light Hızlı Mod"
-        }
-        if ($clean -match 'kota|dürt|heartbeat') {
-            return "Otonom Kota Dürtücüsü"
-        }
-        if ($clean -match 'tasarım|renk|tema|ui|görsel|arayüz') {
-            return "Canlı Operasyon UI Tasarımı"
-        }
-        if ($clean -match 'otomatik|komutu\s*kullanılmad') {
-            return "Otomatik Vigiles Başlatma"
-        }
-        if ($clean -match 'baş\s*mimar|planla') {
-            return "Otonom Mimari & Planlama"
-        }
-        if ($clean -match 'mojibake|karakter\s*bozul|türkçe|utf-?8') {
-            return "UTF-8 & Mojibake Onarımı"
-        }
-        if ($clean -match 'push|git\s*push|github') {
-            return "Git & /push Pipeline"
-        }
-        if ($clean -match '^\s*/live\b') {
-            return "Canlı Operasyon Başlatıcı (/live)"
-        }
-
-        # Duz metin temizleme
-        $cleanNoSlash = ($clean -replace '^\s*/[a-zA-Z0-9\-_]+\s*', '').Trim()
-        if ($cleanNoSlash.Length -gt 32) {
-            return $cleanNoSlash.Substring(0, 30) + "..."
-        }
-        if (-not [string]::IsNullOrWhiteSpace($cleanNoSlash)) {
-            return $cleanNoSlash
-        }
-    }
-
     if (-not [string]::IsNullOrWhiteSpace($fallbackTitle) -and 
         $fallbackTitle -notmatch '^(Canli|CANLI|OTURUM|GÖREV TAMAMLANDI)') {
-        if ($fallbackTitle.Length -gt 32) { return $fallbackTitle.Substring(0, 30) + "..." }
+        if ($fallbackTitle.Length -gt 36) { return $fallbackTitle.Substring(0, 33) + "..." }
         return $fallbackTitle
     }
 
     $short = if ($cid.Length -gt 8) { $cid.Substring(0, 8) } else { $cid }
     return "Sohbet ($short)"
+}
+
+# --- ANTIGRAVITY BRAIN AUTO-DISCOVERY & CACHE (TÜM SOHBETLERİ KEŞFETME) ---
+$discoveredArchiveCache = [System.Collections.Generic.List[hashtable]]::new()
+$lastDiscoveryTime = [datetime]::MinValue
+$discoveryCacheExpirySec = 15
+
+function Get-DiscoveredArchiveSessions([System.Collections.Concurrent.ConcurrentDictionary[string, hashtable]]$activeSessionsMap) {
+    $now = Get-Date
+    if (($now - $script:lastDiscoveryTime).TotalSeconds -lt $script:discoveryCacheExpirySec -and $script:discoveredArchiveCache.Count -gt 0) {
+        $cachedFresh = [System.Collections.Generic.List[hashtable]]::new()
+        foreach ($item in $script:discoveredArchiveCache) {
+            if (-not $activeSessionsMap.ContainsKey($item.conversationId)) {
+                $cachedFresh.Add($item)
+            }
+        }
+        return $cachedFresh
+    }
+
+    $brainBaseDir = Join-Path $HOME ".gemini\antigravity\brain"
+    if (-not (Test-Path $brainBaseDir)) { return @() }
+
+    $dirs = @(Get-ChildItem -Path $brainBaseDir -Directory -ErrorAction SilentlyContinue | Where-Object { $_.Name -match '^[a-f0-9\-]{36}$' })
+    if ($dirs.Count -eq 0) { return @() }
+
+    # Son dokunulma tarihine göre azalan sırala (en güncel en üstte)
+    $dirs = @($dirs | Sort-Object LastWriteTime -Descending)
+
+    $newList = [System.Collections.Generic.List[hashtable]]::new()
+    $returnList = [System.Collections.Generic.List[hashtable]]::new()
+
+    foreach ($d in $dirs) {
+        $cid = $d.Name
+
+        # SADECE GERÇEK KULLANICI SOHBETLERİNİ AL (Alt işçi / Subagent görevlerini filtrele)
+        $tPath = Join-Path $d.FullName '.system_generated\logs\transcript.jsonl'
+        $durumPath = Join-Path $d.FullName 'DURUM.md'
+        $isUserChat = $false
+
+        if (Test-Path $durumPath) {
+            $isUserChat = $true
+        }
+
+        if (-not $isUserChat -and (Test-Path $tPath)) {
+            try {
+                $file = [System.IO.File]::Open($tPath, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+                $reader = New-Object System.IO.StreamReader($file, [System.Text.Encoding]::UTF8)
+                $lCount = 0
+                while (-not $reader.EndOfStream -and $lCount -lt 10) {
+                    $line = $reader.ReadLine()
+                    $lCount++
+                    if (-not [string]::IsNullOrWhiteSpace($line) -and $line -match '<USER_REQUEST>') {
+                        $isUserChat = $true
+                        break
+                    }
+                }
+                $reader.Dispose()
+                $file.Dispose()
+            } catch {}
+        }
+
+        # Eğer kullanıcı komutu veya DURUM.md yoksa bu bir arka plan alt işçisidir (subagent); menüye ekleme!
+        if (-not $isUserChat) {
+            continue
+        }
+
+        $lastWrite = $d.LastWriteTime
+        $timeStr = $lastWrite.ToString("HH:mm")
+        $dateStr = $lastWrite.ToString("dd.MM")
+
+        $cTitle = Get-ConversationDisplayName -cid $cid -wsName "Antigravity Workspace" -fallbackTitle ""
+        if ([string]::IsNullOrWhiteSpace($cTitle) -or $cTitle -eq "Geçmiş Sohbet") {
+            $shortCid = if ($cid.Length -gt 8) { $cid.Substring(0, 8) + "..." } else { $cid }
+            $cTitle = "Sohbet ($shortCid)"
+        }
+        $shortCid = if ($cid.Length -gt 8) { $cid.Substring(0, 8) + "..." } else { $cid }
+
+        $entry = @{
+            conversationId = $cid
+            shortId        = $shortCid
+            chatTitle      = $cTitle
+            workspaceName  = "Antigravity Workspace"
+            title          = $cTitle
+            sender         = "Antigravity"
+            status         = "ARŞİV"
+            step           = 0
+            totalSteps     = 0
+            category       = "archive"
+            isArchived     = $true
+            isTest         = $false
+            timeStr        = "$dateStr $timeStr"
+            updatedAt      = $lastWrite.ToString("o")
+            createdAt      = $d.CreationTime.ToString("o")
+            sessionNumber  = "Arşiv"
+        }
+        $newList.Add($entry)
+
+        if (-not $activeSessionsMap.ContainsKey($cid)) {
+            $returnList.Add($entry)
+        }
+    }
+
+    $script:discoveredArchiveCache = $newList
+    $script:lastDiscoveryTime = $now
+    return $returnList
 }
 
 # --- COKLU OTURUM BELLEK HAVUZU (MULTI-SESSION REPOSITORY) ---
@@ -501,9 +584,20 @@ while ($listener.IsListening) {
                     updatedAt      = $s.updatedAt
                     timeStr        = $timeStr
                     isTest         = $isTest
+                    isArchived     = $false
+                    category       = if ($isTest) { "test" } else { "active" }
                     isActive       = ($s.conversationId -eq $activeConversationId)
                 })
             }
+
+            # Diskten Antigravity Arşiv Sohbetlerini Keşfet ve Ekle (Auto-Discovery)
+            try {
+                $archiveList = Get-DiscoveredArchiveSessions -activeSessionsMap $sessions
+                foreach ($arch in $archiveList) {
+                    $sessList.Add($arch)
+                }
+            } catch {}
+
             $cleanSessJson = Repair-Utf8String ($sessList | ConvertTo-Json -Depth 5)
             $bytes = [System.Text.Encoding]::UTF8.GetBytes($cleanSessJson)
             $res.ContentLength64 = $bytes.Length
@@ -525,10 +619,35 @@ while ($listener.IsListening) {
             }
 
             $cleanState = "{}"
-            if (-not [string]::IsNullOrWhiteSpace($reqCid) -and $sessions.ContainsKey($reqCid)) {
-                $sObj = $sessions[$reqCid].state
-                if ($sObj) {
-                    $cleanState = ($sObj | ConvertTo-Json -Depth 6 -Compress)
+            if (-not [string]::IsNullOrWhiteSpace($reqCid)) {
+                if ($sessions.ContainsKey($reqCid) -and $sessions[$reqCid].state) {
+                    $cleanState = ($sessions[$reqCid].state | ConvertTo-Json -Depth 6 -Compress)
+                } else {
+                    # Disk üzerinde live_state.json veya arşiv durumu kontrolü
+                    $diskDir = Join-Path (Join-Path $HOME ".gemini\antigravity\brain") $reqCid
+                    $diskState = Join-Path $diskDir "live_state.json"
+                    if (Test-Path $diskState) {
+                        try {
+                            $cleanState = [System.IO.File]::ReadAllText($diskState, [System.Text.Encoding]::UTF8)
+                        } catch {}
+                    } else {
+                        $cTitle = Get-ConversationDisplayName -cid $reqCid -wsName "Antigravity Workspace" -fallbackTitle "Sohbet"
+                        $archivedObj = @{
+                            conversationId = $reqCid
+                            title          = $cTitle
+                            chatTitle      = $cTitle
+                            sender         = "Antigravity"
+                            status         = "ARŞİV"
+                            isArchived     = $true
+                            step           = 0
+                            totalSteps     = 0
+                            activeNode     = "none"
+                            phase          = "ARŞİV SOHBET"
+                            message        = "Bu sohbet geçmiş bir Antigravity oturumudur (Canlı telemetri yayını bulunmamaktadır)."
+                            updatedAt      = (Get-Date).ToString("o")
+                        }
+                        $cleanState = ($archivedObj | ConvertTo-Json -Depth 5 -Compress)
+                    }
                 }
             } else {
                 $cleanState = $latestStateJson
