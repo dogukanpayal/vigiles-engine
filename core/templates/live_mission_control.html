@@ -99,6 +99,20 @@
       animation: pulseGreenSuccess 1.8s infinite ease-in-out;
       border-color: #10b981 !important;
     }
+    @keyframes pulseUser {
+      0%, 100% {
+        box-shadow: 0 0 18px rgba(245, 158, 11, 0.45), inset 0 0 15px rgba(245, 158, 11, 0.2);
+        border-color: #f59e0b !important;
+      }
+      50% {
+        box-shadow: 0 0 40px rgba(245, 158, 11, 0.95), inset 0 0 25px rgba(245, 158, 11, 0.4);
+        border-color: #fbbf24 !important;
+      }
+    }
+    .node-active-user {
+      animation: pulseUser 1.8s infinite ease-in-out;
+      border-color: #f59e0b !important;
+    }
 
     .radar-sweep {
       background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.15), transparent);
@@ -502,7 +516,7 @@
         if (el) {
           el.classList.remove(
             'node-active-default', 'node-active-architect', 'node-active-shield',
-            'node-active-chaos', 'node-active-red', 'node-active-green'
+            'node-active-chaos', 'node-active-red', 'node-active-green', 'node-active-user'
           );
         }
       });
@@ -541,6 +555,17 @@
       applyActiveNode(s.activeNode, s.animClass || 'node-active-default');
       setPathHighlight(s.highlightPath);
 
+      if (s.activeNode === 'node-user') {
+        const pr = document.getElementById('badge-pr');
+        if (pr) { pr.innerText = 'KAPALI'; pr.className = 'text-[9px] px-2 py-0.5 rounded font-bold bg-zinc-500/20 text-zinc-400 border border-zinc-500/40'; }
+        const tester = document.getElementById('badge-tester');
+        if (tester) { tester.innerText = 'Beklemede'; tester.className = 'text-[10px] px-2 py-0.5 rounded bg-[var(--background)] border border-[var(--border)] text-[var(--muted-foreground)]'; }
+        const chaos = document.getElementById('badge-chaos');
+        if (chaos) { chaos.innerText = 'Beklemede'; chaos.className = 'text-[10px] px-2 py-0.5 rounded bg-[var(--background)] border border-[var(--border)] text-[var(--muted-foreground)]'; }
+        const chief = document.getElementById('badge-chief');
+        if (chief) { chief.innerText = 'Beklemede'; chief.className = 'text-[10px] px-2 py-0.5 rounded bg-[var(--background)] border border-[var(--border)] text-[var(--muted-foreground)]'; }
+      }
+
       if (s.badge) {
         const b = document.getElementById(s.badge.id);
         if (b) {
@@ -574,8 +599,8 @@
       const key = `${state.step}_${state.timestamp}_${state.status}_${state.activeNode}`;
       if (key === lastRenderedKey && eventQueue.length === 0) return;
 
-      // Pop-Up (Karar Süzgeci) gelince kuyruğu temizle ve anında kilitlen!
-      if (state.status === "POPUP_BEKLENIYOR" || state.step === 3) {
+      // Pop-Up (Karar Süzgeci) veya Görev Tesliminde kuyruğu temizle ve anında kilitlen!
+      if (state.status === "POPUP_BEKLENIYOR" || state.step === 3 || state.activeNode === "node-user" || state.status === "TESLIM_EDILDI") {
         eventQueue.length = 0;
         lastRenderedKey = key;
         renderState(state);

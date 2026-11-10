@@ -48,6 +48,13 @@
                 "command": "powershell -ExecutionPolicy Bypass -NoProfile -File C:\\Users\\Dogukan\\.gemini\\config\\scripts\\ensure_live_mission_control.ps1",
                 "timeout": 15
             }
+        ],
+        "Stop": [
+            {
+                "type": "command",
+                "command": "powershell -ExecutionPolicy Bypass -NoProfile -File C:\\Users\\Dogukan\\.gemini\\config\\scripts\\on_mission_complete.ps1",
+                "timeout": 10
+            }
         ]
     }
 }

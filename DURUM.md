@@ -40,6 +40,8 @@
 - [x] **Aşama 10: Antigravity Dahili Webview Önceliği** (Harici OS tarayıcısını fırlatan `Start-Process` kaldırıldı; Antigravity dahili webview/artifact paneli birincil hale getirildi; harici tarayıcı isteğe bağlı köprü olarak korundu)
 - [x] **Aşama 11: Otomatik Yan Panel Tetikleyici** (Kök neden çözüldü: Antigravity IDE'si diskteki dosyayı otomatik açmaz, ajan tarafından `UserFacing: true` metadata'sı ile çağrı yapılması gerekir; `edit_file` tek adımlık mikro-güncellemesi eklendi)
 - [x] **Aşama 12: Sohbet Ortasından Kaldırma ve Side Panel Browser Entegrasyonu** (Kullanıcı talebi doğrultusunda `<agent-embed>` sohbet ortasından tamamen kaldırıldı; Antigravity'nin yan panelindeki (side panel) dahili browser sekmesi birincil kılındı)
+- [x] **Aşama 13: Görev Bitiminde 1. SİZ (Şirket Sahibi / Vibe Coder) Otomatik Highlight Kancası** (Antigravity 'Stop' yaşam döngüsü kancası entegre edildi. Model çıktıyı teslim edip durduğu milisaniyede `on_mission_complete.ps1` devreye girerek grafik üzerindeki highlight'ı 'node-user' [1. SİZ] üzerine kilitler; önceki işçi/Git elemanlarının aktif kalması önlendi)
+- [x] **Aşama 14: Canlı Operasyon Merkezi Gerçek Zamanlı Akış Testi** (Kullanıcı huzurunda Baş Mimar -> Özel Testçi -> Kaos Mühendisi -> Hafıza Uzmanı akışının telemetri doğrulaması icra edildi)
 
 ---
 
