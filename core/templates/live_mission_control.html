@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
@@ -562,6 +562,55 @@
       } catch (e) {}
     }
 
+        // --- OTO-ONARICI: Karakter Kodlama (Mojibake) Kurtarici ---
+    const WIN1252_MAP = {
+      0x20AC: 0x80, 0x201A: 0x82, 0x0192: 0x83, 0x201E: 0x84, 0x2026: 0x85, 0x2020: 0x86, 0x2021: 0x87,
+      0x02C6: 0x88, 0x2030: 0x89, 0x0160: 0x8A, 0x2039: 0x8B, 0x0152: 0x8C, 0x017D: 0x8E,
+      0x2018: 0x91, 0x2019: 0x92, 0x201C: 0x93, 0x201D: 0x94, 0x2022: 0x95, 0x2013: 0x96, 0x2014: 0x97,
+      0x02DC: 0x98, 0x2122: 0x99, 0x0161: 0x9A, 0x203A: 0x9B, 0x0153: 0x9C, 0x017E: 0x9E, 0x0178: 0x9F
+    };
+
+    function fixMojibake(str) {
+      if (!str || typeof str !== 'string') return str;
+      if (!/(?:[\u00C2-\u00C5]|[\u00E0-\u00EF]|Ã|Å|Ä)/.test(str)) return str;
+      try {
+        const bytes = [];
+        for (let i = 0; i < str.length; i++) {
+          const code = str.charCodeAt(i);
+          if (code <= 0x7F || (code >= 0xA0 && code <= 0xFF)) {
+            bytes.push(code);
+          } else if (WIN1252_MAP[code] !== undefined) {
+            bytes.push(WIN1252_MAP[code]);
+          } else {
+            throw new Error('Unmapped');
+          }
+        }
+        const decoded = new TextDecoder('utf-8', { fatal: true }).decode(new Uint8Array(bytes));
+        return decoded;
+      } catch (e) {
+        return str
+          .replace(/GÃ–REV/g, 'GÖREV')
+          .replace(/SÄ°Z/g, 'SİZ')
+          .replace(/ÅžÄ°RKET/g, 'ŞİRKET')
+          .replace(/Åžirket/g, 'Şirket')
+          .replace(/TÃ¼m/g, 'Tüm')
+          .replace(/iÅŸlemler/g, 'işlemler')
+          .replace(/tamamlandÄ±/g, 'tamamlandı')
+          .replace(/Ã§Ä±ktÄ±/g, 'çıktı')
+          .replace(/kontrolÃ¼/g, 'kontrolü')
+          .replace(/elemanlÄ±/g, 'elemanlı')
+          .replace(/gÃ¶revini/g, 'görevini')
+          .replace(/AlÄ±ndÄ±/g, 'Alındı')
+          .replace(/HazÄ±r/g, 'Hazır')
+          .replace(/Åž/g, 'Ş').replace(/ÅŸ/g, 'ş')
+          .replace(/Ä°/g, 'İ').replace(/Ä±/g, 'ı')
+          .replace(/Ã–/g, 'Ö').replace(/Ã¶/g, 'ö')
+          .replace(/Ãœ/g, 'Ü').replace(/Ã¼/g, 'ü')
+          .replace(/Ã‡/g, 'Ç').replace(/Ã§/g, 'ç')
+          .replace(/Äž/g, 'Ğ').replace(/ÄŸ/g, 'ğ');
+      }
+    }
+
     function toggleAudio() {
       audioEnabled = !audioEnabled;
       document.getElementById('audio-icon').innerText = audioEnabled ? "🔊" : "🔇";
@@ -610,6 +659,8 @@
     }
 
     function addEventLog(sender, text) {
+      sender = fixMojibake(sender);
+      text = fixMojibake(text);
       const stream = document.getElementById('event-stream');
       const time = new Date().toLocaleTimeString();
       const div = document.createElement('div');
@@ -663,9 +714,9 @@
     // Strictly State-Driven Renderer (No auto-timers, no fake progression!)
     function renderState(s) {
       if (!s) return;
-      document.getElementById('live-sender').innerText = s.sender || "Antigravity";
-      document.getElementById('live-step-tag').innerText = s.title || `AŞAMA ${s.step} / ${s.totalSteps || 15}`;
-      document.getElementById('live-message').innerText = s.message || "";
+      document.getElementById('live-sender').innerText = fixMojibake(s.sender || "Antigravity");
+      document.getElementById('live-step-tag').innerText = fixMojibake(s.title || `AŞAMA ${s.step} / ${s.totalSteps || 15}`);
+      document.getElementById('live-message').innerText = fixMojibake(s.message || "");
       document.getElementById('live-desc').innerHTML = `<span class="text-emerald-400 font-bold">ℹ️</span> <span>${s.desc || ""}</span>`;
       document.getElementById('live-time').innerText = s.timestamp || new Date().toLocaleTimeString();
 
@@ -689,7 +740,7 @@
       if (s.badge) {
         const b = document.getElementById(s.badge.id);
         if (b) {
-          b.innerText = s.badge.text;
+          b.innerText = fixMojibake(s.badge.text);
           b.className = "text-[10px] px-2 py-0.5 rounded border " + s.badge.class;
         }
       }
@@ -715,6 +766,13 @@
 
     // Pacing Queue: Her adımı kullanıcının gözünün takip edebileceği akıcı tempoda göster
     function enqueueState(state) {
+      if (state) {
+        if (state.sender) state.sender = fixMojibake(state.sender);
+        if (state.title) state.title = fixMojibake(state.title);
+        if (state.message) state.message = fixMojibake(state.message);
+        if (state.desc) state.desc = fixMojibake(state.desc);
+        if (state.badge && state.badge.text) state.badge.text = fixMojibake(state.badge.text);
+      }
       if (!state) return;
       const key = `${state.step}_${state.timestamp}_${state.status}_${state.activeNode}`;
       if (key === lastRenderedKey && eventQueue.length === 0) return;
