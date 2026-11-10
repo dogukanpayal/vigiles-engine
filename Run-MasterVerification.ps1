@@ -10,10 +10,13 @@ $suites = @(
     "Test-TwoFactor.ps1",
     "Test-GitPushManager.ps1",
     "Test-Heartbeat.ps1",
+    "Test-MultiSessionTelemetri.ps1",
+    "Test-VigilesLightIntegrity.ps1",
     "Chaos-Coupon.ps1",
     "Chaos-Wallet.ps1",
     "Chaos-TwoFactor.ps1",
-    "Chaos-Heartbeat.ps1"
+    "Chaos-Heartbeat.ps1",
+    "Chaos-MultiSession.ps1"
 )
 
 Write-Host "===========================================================" -ForegroundColor Cyan
@@ -31,12 +34,13 @@ foreach ($s in $suites) {
     if (Test-Path $fullPath) {
         $total++
         Write-Host -NoNewline "Koşuluyor: $s ... "
-        $output = & powershell -NoProfile -File $fullPath 2>&1
+        $output = & powershell -ExecutionPolicy Bypass -NoProfile -File $fullPath 2>&1
         if ($LASTEXITCODE -eq 0) {
             Write-Host "[BASARILI ✅]" -ForegroundColor Green
             $passed++
         } else {
             Write-Host "[BASARISIZ ❌]" -ForegroundColor Red
+            Write-Host $output -ForegroundColor DarkYellow
             $failed++
         }
     } else {

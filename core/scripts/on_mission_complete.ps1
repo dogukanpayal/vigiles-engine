@@ -9,11 +9,13 @@ $rawInput = [Console]::In.ReadToEnd()
 $artifactDir = ""
 $conversationId = ""
 
+$wsName = "Antigravity Workspace"
 if (-not [string]::IsNullOrWhiteSpace($rawInput)) {
     try {
         $payload = $rawInput | ConvertFrom-Json
         if ($payload.artifactDirectoryPath) { $artifactDir = $payload.artifactDirectoryPath }
         if ($payload.conversationId) { $conversationId = $payload.conversationId }
+        if ($payload.workspacePaths -and $payload.workspacePaths.Count -gt 0) { $wsName = Split-Path $payload.workspacePaths[0] -Leaf }
     } catch {}
 }
 
@@ -35,6 +37,8 @@ if ([string]::IsNullOrWhiteSpace($artifactDir) -and -not [string]::IsNullOrWhite
 # Görev Tamamlandı Durumu (1. SİZ - Şirket Sahibi / Vibe Coder)
 $time = (Get-Date).ToString("HH:mm:ss")
 $completionState = @{
+    conversationId = $conversationId
+    workspaceName  = $wsName
     step          = 15
     totalSteps    = 15
     activeNode    = "node-user"
@@ -91,6 +95,9 @@ try {
     $req = [System.Net.WebRequest]::Create("http://localhost:9999/notify")
     $req.Method = "POST"
     $req.ContentType = "application/json; charset=utf-8"
+    if (-not [string]::IsNullOrWhiteSpace($conversationId)) {
+        $req.Headers.Add("X-Conversation-Id", $conversationId)
+    }
     $req.Timeout = 200
     $bytes = [System.Text.Encoding]::UTF8.GetBytes($stateJson)
     $req.ContentLength = $bytes.Length

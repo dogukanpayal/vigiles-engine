@@ -39,10 +39,31 @@ $templatesDir = Join-Path $configDir "templates"
 $scriptsDir = Join-Path $configDir "scripts"
 $activeMissionFile = Join-Path $configDir "active_mission.json"
 
+$wsName = if ($payload.workspacePaths -and $payload.workspacePaths.Count -gt 0) { Split-Path $payload.workspacePaths[0] -Leaf } else { "Antigravity Workspace" }
+
+$cleanInput = ($userInput -replace '[\r\n]+', ' ').Trim()
+$chatTitle = ""
+if ($cleanInput -match '^\s*/([a-zA-Z0-9\-_]+)\s*$') {
+    $chatTitle = "⚡ Komut: /$($matches[1])"
+} elseif ($cleanInput -match '^\s*/([a-zA-Z0-9\-_]+)\s+(.+)$') {
+    $cName = $matches[1]
+    $desc = $matches[2].Trim()
+    if ($desc.Length -gt 38) { $desc = $desc.Substring(0, 35) + "..." }
+    $chatTitle = "⚡ /$($cName): $desc"
+} elseif ($cleanInput.Length -gt 38) {
+    $chatTitle = $cleanInput.Substring(0, 35) + "..."
+} elseif (-not [string]::IsNullOrWhiteSpace($cleanInput)) {
+    $chatTitle = $cleanInput
+} else {
+    $chatTitle = "Sohbet ($($conversationId.Substring(0, 8)))"
+}
+
 # 2. Aktif Görev Kütüğünü Güncelle (active_mission.json) - Her zaman güncel tut!
 if (-not [string]::IsNullOrWhiteSpace($artifactDir)) {
     $missionInfo = @{
         conversationId        = $conversationId
+        chatTitle             = $chatTitle
+        workspaceName         = $wsName
         artifactDirectoryPath = $artifactDir
         workspacePaths        = $payload.workspacePaths
         lastCommand           = $userInput
@@ -108,6 +129,9 @@ if (-not [string]::IsNullOrWhiteSpace($artifactDir)) {
     if (-not (Test-Path $destJson)) {
         $cleanCmd = $userInput.Replace('"', '\"')
         $initState = @{
+            conversationId = $conversationId
+            chatTitle     = $chatTitle
+            workspaceName  = $wsName
             step          = 1
             totalSteps    = 15
             activeNode    = "node-user"

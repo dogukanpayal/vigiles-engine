@@ -1,5 +1,5 @@
 ﻿# telemetry_server.ps1
-# Antigravity Canli Operasyon Merkezi - Dinamik SSE & HTTP Telemetri Dagitim Servisi
+# Antigravity Canli Operasyon Merkezi - Coklu Oturum (Multi-Session) SSE & HTTP Telemetri Dagitim Servisi
 # Port: 9999
 
 param(
@@ -58,11 +58,79 @@ function Repair-Utf8String([string]$str) {
     return $str
 }
 
+# Insan-Okur Sohbet Basligi Cozucusu (Human-Readable Chat Title)
+function Get-ConversationDisplayName([string]$cid, [string]$wsName, [string]$fallbackTitle) {
+    if ([string]::IsNullOrWhiteSpace($cid)) { return "Antigravity Sohbet" }
+
+    if ($cid -match '^test-') { return "🧪 [Test] $cid" }
+    if ($cid -match '^chaos-') { return "🐒 [Kaos] $cid" }
+
+    # 1. Transcript dosyasindan kullanicinin ilk komutunu/istegini oku
+    $tPath = Join-Path $HOME ".gemini\antigravity\brain\$cid\.system_generated\logs\transcript.jsonl"
+    if (Test-Path $tPath) {
+        try {
+            $file = [System.IO.File]::Open($tPath, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+            $reader = New-Object System.IO.StreamReader($file, [System.Text.Encoding]::UTF8)
+            $firstLine = $reader.ReadLine()
+            $reader.Dispose()
+            $file.Dispose()
+
+            if (-not [string]::IsNullOrWhiteSpace($firstLine)) {
+                $obj = $firstLine | ConvertFrom-Json
+                if ($obj.content -match '<USER_REQUEST>\s*([\s\S]*?)\s*</USER_REQUEST>') {
+                    $raw = $matches[1].Trim()
+                    $clean = ($raw -replace '[\r\n]+', ' ').Trim()
+
+                    if ($clean -match '^\s*/([a-zA-Z0-9\-_]+)\s*$') {
+                        return "⚡ Komut: /$($matches[1])"
+                    }
+
+                    if ($clean -match '^\s*/([a-zA-Z0-9\-_]+)\s+(.+)$') {
+                        $cName = $matches[1]
+                        $desc = $matches[2].Trim()
+                        if ($desc.Length -gt 38) { $desc = $desc.Substring(0, 35) + "..." }
+                        return "⚡ /$($cName): $desc"
+                    }
+
+                    if ($clean.Length -gt 38) {
+                        return $clean.Substring(0, 35) + "..."
+                    }
+                    if (-not [string]::IsNullOrWhiteSpace($clean)) {
+                        return $clean
+                    }
+                }
+            }
+        } catch {}
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($fallbackTitle) -and 
+        $fallbackTitle -ne "Canli Operasyon" -and 
+        $fallbackTitle -ne "CANLI OPERASYON MERKEZİ DEVREDE" -and 
+        $fallbackTitle -ne "OTURUM DEVREDE") {
+        if ($fallbackTitle.Length -gt 38) { return $fallbackTitle.Substring(0, 35) + "..." }
+        return $fallbackTitle
+    }
+
+    $short = if ($cid.Length -gt 8) { $cid.Substring(0, 8) } else { $cid }
+    if (-not [string]::IsNullOrWhiteSpace($wsName) -and $wsName -ne "Antigravity Workspace") {
+        return "$wsName ($short)"
+    }
+
+    return "Sohbet ($short)"
+}
+
+# --- COKLU OTURUM BELLEK HAVUZU (MULTI-SESSION REPOSITORY) ---
+$sessions = [System.Collections.Concurrent.ConcurrentDictionary[string, hashtable]]::new()
+$activeConversationId = ""
+
 if ([string]::IsNullOrWhiteSpace($ArtifactDir) -and (Test-Path $activeMissionFile)) {
     try {
         $act = Get-Content -Raw -Encoding UTF8 $activeMissionFile | ConvertFrom-Json
         if ($act.artifactDirectoryPath) {
             $ArtifactDir = $act.artifactDirectoryPath
+        }
+        if ($act.conversationId) {
+            $activeConversationId = $act.conversationId
         }
     } catch {}
 }
@@ -74,9 +142,10 @@ $listener.Prefixes.Add($prefix)
 try {
     $listener.Start()
     Write-Host "==========================================================" -ForegroundColor Green
-    Write-Host "🛰️ ANTIGRAVITY MISSION CONTROL TELEMETRI SUNUCUSU BASLATILDI" -ForegroundColor Cyan
+    Write-Host "🛰️ ANTIGRAVITY MISSION CONTROL TELEMETRI SUNUCUSU (MULTI-SESSION)" -ForegroundColor Cyan
     Write-Host "   URL: http://localhost:$Port/" -ForegroundColor Yellow
     Write-Host "   SSE: http://localhost:$Port/events" -ForegroundColor Yellow
+    Write-Host "   Sessions: http://localhost:$Port/sessions" -ForegroundColor Yellow
     Write-Host "   Active Artifact: $ArtifactDir" -ForegroundColor Gray
     Write-Host "==========================================================" -ForegroundColor Green
 } catch {
@@ -84,7 +153,7 @@ try {
     exit 1
 }
 
-$sseClients = [System.Collections.Generic.List[System.IO.StreamWriter]]::new()
+$sseClients = [System.Collections.Generic.List[hashtable]]::new()
 $sseLock = [object]::new()
 $latestStateJson = "{}"
 
@@ -94,11 +163,26 @@ if (-not [string]::IsNullOrWhiteSpace($ArtifactDir)) {
         try {
             $latestStateJson = [System.IO.File]::ReadAllText($statePath, [System.Text.Encoding]::UTF8)
             $latestStateJson = Repair-Utf8String $latestStateJson
+            if (-not [string]::IsNullOrWhiteSpace($activeConversationId)) {
+                $initObj = $latestStateJson | ConvertFrom-Json
+                $sessions[$activeConversationId] = @{
+                    conversationId = $activeConversationId
+                    workspaceName  = "Antigravity Workspace"
+                    title          = if ($initObj.title) { $initObj.title } else { "Canli Operasyon" }
+                    sender         = if ($initObj.sender) { $initObj.sender } else { "Antigravity" }
+                    status         = if ($initObj.status) { $initObj.status } else { "HAZIR" }
+                    step           = if ($initObj.step) { $initObj.step } else { 1 }
+                    totalSteps     = if ($initObj.totalSteps) { $initObj.totalSteps } else { 15 }
+                    updatedAt      = (Get-Date).ToString("o")
+                    state          = $initObj
+                }
+            }
         } catch {}
     }
 }
 
-function Broadcast-SSE([string]$jsonData) {
+# Hedefli veya Genel SSE Yayini (Cross-Talk Engeli)
+function Broadcast-SSE([string]$jsonData, [string]$targetCid = $null, [bool]$broadcastToUnfiltered = $true) {
     [System.Threading.Monitor]::Enter($sseLock)
     try {
         $deadClients = @()
@@ -106,17 +190,28 @@ function Broadcast-SSE([string]$jsonData) {
         $bytes = [System.Text.Encoding]::UTF8.GetBytes($msg)
 
         foreach ($client in $sseClients) {
-            try {
-                $client.BaseStream.Write($bytes, 0, $bytes.Length)
-                $client.BaseStream.Flush()
-            } catch {
-                $deadClients += $client
+            $shouldSend = $false
+            if ([string]::IsNullOrWhiteSpace($targetCid)) {
+                $shouldSend = $true
+            } elseif ([string]::IsNullOrWhiteSpace($client.FilterCid) -or $client.FilterCid -eq "all") {
+                $shouldSend = $broadcastToUnfiltered
+            } elseif ($client.FilterCid -eq $targetCid) {
+                $shouldSend = $true
+            }
+
+            if ($shouldSend) {
+                try {
+                    $client.Writer.BaseStream.Write($bytes, 0, $bytes.Length)
+                    $client.Writer.BaseStream.Flush()
+                } catch {
+                    $deadClients += $client
+                }
             }
         }
 
         foreach ($dead in $deadClients) {
             $sseClients.Remove($dead) | Out-Null
-            try { $dead.Dispose() } catch {}
+            try { $dead.Writer.Dispose() } catch {}
         }
     } finally {
         [System.Threading.Monitor]::Exit($sseLock)
@@ -133,7 +228,7 @@ while ($listener.IsListening) {
 
         $res.AddHeader("Access-Control-Allow-Origin", "*")
         $res.AddHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS, HEAD")
-        $res.AddHeader("Access-Control-Allow-Headers", "Content-Type")
+        $res.AddHeader("Access-Control-Allow-Headers", "Content-Type, X-Conversation-Id")
 
         if ($req.HttpMethod -eq "OPTIONS") {
             $res.StatusCode = 200
@@ -145,7 +240,7 @@ while ($listener.IsListening) {
         $rawUrl = $req.Url.AbsolutePath.ToLower()
         $isHead = ($req.HttpMethod -eq "HEAD")
 
-        # 1. GET /events (Server-Sent Events)
+        # 1. GET /events (Server-Sent Events - Oturum Filtreli veya Genel)
         if ($rawUrl -eq "/events") {
             $res.ContentType = "text/event-stream; charset=utf-8"
             $res.AddHeader("Cache-Control", "no-cache")
@@ -155,23 +250,45 @@ while ($listener.IsListening) {
             $writer = New-Object System.IO.StreamWriter($res.OutputStream, [System.Text.Encoding]::UTF8)
             $writer.AutoFlush = $true
 
+            $filterCid = $null
+            if ($req.Url.Query -and $req.Url.Query -match 'cid=([a-zA-Z0-9\-_]+)') {
+                $filterCid = $matches[1]
+            }
+
             $initMsg = ": connected`n`n"
             $writer.Write($initMsg)
-            if (-not [string]::IsNullOrWhiteSpace($latestStateJson) -and $latestStateJson -ne "{}") {
-                $writer.Write("data: $latestStateJson`n`n")
+
+            # Hedef oturumun o anki durumunu ilet (Varsa)
+            if (-not [string]::IsNullOrWhiteSpace($filterCid)) {
+                if ($sessions.ContainsKey($filterCid) -and $sessions[$filterCid].state) {
+                    $initialState = ($sessions[$filterCid].state | ConvertTo-Json -Depth 6 -Compress)
+                    $initialState = Repair-Utf8String $initialState
+                    $writer.Write("data: $initialState`n`n")
+                }
+            } elseif (-not [string]::IsNullOrWhiteSpace($latestStateJson) -and $latestStateJson -ne "{}") {
+                # Filtresiz genel baglantiysa son durumu gonder
+                $initialState = Repair-Utf8String $latestStateJson
+                $writer.Write("data: $initialState`n`n")
+            }
+
+            $clientRecord = @{
+                Writer      = $writer
+                FilterCid   = $filterCid
+                ConnectedAt = (Get-Date)
             }
 
             [System.Threading.Monitor]::Enter($sseLock)
             try {
-                $sseClients.Add($writer)
-                Write-Host "[SSE] Yeni istemci baglandi. Toplam: $($sseClients.Count)" -ForegroundColor DarkCyan
+                $sseClients.Add($clientRecord)
+                $cidNote = if ($filterCid) { " (Filtre: $filterCid)" } else { " (Global)" }
+                Write-Host "[SSE] Yeni istemci baglandi$cidNote. Toplam: $($sseClients.Count)" -ForegroundColor DarkCyan
             } finally {
                 [System.Threading.Monitor]::Exit($sseLock)
             }
             continue
         }
 
-        # 2. POST /notify
+        # 2. POST /notify (Coklu Oturum Bildirim Yonlendiricisi)
         if ($rawUrl -eq "/notify" -and $req.HttpMethod -eq "POST") {
             $reader = New-Object System.IO.StreamReader($req.InputStream, [System.Text.Encoding]::UTF8)
             $body = $reader.ReadToEnd()
@@ -180,7 +297,41 @@ while ($listener.IsListening) {
             if (-not [string]::IsNullOrWhiteSpace($body)) {
                 $body = Repair-Utf8String $body
                 $latestStateJson = $body
-                Broadcast-SSE $body
+
+                $cid = ""
+                $wsName = "Antigravity Workspace"
+                try {
+                    $parsed = $body | ConvertFrom-Json
+                    $cid = if ($parsed.conversationId) { [string]$parsed.conversationId }
+                           elseif ($parsed.cid) { [string]$parsed.cid }
+                           elseif ($req.Headers["X-Conversation-Id"]) { [string]$req.Headers["X-Conversation-Id"] }
+                           else { $activeConversationId }
+
+                    if ([string]::IsNullOrWhiteSpace($cid)) { $cid = "default" }
+                    if ($parsed.workspaceName) { $wsName = [string]$parsed.workspaceName }
+
+                    $cTitle = if ($parsed.chatTitle) { [string]$parsed.chatTitle }
+                              else { Get-ConversationDisplayName -cid $cid -wsName $wsName -fallbackTitle $parsed.title }
+
+                    $sessionEntry = @{
+                        conversationId = $cid
+                        shortId        = if ($cid.Length -gt 8) { $cid.Substring(0, 8) + "..." } else { $cid }
+                        chatTitle      = $cTitle
+                        workspaceName  = $wsName
+                        title          = if ($parsed.title) { [string]$parsed.title } else { "Canli Operasyon" }
+                        sender         = if ($parsed.sender) { [string]$parsed.sender } else { "Antigravity" }
+                        status         = if ($parsed.status) { [string]$parsed.status } else { "CALISIYOR" }
+                        step           = if ($parsed.step) { [int]$parsed.step } else { 1 }
+                        totalSteps     = if ($parsed.totalSteps) { [int]$parsed.totalSteps } else { 15 }
+                        updatedAt      = (Get-Date).ToString("o")
+                        state          = $parsed
+                    }
+                    $sessions[$cid] = $sessionEntry
+                    $activeConversationId = $cid
+                } catch {}
+
+                # Yalnizca ilgili sohbetin istemcilerine veya filtre belirtmeyenlere yay
+                Broadcast-SSE -jsonData $body -targetCid $cid
             }
 
             $res.ContentType = "application/json; charset=utf-8"
@@ -192,7 +343,86 @@ while ($listener.IsListening) {
             continue
         }
 
-        # 3. POST /set-active
+        # 3. GET /sessions (Aktif Oturum Listesi - Akilli Baslik ve Siralama)
+        if ($rawUrl -eq "/sessions") {
+            $res.ContentType = "application/json; charset=utf-8"
+            $res.StatusCode = 200
+
+            $sessList = [System.Collections.Generic.List[hashtable]]::new()
+            
+            $rawList = @($sessions.Values)
+            $sortedList = $rawList | Sort-Object { 
+                if ($_.updatedAt) { try { [datetime]$_.updatedAt } catch { [datetime]::MinValue } } else { [datetime]::MinValue } 
+            } -Descending
+
+            foreach ($s in $sortedList) {
+                $cTitle = if ($s.chatTitle) { $s.chatTitle } else { Get-ConversationDisplayName -cid $s.conversationId -wsName $s.workspaceName -fallbackTitle $s.title }
+                $shortCid = if ($s.conversationId.Length -gt 8) { $s.conversationId.Substring(0, 8) + "..." } else { $s.conversationId }
+                $isTest = ($s.conversationId -match '^(test-|chaos-)')
+                
+                $timeStr = ""
+                try {
+                    $dt = [datetime]$s.updatedAt
+                    $timeStr = $dt.ToString("HH:mm")
+                } catch {}
+
+                $sessList.Add(@{
+                    conversationId = $s.conversationId
+                    shortId        = $shortCid
+                    chatTitle      = $cTitle
+                    workspaceName  = $s.workspaceName
+                    title          = $s.title
+                    sender         = $s.sender
+                    status         = $s.status
+                    step           = $s.step
+                    totalSteps     = $s.totalSteps
+                    updatedAt      = $s.updatedAt
+                    timeStr        = $timeStr
+                    isTest         = $isTest
+                    isActive       = ($s.conversationId -eq $activeConversationId)
+                })
+            }
+            $cleanSessJson = Repair-Utf8String ($sessList | ConvertTo-Json -Depth 5)
+            $bytes = [System.Text.Encoding]::UTF8.GetBytes($cleanSessJson)
+            $res.ContentLength64 = $bytes.Length
+            if (-not $isHead) {
+                $res.OutputStream.Write($bytes, 0, $bytes.Length)
+            }
+            $res.Close()
+            continue
+        }
+
+        # 4. GET /state (Oturum Filtreli veya Son Durum)
+        if ($rawUrl -eq "/state") {
+            $res.ContentType = "application/json; charset=utf-8"
+            $res.StatusCode = 200
+
+            $reqCid = ""
+            if ($req.Url.Query -and $req.Url.Query -match 'cid=([a-zA-Z0-9\-_]+)') {
+                $reqCid = $matches[1]
+            }
+
+            $cleanState = "{}"
+            if (-not [string]::IsNullOrWhiteSpace($reqCid) -and $sessions.ContainsKey($reqCid)) {
+                $sObj = $sessions[$reqCid].state
+                if ($sObj) {
+                    $cleanState = ($sObj | ConvertTo-Json -Depth 6 -Compress)
+                }
+            } else {
+                $cleanState = $latestStateJson
+            }
+
+            $cleanState = Repair-Utf8String $cleanState
+            $bytes = [System.Text.Encoding]::UTF8.GetBytes($cleanState)
+            $res.ContentLength64 = $bytes.Length
+            if (-not $isHead) {
+                $res.OutputStream.Write($bytes, 0, $bytes.Length)
+            }
+            $res.Close()
+            continue
+        }
+
+        # 5. POST /set-active (Aktif Oturumu Degistir)
         if ($rawUrl -eq "/set-active" -and $req.HttpMethod -eq "POST") {
             $reader = New-Object System.IO.StreamReader($req.InputStream, [System.Text.Encoding]::UTF8)
             $body = $reader.ReadToEnd()
@@ -200,15 +430,18 @@ while ($listener.IsListening) {
 
             try {
                 $obj = $body | ConvertFrom-Json
+                if ($obj.conversationId) {
+                    $activeConversationId = $obj.conversationId
+                }
                 if ($obj.artifactDirectoryPath) {
                     $ArtifactDir = $obj.artifactDirectoryPath
-                    Write-Host "[ROUTER] Aktif Gorev Dizini Guncellendi: $ArtifactDir" -ForegroundColor Cyan
+                    Write-Host "[ROUTER] Aktif Gorev Dizini Guncellendi: $ArtifactDir (CID: $activeConversationId)" -ForegroundColor Cyan
                     $statePath = Join-Path $ArtifactDir "live_state.json"
                     if (Test-Path $statePath) {
                         try {
                             $latestStateJson = [System.IO.File]::ReadAllText($statePath, [System.Text.Encoding]::UTF8)
                             $latestStateJson = Repair-Utf8String $latestStateJson
-                            Broadcast-SSE $latestStateJson
+                            Broadcast-SSE -jsonData $latestStateJson -targetCid $activeConversationId
                         } catch {}
                     }
                 }
@@ -223,21 +456,7 @@ while ($listener.IsListening) {
             continue
         }
 
-        # 4. GET /state
-        if ($rawUrl -eq "/state") {
-            $res.ContentType = "application/json; charset=utf-8"
-            $res.StatusCode = 200
-            $cleanState = Repair-Utf8String $latestStateJson
-            $bytes = [System.Text.Encoding]::UTF8.GetBytes($cleanState)
-            $res.ContentLength64 = $bytes.Length
-            if (-not $isHead) {
-                $res.OutputStream.Write($bytes, 0, $bytes.Length)
-            }
-            $res.Close()
-            continue
-        }
-
-        # 5. GET / veya /index.html veya /live
+        # 6. GET / veya /index.html veya /live
         if ($rawUrl -eq "/" -or $rawUrl -eq "/index.html" -or $rawUrl -eq "/live") {
             $candidates = [System.Collections.Generic.List[string]]::new()
             $candidates.Add($globalTemplateHtml)
@@ -275,7 +494,7 @@ while ($listener.IsListening) {
             continue
         }
 
-        # 6. GET /playground
+        # 7. GET /playground
         if ($rawUrl -eq "/playground") {
             $candidates = [System.Collections.Generic.List[string]]::new()
             if (-not [string]::IsNullOrWhiteSpace($ArtifactDir)) {
@@ -313,16 +532,18 @@ while ($listener.IsListening) {
             continue
         }
 
-        # 7. GET /status (Health Check)
+        # 8. GET /status (Health Check)
         if ($rawUrl -eq "/status") {
             $res.ContentType = "application/json; charset=utf-8"
             $res.StatusCode = 200
             $statusObj = @{
-                status = "running"
-                port = $Port
-                activeArtifactDir = $ArtifactDir
-                activeSseClients = $sseClients.Count
-                timestamp = (Get-Date).ToString("o")
+                status               = "running"
+                port                 = $Port
+                activeArtifactDir    = $ArtifactDir
+                activeConversationId = $activeConversationId
+                totalActiveSessions  = $sessions.Count
+                activeSseClients     = $sseClients.Count
+                timestamp            = (Get-Date).ToString("o")
             }
             $bytes = [System.Text.Encoding]::UTF8.GetBytes(($statusObj | ConvertTo-Json -Compress))
             $res.ContentLength64 = $bytes.Length

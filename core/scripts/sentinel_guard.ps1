@@ -29,8 +29,11 @@ $args = $toolCall.args
 
 # Dizin belirleme (Öncelik: payload.artifactDirectoryPath -> payload.conversationId -> active_mission.json)
 $artifactDir = $payload.artifactDirectoryPath
-if ([string]::IsNullOrWhiteSpace($artifactDir) -and -not [string]::IsNullOrWhiteSpace($payload.conversationId)) {
-    $artifactDir = "C:\Users\Dogukan\.gemini\antigravity\brain\$($payload.conversationId)"
+$cid = $payload.conversationId
+$wsName = if ($payload.workspacePaths -and $payload.workspacePaths.Count -gt 0) { Split-Path $payload.workspacePaths[0] -Leaf } else { "Antigravity Workspace" }
+
+if ([string]::IsNullOrWhiteSpace($artifactDir) -and -not [string]::IsNullOrWhiteSpace($cid)) {
+    $artifactDir = "C:\Users\Dogukan\.gemini\antigravity\brain\$cid"
 }
 if ([string]::IsNullOrWhiteSpace($artifactDir)) {
     $activeFile = Join-Path $HOME ".gemini\config\active_mission.json"
@@ -38,6 +41,7 @@ if ([string]::IsNullOrWhiteSpace($artifactDir)) {
         try {
             $act = Get-Content -Raw -Encoding UTF8 $activeFile | ConvertFrom-Json
             if ($act.artifactDirectoryPath) { $artifactDir = $act.artifactDirectoryPath }
+            if (-not $cid -and $act.conversationId) { $cid = $act.conversationId }
         } catch {}
     }
 }
@@ -48,6 +52,13 @@ if ([string]::IsNullOrWhiteSpace($artifactDir)) {
 # --- YARDIMCI: TELEMETRI YAYINI ---
 function Send-Telemetry([hashtable]$state) {
     try {
+        if (-not $state.ContainsKey("conversationId") -and -not [string]::IsNullOrWhiteSpace($cid)) {
+            $state["conversationId"] = $cid
+        }
+        if (-not $state.ContainsKey("workspaceName")) {
+            $state["workspaceName"] = $wsName
+        }
+
         $stateJson = $state | ConvertTo-Json -Depth 6 -Compress
 
         if (-not [string]::IsNullOrWhiteSpace($artifactDir) -and (Test-Path $artifactDir)) {
@@ -77,6 +88,9 @@ function Send-Telemetry([hashtable]$state) {
             $req = [System.Net.WebRequest]::Create("http://localhost:9999/notify")
             $req.Method = "POST"
             $req.ContentType = "application/json; charset=utf-8"
+            if (-not [string]::IsNullOrWhiteSpace($cid)) {
+                $req.Headers.Add("X-Conversation-Id", $cid)
+            }
             $req.Timeout = 150
             $bytes = [System.Text.Encoding]::UTF8.GetBytes($stateJson)
             $req.ContentLength = $bytes.Length

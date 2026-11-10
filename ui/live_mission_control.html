@@ -219,6 +219,16 @@
         </div>
       </div>
 
+      <!-- Middle: Multi-Session Selector (Çoklu Oturum Seçici) -->
+      <div class="flex items-center gap-2 bg-[var(--background)] border border-[var(--border)] px-3 py-1.5 rounded-xl shadow-inner">
+        <span class="text-xs">🛰️</span>
+        <span class="text-[11px] font-bold text-[var(--muted-foreground)] font-mono uppercase tracking-wider">Oturum:</span>
+        <select id="session-select" onchange="onSessionSelectChange(this.value)" class="text-xs font-mono font-semibold bg-transparent text-emerald-400 outline-none cursor-pointer max-w-[240px] sm:max-w-[340px] truncate" title="İzlemek istediğiniz sohbeti seçin">
+          <option value="" class="bg-[var(--card)] text-[var(--foreground)]">Oturumlar Yükleniyor...</option>
+        </select>
+        <span id="session-count-badge" class="text-[10px] px-1.5 py-0.5 rounded font-mono font-bold bg-blue-500/15 text-blue-400 border border-blue-500/30">1 Oturum</span>
+      </div>
+
       <!-- Right: Live Controls -->
       <div class="flex items-center gap-2">
         <!-- Theme Toggle Switch (Karanlık / Aydınlık Mod) -->
@@ -397,14 +407,42 @@
       </div>
 
       <!-- 3'lü Saha Masası -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5">
-        <!-- 8. İşçiler -->
-        <div id="node-workers" class="node-box bg-[var(--card)] border-2 border-[var(--border)] rounded-xl p-3 shadow-sm">
-          <div class="flex items-center gap-2 mb-1">
-            <span class="text-base">🛠️</span>
-            <h5 class="font-bold text-xs">8. İŞÇİLER (TDD)</h5>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5 items-start">
+        <!-- 8. İşçiler Kolonu (Ana Kutu + Sınırsız Bağlı Alt Ağaç) -->
+        <div class="flex flex-col">
+          <!-- 8. İşçiler Ana Kutusu -->
+          <div id="node-workers" class="node-box bg-[var(--card)] border-2 border-[var(--border)] rounded-xl p-3 shadow-sm relative transition-all duration-300">
+            <div class="flex items-center justify-between mb-1">
+              <div class="flex items-center gap-2">
+                <span class="text-base">🛠️</span>
+                <h5 class="font-bold text-xs">8. İŞÇİLER (TDD)</h5>
+              </div>
+              <span id="badge-workers" class="text-[10px] px-2 py-0.5 rounded bg-[var(--background)] border border-[var(--border)] text-[var(--muted-foreground)] font-mono transition-colors">Beklemede</span>
+            </div>
+            <p class="text-[10px] text-[var(--muted-foreground)]">Kodu ve birim testlerini yazar, yeşile çevirir.</p>
+
+            <!-- Mini İşçi Havuz Denetleyicisi (Canlı Simülatör / Stepper) -->
+            <div class="mt-2.5 pt-2 border-t border-[var(--border)] flex items-center justify-between">
+              <span class="text-[9px] text-[var(--muted-foreground)] font-mono">İşçi Havuzu:</span>
+              <div class="flex items-center gap-1">
+                <button type="button" onclick="adjustSimulatedWorkers(-1)" title="İşçi Azalt" class="px-1.5 py-0.5 rounded text-[10px] bg-[var(--background)] hover:bg-emerald-500/20 text-[var(--foreground)] border border-[var(--border)] font-bold font-mono transition cursor-pointer select-none">-</button>
+                <span id="worker-count-display" class="text-[10px] font-mono font-bold text-emerald-400 px-1">0</span>
+                <button type="button" onclick="adjustSimulatedWorkers(1)" title="İşçi Ekle" class="px-1.5 py-0.5 rounded text-[10px] bg-[var(--background)] hover:bg-emerald-500/20 text-[var(--foreground)] border border-[var(--border)] font-bold font-mono transition cursor-pointer select-none">+</button>
+                <button type="button" onclick="setSimulatedWorkers(5)" title="5 İşçi Set Et" class="px-1.5 py-0.5 rounded text-[9px] bg-emerald-500/10 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 font-mono transition cursor-pointer select-none">5x</button>
+              </div>
+            </div>
           </div>
-          <p class="text-[10px] text-[var(--muted-foreground)]">Kodu ve birim testlerini yazar, yeşile çevirir.</p>
+
+          <!-- Alt İşçi Kutuları Ağacı (İşçiler Kutusuna Doğrudan Bağlı) -->
+          <div id="workers-sub-tree" class="hidden relative pl-4 mt-2 transition-all duration-300">
+            <!-- Dikey Bağlantı Hattı (Ana İşçi Kutusundan Sarkan Gövde Çizgisi) -->
+            <div class="absolute left-2 top-0 bottom-3 w-0.5 border-l-2 border-dashed border-emerald-500/50"></div>
+            
+            <!-- Dinamik Alt İşçi Kutuları Listesi (Sınırsız Kapasite) -->
+            <div id="workers-sub-list" class="space-y-1.5 max-h-80 overflow-y-auto pr-1">
+              <!-- Dinamik render edilen alt işçi kutuları buraya gelir -->
+            </div>
+          </div>
         </div>
 
         <!-- 9. Performans Muhafızı -->
@@ -711,9 +749,135 @@
       }
     }
 
+    // --- 8. İŞÇİLER ALT AĞACI VE SINIRSIZ DİNAMİK KUTU MOTORU ---
+    const defaultWorkerRoles = [
+      { role: "TDD Full-Stack", detail: "Kaynak kod ve birim test geliştiriliyor" },
+      { role: "Birim Testçi", detail: "Test senaryoları çalıştırılıyor" },
+      { role: "Entegrasyon", detail: "Modül arayüzleri ve API bağlanıyor" },
+      { role: "UI / Görsel", detail: "Arayüz ve stil bileşenleri işleniyor" },
+      { role: "Veri Modeli", detail: "Şema ve veri doğrulama denetleniyor" },
+      { role: "Güvenlik Ajanı", detail: "Zero-Leak kontrolleri yürütülüyor" },
+      { role: "Performans", detail: "Bellek ve hız optimizasyonu yapılıyor" },
+      { role: "Kaos Denetçisi", detail: "Sınır durum ve dayanıklılık testi" }
+    ];
+
+    let simulatedWorkerCount = 0;
+    let currentWorkerState = null;
+
+    function renderWorkers(s) {
+      const treeContainer = document.getElementById('workers-sub-tree');
+      const listContainer = document.getElementById('workers-sub-list');
+      const badgeWorkers = document.getElementById('badge-workers');
+      const countDisplay = document.getElementById('worker-count-display');
+      if (!treeContainer || !listContainer) return;
+
+      const isWorkersActive = (s && s.activeNode === 'node-workers') || (s && (s.step === 6 || s.step === 7));
+      
+      let workerItems = [];
+      if (s && Array.isArray(s.workers) && s.workers.length > 0) {
+        workerItems = s.workers;
+      } else if (s && typeof s.workerCount === 'number' && s.workerCount > 0) {
+        for (let i = 0; i < s.workerCount; i++) {
+          const rolePreset = defaultWorkerRoles[i % defaultWorkerRoles.length];
+          workerItems.push({
+            id: i + 1,
+            name: `İşçi #${i + 1}`,
+            role: rolePreset.role,
+            detail: (s.message && s.message.length < 50) ? s.message : rolePreset.detail,
+            statusLabel: 'Aktif 🟢'
+          });
+        }
+      } else if (simulatedWorkerCount > 0) {
+        for (let i = 0; i < simulatedWorkerCount; i++) {
+          const rolePreset = defaultWorkerRoles[i % defaultWorkerRoles.length];
+          workerItems.push({
+            id: i + 1,
+            name: `İşçi #${i + 1}`,
+            role: rolePreset.role,
+            detail: rolePreset.detail,
+            statusLabel: 'Aktif 🟢'
+          });
+        }
+      } else if (isWorkersActive) {
+        workerItems.push({
+          id: 1,
+          name: 'İşçi #1',
+          role: 'TDD Full-Stack',
+          detail: (s && s.message) ? fixMojibake(s.message) : 'Kaynak kod ve birim testler yazılıyor',
+          statusLabel: 'Aktif 🟢'
+        });
+      }
+
+      const totalCount = workerItems.length;
+      if (countDisplay) countDisplay.innerText = totalCount;
+
+      if (totalCount > 0 && (isWorkersActive || simulatedWorkerCount > 0 || (s && s.workers && s.workers.length > 0))) {
+        treeContainer.classList.remove('hidden');
+        if (badgeWorkers) {
+          badgeWorkers.innerText = `${totalCount} İşçi Aktif ⚡`;
+          badgeWorkers.className = "text-[10px] px-2 py-0.5 rounded font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 animate-pulse";
+        }
+
+        // Sınırsız dinamik render (No hardcoded cap/slice)
+        let htmlBuffer = "";
+        for (let i = 0; i < totalCount; i++) {
+          const w = workerItems[i];
+          const wName = fixMojibake(w.name || `İşçi #${i + 1}`);
+          const wRole = fixMojibake(w.role || 'Geliştirici');
+          const wDetail = fixMojibake(w.detail || w.task || 'Kod yazılıyor...');
+          const wStatus = fixMojibake(w.statusLabel || (w.status === 'done' ? 'Bitti ✅' : 'Aktif 🟢'));
+          const isDone = w.status === 'done';
+
+          htmlBuffer += `
+            <div class="worker-sub-card relative flex items-center justify-between p-2 rounded-lg bg-[var(--card)] border ${isDone ? 'border-emerald-500/20 opacity-75' : 'border-emerald-500/40 hover:border-emerald-500/70 shadow-sm shadow-emerald-500/10'} transition-all duration-200">
+              <!-- Sol Yatay Bağlantı Kolu (Dikey stem hattından kutuya uzanan köprü) -->
+              <div class="absolute -left-2 top-1/2 w-2 h-0.5 border-t-2 border-dashed border-emerald-500/50"></div>
+              
+              <div class="flex items-center gap-2 min-w-0 pr-1">
+                <span class="relative flex h-2 w-2 flex-shrink-0">
+                  <span class="${isDone ? 'hidden' : 'animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75'}"></span>
+                  <span class="relative inline-flex rounded-full h-2 w-2 ${isDone ? 'bg-zinc-400' : 'bg-emerald-500'}"></span>
+                </span>
+                <div class="min-w-0">
+                  <div class="flex items-center gap-1.5">
+                    <span class="font-bold text-[11px] text-emerald-400 font-mono tracking-tight">${wName}</span>
+                    <span class="text-[9px] px-1 py-0.2 rounded bg-emerald-500/10 text-emerald-300 font-mono border border-emerald-500/20">${wRole}</span>
+                  </div>
+                  <p class="text-[9px] text-[var(--muted-foreground)] truncate max-w-[130px]">${wDetail}</p>
+                </div>
+              </div>
+              
+              <span class="text-[9px] px-1.5 py-0.5 rounded font-mono font-bold ${isDone ? 'bg-zinc-500/20 text-zinc-400 border border-zinc-500/30' : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'} flex-shrink-0">
+                ${wStatus}
+              </span>
+            </div>
+          `;
+        }
+        listContainer.innerHTML = htmlBuffer;
+      } else {
+        treeContainer.classList.add('hidden');
+        listContainer.innerHTML = "";
+        if (badgeWorkers && (!s || !s.badge || s.badge.id !== 'badge-workers')) {
+          badgeWorkers.innerText = "Beklemede";
+          badgeWorkers.className = "text-[10px] px-2 py-0.5 rounded bg-[var(--background)] border border-[var(--border)] text-[var(--muted-foreground)] font-mono";
+        }
+      }
+    }
+
+    function adjustSimulatedWorkers(delta) {
+      simulatedWorkerCount = Math.max(0, simulatedWorkerCount + delta);
+      renderWorkers(currentWorkerState || { activeNode: 'node-workers', step: 6 });
+    }
+
+    function setSimulatedWorkers(n) {
+      simulatedWorkerCount = Math.max(0, n);
+      renderWorkers(currentWorkerState || { activeNode: 'node-workers', step: 6 });
+    }
+
     // Strictly State-Driven Renderer (No auto-timers, no fake progression!)
     function renderState(s) {
       if (!s) return;
+      currentWorkerState = s;
       document.getElementById('live-sender').innerText = fixMojibake(s.sender || "Antigravity");
       document.getElementById('live-step-tag').innerText = fixMojibake(s.title || `AŞAMA ${s.step} / ${s.totalSteps || 15}`);
       document.getElementById('live-message').innerText = fixMojibake(s.message || "");
@@ -726,7 +890,11 @@
       applyActiveNode(s.activeNode, s.animClass || 'node-active-default');
       setPathHighlight(s.highlightPath);
 
+      // İşçiler Alt Ağacı ve Dinamik Kutuları Render Et
+      renderWorkers(s);
+
       if (s.activeNode === 'node-user') {
+        simulatedWorkerCount = 0;
         const pr = document.getElementById('badge-pr');
         if (pr) { pr.innerText = 'KAPALI'; pr.className = 'text-[9px] px-2 py-0.5 rounded font-bold bg-zinc-500/20 text-zinc-400 border border-zinc-500/40'; }
         const tester = document.getElementById('badge-tester');
@@ -809,24 +977,176 @@
       }, 1200);
     }
 
-    // 1. Server-Sent Events (SSE) Bağlantısı (Port 9999)
+    // --- ÇOKLU OTURUM (MULTI-SESSION) YÖNETİMİ ---
+    function detectConversationId() {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        if (params.has('cid') && params.get('cid')) return params.get('cid');
+      } catch (e) {}
+
+      const match = (window.location.pathname || '').match(/brain[/\\]([a-zA-Z0-9\-_]+)[/\\]/);
+      if (match) return match[1];
+
+      if (window.__ANTIGRAVITY_STATE__ && window.__ANTIGRAVITY_STATE__.conversationId) {
+        return window.__ANTIGRAVITY_STATE__.conversationId;
+      }
+      return "";
+    }
+
+    let currentConversationId = detectConversationId();
+    let evtSource = null;
+    let fetchTimeout = null;
+
+    function debouncedFetchSessions() {
+      if (fetchTimeout) clearTimeout(fetchTimeout);
+      fetchTimeout = setTimeout(fetchSessionsList, 1200);
+    }
+
+    async function fetchSessionsList() {
+      try {
+        const host = window.location.origin.includes("localhost:9999") ? "" : "http://localhost:9999";
+        const resp = await fetch(host + "/sessions");
+        if (!resp.ok) return;
+        const data = await resp.json();
+        const list = Array.isArray(data) ? data : (data.sessions || []);
+
+        const selectEl = document.getElementById('session-select');
+        const countBadge = document.getElementById('session-count-badge');
+        if (!selectEl) return;
+
+        if (countBadge) {
+          countBadge.innerText = `${list.length} Sohbet`;
+        }
+
+        selectEl.innerHTML = "";
+
+        if (list.length === 0) {
+          const opt = document.createElement('option');
+          opt.value = currentConversationId || "";
+          opt.innerText = currentConversationId ? `Varsayılan (${currentConversationId.substring(0, 8)})` : "Aktif Sohbet Aranıyor...";
+          selectEl.appendChild(opt);
+          return;
+        }
+
+        const userSessions = list.filter(s => !s.isTest);
+        const testSessions = list.filter(s => s.isTest);
+
+        if (countBadge) {
+          countBadge.innerText = `${userSessions.length || list.length} Sohbet`;
+        }
+
+        let hasMatch = false;
+
+        function createOption(sess) {
+          const opt = document.createElement('option');
+          opt.value = sess.conversationId;
+          const statusDot = sess.status === 'TESLIM_EDILDI' ? '✅' : (sess.status === 'HAZIR' ? '⚪' : '🟢');
+          const title = fixMojibake(sess.chatTitle || sess.title || sess.workspaceName || 'Antigravity Sohbet');
+          const stepInfo = `[Aşama ${sess.step || 1}]`;
+          const timeInfo = sess.timeStr ? `(${sess.timeStr})` : '';
+          const isCurrent = (sess.conversationId === currentConversationId);
+          const currentTag = isCurrent ? ' ★' : '';
+
+          opt.innerText = `${statusDot} ${title}${currentTag} ${stepInfo} ${timeInfo}`.replace(/\s+/g, ' ').trim();
+          opt.className = "bg-[var(--card)] text-[var(--foreground)]";
+
+          if (isCurrent) {
+            opt.selected = true;
+            hasMatch = true;
+          }
+          return opt;
+        }
+
+        userSessions.forEach(sess => {
+          selectEl.appendChild(createOption(sess));
+        });
+
+        if (testSessions.length > 0) {
+          const grp = document.createElement('optgroup');
+          grp.label = "🧪 Otomatik Testler";
+          grp.className = "bg-[var(--card)] text-[var(--muted-foreground)] font-mono text-[10px]";
+          testSessions.forEach(sess => {
+            grp.appendChild(createOption(sess));
+          });
+          selectEl.appendChild(grp);
+        }
+
+        if (!hasMatch && currentConversationId) {
+          const opt = document.createElement('option');
+          opt.value = currentConversationId;
+          opt.innerText = `🟢 Bu Sohbet (${currentConversationId.substring(0, 8)}...) ★`;
+          opt.selected = true;
+          selectEl.insertBefore(opt, selectEl.firstChild);
+        }
+      } catch (e) {}
+    }
+
+    function onSessionSelectChange(selectedCid) {
+      if (!selectedCid || selectedCid === currentConversationId) return;
+      currentConversationId = selectedCid;
+      addEventLog("SİSTEM", `İzlenen oturum değiştirildi: ${selectedCid}`);
+      initSSE();
+      fetchSessionState(selectedCid);
+    }
+
+    async function fetchSessionState(cid) {
+      try {
+        const host = window.location.origin.includes("localhost:9999") ? "" : "http://localhost:9999";
+        const resp = await fetch(host + `/state?cid=${encodeURIComponent(cid)}`);
+        if (!resp.ok) return;
+        const state = await resp.json();
+        if (state && state.step) {
+          eventQueue.length = 0;
+          renderState(state);
+        }
+      } catch (e) {}
+    }
+
+    // 1. Server-Sent Events (SSE) Bağlantısı (Port 9999) - Oturum Filtreli
     function initSSE() {
       try {
-        const sseUrl = window.location.origin.includes("localhost:9999") 
-          ? "/events" 
-          : "http://localhost:9999/events";
-        const evtSource = new EventSource(sseUrl);
+        if (evtSource) {
+          try { evtSource.close(); } catch (e) {}
+          evtSource = null;
+        }
+
+        let baseOrigin = window.location.origin.includes("localhost:9999") 
+          ? "" 
+          : "http://localhost:9999";
+        let sseUrl = baseOrigin + "/events";
+
+        if (currentConversationId) {
+          sseUrl += "?cid=" + encodeURIComponent(currentConversationId);
+        }
+
+        evtSource = new EventSource(sseUrl);
 
         evtSource.onopen = function() {
           sseActive = true;
-          updateConnBadge(true, "🟢 CANLI KANCA BAĞLANTISI (Port 9999 - SSE)");
+          const badgeText = currentConversationId 
+            ? `🟢 CANLI KANCA (Oturum: ${currentConversationId.substring(0, 8)}...)` 
+            : "🟢 CANLI KANCA BAĞLANTISI (Port 9999 - SSE)";
+          updateConnBadge(true, badgeText);
           addEventLog("SİSTEM", "Port 9999 SSE telemetri yayınına bağlanıldı.");
+          fetchSessionsList();
         };
 
         evtSource.onmessage = function(e) {
           if (!e.data || e.data.trim() === "") return;
           try {
             const parsed = JSON.parse(e.data);
+
+            // Çoklu oturum filtre koruyucusu (Cross-talk engeli)
+            if (currentConversationId && parsed.conversationId && parsed.conversationId !== currentConversationId) {
+              debouncedFetchSessions();
+              return;
+            }
+
+            if (!currentConversationId && parsed.conversationId) {
+              currentConversationId = parsed.conversationId;
+              debouncedFetchSessions();
+            }
+
             enqueueState(parsed);
           } catch (err) {}
         };
@@ -860,7 +1180,10 @@
 
     function forceSync() {
       pollLiveScript();
-      if (window.__ANTIGRAVITY_STATE__) {
+      fetchSessionsList();
+      if (currentConversationId) {
+        fetchSessionState(currentConversationId);
+      } else if (window.__ANTIGRAVITY_STATE__) {
         renderState(window.__ANTIGRAVITY_STATE__);
       }
     }
@@ -873,6 +1196,9 @@
 
     // Yedek poller her 1 saniyede bir (yalnızca SSE kapalıysa)
     setInterval(pollLiveScript, 1000);
+
+    // Oturum listesini periyodik kontrol et (5 sn)
+    setInterval(debouncedFetchSessions, 5000);
 
     // İlk render
     if (window.__ANTIGRAVITY_STATE__) {

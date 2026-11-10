@@ -98,6 +98,23 @@ flowchart TD
 
 ---
 
+## ⚡ Çift Vitesli Mimari: Vigiles Classic vs. Vigiles Light
+
+Vigiles ekosistemi, işin büyüklüğüne ve risk seviyesine göre **iki ayrı operasyonel vites** sunar:
+
+| Kriter | 🏛️ Vigiles Classic (`/vigiles`) | ⚡ Vigiles Light (`/lite` veya `/vigiles-light`) |
+| :--- | :--- | :--- |
+| **Kullanım Amacı** | Büyük özellikler, modül inşası, mimari refactor | Küçük bugfixler, ufak CSS/UI rötuşları, 1-2 dosyalık işler |
+| **Hedef Süre** | 2 - 5 dakika (Kapsamlı doğrulama) | **&lt; 30 saniye (Cerrahi hız)** |
+| **Ajan Mimarisi** | 21 Rol / Alt Ajanlar (`invoke_subagent`) | **0 Subagent (Tek oturumda doğrudan icra)** |
+| **Planlama Modeli** | `DURUM.md` şantiye defteri + Mimar aşaması | **3 Satırlık Satır İçi (Inline) Mikro-Plan** |
+| **Test & Doğrulama** | E2E + Görsel Snapshot QA + Kaos Monkey | **Hedefli Sanity Check (Sadece ilgili birim test / syntax)** |
+| **HUD / Arayüz** | Port 9999 Canlı Operasyon Merkezi (`15 Aşama`) | Fast-Strike HUD (`5 Hızlı Aşama`) |
+| **Güvenlik (Zero-Leak)** | ✅ Tavizsiz koruma (API key / .env engeli) | ✅ Tavizsiz koruma (API key / .env engeli) |
+| **Git & Dağıtım** | ✅ Sıfır otomatik Git (`/push` ile tek komut) | ✅ Sıfır otomatik Git (`/push` ile tek komut) |
+
+---
+
 ## 🚀 Güvenli Git Dağıtım Pipeline'ı (/push)
 
 Vigiles Engine sisteminde **Sıfır Otomatik Git Prensibi (Zero Auto-Git)** geçerlidir. Sistem geliştirme sırasında asla kullanıcıdan habersiz veya otonom olarak `git add`, `git commit` veya `git push` komutlarını çalıştırmaz:
