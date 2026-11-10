@@ -1,4 +1,4 @@
-﻿# telemetry_server.ps1
+# telemetry_server.ps1
 # Antigravity Canli Operasyon Merkezi - Coklu Oturum (Multi-Session) SSE & HTTP Telemetri Dagitim Servisi
 # Port: 9999
 
@@ -216,6 +216,8 @@ if (-not [string]::IsNullOrWhiteSpace($ArtifactDir)) {
                     status         = if ($initObj.status) { $initObj.status } else { "HAZIR" }
                     step           = if ($initObj.step) { $initObj.step } else { 1 }
                     totalSteps     = if ($initObj.totalSteps) { $initObj.totalSteps } else { 15 }
+                    createdAt      = (Get-Date).ToString("o")
+                    sessionIndex   = 1
                     updatedAt      = (Get-Date).ToString("o")
                     state          = $initObj
                 }
@@ -356,6 +358,18 @@ while ($listener.IsListening) {
                     $cTitle = if ($parsed.chatTitle) { [string]$parsed.chatTitle }
                               else { Get-ConversationDisplayName -cid $cid -wsName $wsName -fallbackTitle $parsed.title }
 
+                    $existing = $null
+                    $firstSeen = (Get-Date).ToString("o")
+                    $fixedIndex = 0
+                    if ($sessions.TryGetValue($cid, [ref]$existing)) {
+                        if ($existing.createdAt) { $firstSeen = $existing.createdAt }
+                        if ($existing.sessionIndex) { $fixedIndex = [int]$existing.sessionIndex }
+                    }
+                    if ($fixedIndex -eq 0 -and $cid -notmatch '^(test-|chaos-)') {
+                        $userSessions = @($sessions.Values | Where-Object { $_.conversationId -notmatch '^(test-|chaos-)' })
+                        $fixedIndex = $userSessions.Count + 1
+                    }
+
                     $sessionEntry = @{
                         conversationId = $cid
                         shortId        = if ($cid.Length -gt 8) { $cid.Substring(0, 8) + "..." } else { $cid }
@@ -366,6 +380,8 @@ while ($listener.IsListening) {
                         status         = if ($parsed.status) { [string]$parsed.status } else { "CALISIYOR" }
                         step           = if ($parsed.step) { [int]$parsed.step } else { 1 }
                         totalSteps     = if ($parsed.totalSteps) { [int]$parsed.totalSteps } else { 15 }
+                        createdAt      = $firstSeen
+                        sessionIndex   = $fixedIndex
                         updatedAt      = (Get-Date).ToString("o")
                         state          = $parsed
                     }
@@ -395,8 +411,10 @@ while ($listener.IsListening) {
             
             $rawList = @($sessions.Values)
             $sortedList = $rawList | Sort-Object { 
-                if ($_.updatedAt) { try { [datetime]$_.updatedAt } catch { [datetime]::MinValue } } else { [datetime]::MinValue } 
-            } -Descending
+                if ($_.sessionIndex -and [int]$_.sessionIndex -gt 0) { [int]$_.sessionIndex } else { 9999 } 
+            }, { 
+                if ($_.createdAt) { try { [datetime]$_.createdAt } catch { [datetime]::MaxValue } } else { [datetime]::MaxValue } 
+            }
 
             $userIndex = 1
             foreach ($s in $sortedList) {
@@ -404,7 +422,15 @@ while ($listener.IsListening) {
                 $shortCid = if ($s.conversationId.Length -gt 8) { $s.conversationId.Substring(0, 8) + "..." } else { $s.conversationId }
                 $isTest = ($s.conversationId -match '^(test-|chaos-)')
                 
-                $sessionNum = if (-not $isTest) { "Sohbet #$userIndex" } else { "Test" }
+                $sessionNum = if (-not $isTest) {
+                    if ($s.sessionIndex -and [int]$s.sessionIndex -gt 0) {
+                        "Sohbet #$($s.sessionIndex)"
+                    } else {
+                        "Sohbet #$userIndex"
+                    }
+                } else {
+                    "Test"
+                }
                 if (-not $isTest) { $userIndex++ }
 
                 $timeStr = ""

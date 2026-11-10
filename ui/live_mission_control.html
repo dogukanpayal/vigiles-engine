@@ -210,9 +210,11 @@
 <body class="bg-[var(--background)] text-[var(--foreground)] antialiased p-5 min-h-screen">
 
   <!-- Mission Control Header -->
-  <div class="max-w-4xl mx-auto mb-5">
-    <div class="flex flex-wrap items-center justify-between gap-3 bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 shadow-sm relative overflow-hidden">
-      <div class="absolute inset-0 radar-sweep pointer-events-none"></div>
+  <div class="max-w-4xl mx-auto mb-5 relative z-40">
+    <div class="flex flex-wrap items-center justify-between gap-3 bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 shadow-sm relative">
+      <div class="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">
+        <div class="absolute inset-0 radar-sweep"></div>
+      </div>
 
       <!-- Left: Title & Live Beacon -->
       <div class="flex items-center gap-3">
@@ -234,7 +236,7 @@
       </div>
 
       <!-- Middle: Multi-Session Rich Popover (Çoklu Oturum Zengin Kart Menüsü) -->
-      <div class="relative" id="session-popover-container">
+      <div class="relative z-50" id="session-popover-container">
         <!-- Tetikleyici Düğme (Trigger Button) -->
         <button type="button" onclick="toggleSessionPopover(event)" id="session-popover-btn" class="flex items-center gap-2.5 bg-[var(--background)] hover:bg-[var(--card)] border border-[var(--border)] hover:border-emerald-500/40 px-3 py-1.5 rounded-xl shadow-sm transition cursor-pointer select-none group text-left">
           <span class="text-xs flex items-center justify-center w-5 h-5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 group-hover:scale-105 transition-transform">🛰️</span>
@@ -247,7 +249,7 @@
         </button>
 
         <!-- Açılır Zengin Kart Paneli (Flyout Panel) -->
-        <div id="session-popover-panel" class="hidden absolute top-full left-0 mt-2 w-[340px] sm:w-[440px] bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-2xl z-50 p-2.5 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
+        <div id="session-popover-panel" class="hidden absolute top-full left-0 mt-2 w-[340px] sm:w-[440px] bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-2xl z-[999] p-2.5 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
           <div class="flex items-center justify-between px-2 py-1.5 border-b border-[var(--border)] mb-2">
             <span class="text-xs font-extrabold tracking-wider text-[var(--foreground)] flex items-center gap-1.5">
               <span>📡</span> <span>AKTİF ANTIGRAVITY SOHBETLERİ</span>
@@ -341,34 +343,17 @@
       </div>
     </div>
 
-    <!-- Row 2: BAŞ MİMAR & FİGMA -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-      <!-- 2. Baş Mimar -->
-      <div id="node-architect" class="node-box bg-[var(--card)] border-2 border-[var(--border)] rounded-2xl p-3.5 shadow-sm">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <span class="text-xl">📐</span>
-            <div>
-              <h4 class="font-bold text-xs text-indigo-400">2. BAŞ MİMAR (Lead Planner)</h4>
-              <p class="text-[10px] text-[var(--muted-foreground)]">Kabul kriterlerini ve statik planı çizer (DURUM.md).</p>
-            </div>
+    <!-- Row 2: BAŞ MİMAR -->
+    <div id="node-architect" class="node-box bg-[var(--card)] border-2 border-[var(--border)] rounded-2xl p-4 shadow-sm">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3.5">
+          <div class="w-9 h-9 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-lg font-bold">📐</div>
+          <div>
+            <h4 class="font-bold text-xs text-indigo-400">2. BAŞ MİMAR (Lead Planner)</h4>
+            <p class="text-[10px] text-[var(--muted-foreground)]">Kabul kriterlerini, veri modellerini ve statik planı çizer (DURUM.md).</p>
           </div>
-          <span id="badge-architect" class="text-[10px] px-2 py-0.5 rounded bg-[var(--background)] border border-[var(--border)] text-[var(--muted-foreground)]">Beklemede</span>
         </div>
-      </div>
-
-      <!-- 3. Figma Tasarım Köprüsü -->
-      <div id="node-figma" class="node-box bg-[var(--card)] border-2 border-[var(--border)] rounded-2xl p-3.5 shadow-sm">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <span class="text-xl">🎨</span>
-            <div>
-              <h4 class="font-bold text-xs text-pink-400">3. FİGMA TASARIM KÖPRÜSÜ</h4>
-              <p class="text-[10px] text-[var(--muted-foreground)]">HEX renkler, fontlar ve padding değerleri aktarılır.</p>
-            </div>
-          </div>
-          <span id="badge-figma" class="text-[10px] px-2 py-0.5 rounded bg-[var(--background)] border border-[var(--border)] text-[var(--muted-foreground)]">Bağlı</span>
-        </div>
+        <span id="badge-architect" class="text-[10px] px-2.5 py-1 rounded-lg bg-[var(--background)] border border-[var(--border)] text-[var(--muted-foreground)] font-mono">Beklemede</span>
       </div>
     </div>
 
@@ -386,33 +371,30 @@
       </div>
     </div>
 
-    <!-- Row 4: GENEL ORKESTRATÖR & DURUM.md -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-      <!-- 5. Genel Orkestratör -->
-      <div id="node-orch" class="node-box bg-[var(--card)] border-2 border-[var(--border)] rounded-2xl p-3.5 shadow-sm">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <span class="text-xl">👔</span>
-            <div>
+    <!-- Row 4: GENEL ORKESTRATÖR & ŞANTİYE DEFTERİ -->
+    <div id="node-orch" class="node-box bg-[var(--card)] border-2 border-[var(--border)] rounded-2xl p-4 shadow-sm">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-3.5">
+          <div class="w-9 h-9 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center text-lg font-bold">👔</div>
+          <div>
+            <div class="flex items-center gap-2">
               <h4 class="font-bold text-xs text-blue-400">5. GENEL ORKESTRATÖR (COO)</h4>
-              <p class="text-[10px] text-[var(--muted-foreground)]">Mimarın planını tüm ekibe harfiyen uygulatır.</p>
+              <span id="badge-orch" class="text-[10px] px-2 py-0.5 rounded bg-[var(--background)] border border-[var(--border)] text-[var(--muted-foreground)] font-mono">Hazır</span>
             </div>
+            <p class="text-[10px] text-[var(--muted-foreground)]">Mimarın planını tüm ekibe harfiyen uygulatır; sahadaki tüm çarkları koordine eder.</p>
           </div>
-          <span id="badge-orch" class="text-[10px] px-2 py-0.5 rounded bg-[var(--background)] border border-[var(--border)] text-[var(--muted-foreground)]">Hazır</span>
         </div>
-      </div>
 
-      <!-- 6. DURUM.md -->
-      <div id="node-state" class="node-box bg-[var(--card)] border-2 border-[var(--border)] rounded-2xl p-3.5 shadow-sm">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <span class="text-xl">📁</span>
-            <div>
-              <h4 class="font-bold text-xs">6. DURUM.md (Şantiye Defteri)</h4>
-              <p class="text-[10px] text-[var(--muted-foreground)]">Adımların canlı durumu, kabul kriterleri ve kanıtlar buradadır.</p>
+        <!-- Entegre 6. DURUM.md Canlı Şantiye Kütüğü -->
+        <div id="node-state" class="node-box flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-[var(--background)] border border-[var(--border)] shadow-inner">
+          <span class="text-base">📁</span>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <span class="font-bold text-[11px] text-[var(--foreground)]">6. DURUM.md</span>
+              <span id="badge-state" class="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono">Canlı Kütük</span>
             </div>
+            <span class="text-[9px] text-[var(--muted-foreground)]">Şantiye Defteri Senkronize</span>
           </div>
-          <span id="badge-state" class="text-[10px] px-2 py-0.5 rounded bg-[var(--background)] border border-[var(--border)] text-[var(--muted-foreground)]">Canlı</span>
         </div>
       </div>
     </div>
@@ -524,6 +506,23 @@
       <div class="grid grid-cols-2 gap-2 text-[10px] pt-1.5 border-t border-[var(--border)]">
         <div id="path-red" class="p-1 rounded bg-rose-500/5 border border-rose-500/20 text-rose-400 font-semibold text-center">❌ Red: Şefe Geri Gönder</div>
         <div id="path-green" class="p-1 rounded bg-emerald-500/5 border border-emerald-500/20 text-emerald-400 font-semibold text-center">✅ Çift Onay: Mühür Bas</div>
+      </div>
+    </div>
+
+    <!-- Row 8: CANLI DENEME TAHTASI (NİHAİ TESLİMAT & DENEYİM) -->
+    <div id="node-playground" class="node-box bg-[var(--card)] border-2 border-emerald-500/30 hover:border-emerald-500/60 rounded-2xl p-4 shadow-sm transition-all duration-300">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3.5">
+          <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xl font-bold">🎮</div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h4 class="font-bold text-sm text-emerald-400">16. CANLI DENEME TAHTASI</h4>
+              <span class="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-300 font-mono border border-emerald-500/20">Doğal Bitiş & Teslimat</span>
+            </div>
+            <p class="text-xs text-[var(--muted-foreground)]">Yargıç onay mührünü bastığında devreye girer; ürünü canlı deneyimleyebilirsiniz.</p>
+          </div>
+        </div>
+        <span id="badge-playground" class="text-xs px-2.5 py-1 rounded-lg bg-[var(--background)] border border-[var(--border)] text-[var(--muted-foreground)] font-mono">Hazırlanıyor</span>
       </div>
     </div>
 
