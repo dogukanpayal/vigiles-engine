@@ -30,8 +30,8 @@ $htmlContent = if (Test-Path $htmlPath) { [System.IO.File]::ReadAllText($htmlPat
 $hasTreeContainer = $htmlContent -match 'id="workers-sub-tree"'
 $hasSubList       = $htmlContent -match 'id="workers-sub-list"'
 $hasBadgeWorkers  = $htmlContent -match 'id="badge-workers"'
-$hasItemsStart    = $htmlContent -match 'md:grid-cols-3[^>]*items-start'
-Assert-Test "1. HTML Alt Ağaç ve Konteyner Yapısı Doğrulaması" ($hasTreeContainer -and $hasSubList -and $hasBadgeWorkers -and $hasItemsStart) "workers-sub-tree, workers-sub-list ve items-start elemanları mevcut."
+$hasWorkersNode   = $htmlContent -match 'id="node-workers"'
+Assert-Test "1. HTML Alt Ağaç ve Konteyner Yapısı Doğrulaması" ($hasTreeContainer -and $hasSubList -and $hasBadgeWorkers -and $hasWorkersNode) "workers-sub-tree, workers-sub-list ve node-workers elemanları tam genişlikte mevcut."
 
 # Test 2: Bağlantı Hattı (Dikey Stem ve Yatay Branch Arm) CSS Varlığı
 $hasStemLine   = $htmlContent -match 'border-dashed' -and $htmlContent -match 'border-emerald-500'

@@ -239,9 +239,12 @@
       <div class="relative z-50" id="session-popover-container">
         <!-- Tetikleyici Düğme (Trigger Button) -->
         <button type="button" onclick="toggleSessionPopover(event)" id="session-popover-btn" class="flex items-center gap-2.5 bg-[var(--background)] hover:bg-[var(--card)] border border-[var(--border)] hover:border-emerald-500/40 px-3 py-1.5 rounded-xl shadow-sm transition cursor-pointer select-none group text-left">
-          <span class="text-xs flex items-center justify-center w-5 h-5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 group-hover:scale-105 transition-transform">🛰️</span>
+          <span class="text-xs flex items-center justify-center w-5 h-5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 group-hover:scale-105 transition-transform" id="session-icon">🛰️</span>
           <div class="flex flex-col justify-center min-w-0">
-            <span class="text-[9px] font-bold text-[var(--muted-foreground)] font-mono uppercase tracking-wider leading-none">İZLENEN SOHBET</span>
+            <div class="flex items-center gap-1.5">
+              <span class="text-[9px] font-bold text-[var(--muted-foreground)] font-mono uppercase tracking-wider leading-none">İZLENEN SOHBET</span>
+              <span id="session-pin-indicator" class="text-[9px] px-1 py-0.2 rounded font-mono font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30 leading-none">📌 SABİT</span>
+            </div>
             <span id="current-session-label" class="text-xs font-bold text-emerald-400 font-sans tracking-tight truncate max-w-[190px] sm:max-w-[270px] leading-tight mt-0.5">Yükleniyor...</span>
           </div>
           <span id="session-count-badge" class="text-[10px] px-1.5 py-0.5 rounded font-mono font-bold bg-blue-500/15 text-blue-400 border border-blue-500/30 ml-1 shrink-0">1 Sohbet</span>
@@ -252,9 +255,14 @@
         <div id="session-popover-panel" class="hidden absolute top-full left-0 mt-2 w-[340px] sm:w-[440px] bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-2xl z-[999] p-2.5 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
           <div class="flex items-center justify-between px-2 py-1.5 border-b border-[var(--border)] mb-2">
             <span class="text-xs font-extrabold tracking-wider text-[var(--foreground)] flex items-center gap-1.5">
-              <span>📡</span> <span>AKTİF ANTIGRAVITY SOHBETLERİ</span>
+              <span>📡</span> <span>SOHBET SEÇİMİ</span>
             </span>
-            <span class="text-[10px] text-[var(--muted-foreground)] font-mono" id="session-popover-stats">1 Çalışan Chat</span>
+            <div class="flex items-center gap-1.5">
+              <button type="button" onclick="purgeDeadSessions(event)" title="Silinmiş ve hayalet oturumları temizle" class="text-[10px] px-1.5 py-0.5 rounded font-mono border transition cursor-pointer select-none bg-[var(--background)] text-zinc-400 border-[var(--border)] hover:text-amber-400 hover:border-amber-500/30">
+                🧹
+              </button>
+              <span class="text-[10px] text-[var(--muted-foreground)] font-mono" id="session-popover-stats">1 Sohbet</span>
+            </div>
           </div>
 
           <!-- Gerçek Kullanıcı Sohbetleri Listesi -->
@@ -282,10 +290,6 @@
             <div id="theme-switch-knob" class="w-2.5 h-2.5 bg-amber-400 rounded-full transition-transform duration-300 transform translate-x-0"></div>
           </div>
         </button>
-
-        <a href="http://localhost:9999/" target="_blank" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 hover:bg-emerald-500/20 transition flex items-center gap-1">
-          <span>🌐</span> <span>Port 9999'da Aç</span>
-        </a>
 
         <button onclick="toggleAudio()" id="btn-audio" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-[var(--background)] border border-[var(--border)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition flex items-center gap-1">
           <span id="audio-icon">🔊</span> <span class="hidden sm:inline">Ses</span>
@@ -399,71 +403,41 @@
       </div>
     </div>
 
-    <!-- Row 5: SAHA & İŞÇİLER & GÜVENLİK MUHAFIZLARI -->
+    <!-- Row 5: SAHA & İŞÇİLER FABRİKASI (TAM GENİŞLİK) -->
     <div class="space-y-2">
       <!-- 7. Subagent Şefi -->
       <div id="node-chief" class="node-box bg-[var(--card)] border-2 border-[var(--border)] rounded-xl p-3 shadow-sm">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2.5">
             <span class="text-lg">👷‍♂️</span>
-            <h5 class="font-bold text-xs">7. SUBAGENT ŞEFİ (Saha Şefi)</h5>
+            <h5 class="font-bold text-xs">7. SUBAGENT ŞEFİ (Saha Şefi / Dispatcher)</h5>
           </div>
-          <span id="badge-chief" class="text-[10px] px-2 py-0.5 rounded bg-[var(--background)] border border-[var(--border)] text-[var(--muted-foreground)]">Beklemede</span>
+          <span id="badge-chief" class="text-[10px] px-2 py-0.5 rounded bg-[var(--background)] border border-[var(--border)] text-[var(--muted-foreground)] font-mono">Beklemede</span>
         </div>
       </div>
 
-      <!-- 3'lü Saha Masası (İşçiler 2/3 Genişlik + Saha Kalkanları 1/3 Genişlik) -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5 items-start">
-        <!-- 8. İşçiler Kolonu (Ana Kutu + Sınırsız Bağlı Alt Ağaç - 2/3 Genişlik) -->
-        <div class="flex flex-col md:col-span-2">
-          <!-- 8. İşçiler Ana Kutusu -->
-          <div id="node-workers" class="node-box bg-[var(--card)] border-2 border-[var(--border)] rounded-xl p-3 shadow-sm relative transition-all duration-300">
-            <div class="flex items-center justify-between mb-1">
-              <div class="flex items-center gap-2">
-                <span class="text-base">🛠️</span>
-                <h5 class="font-bold text-xs">8. İŞÇİLER (TDD)</h5>
-              </div>
-              <span id="badge-workers" class="text-[10px] px-2 py-0.5 rounded bg-[var(--background)] border border-[var(--border)] text-[var(--muted-foreground)] font-mono transition-colors">Beklemede</span>
+      <!-- 8. İşçiler Kolonu (Tam Genişlikte Sınırsız Dinamik Şantiye Alanı) -->
+      <div class="flex flex-col w-full">
+        <!-- 8. İşçiler Ana Kutusu -->
+        <div id="node-workers" class="node-box bg-[var(--card)] border-2 border-[var(--border)] rounded-xl p-3.5 shadow-sm relative transition-all duration-300">
+          <div class="flex items-center justify-between mb-1">
+            <div class="flex items-center gap-2">
+              <span class="text-base">🛠️</span>
+              <h5 class="font-bold text-xs">8. İŞÇİLER (TDD / Otonom Geliştiriciler)</h5>
             </div>
-            <p class="text-[10px] text-[var(--muted-foreground)]">Kodu ve birim testlerini yazar, yeşile çevirir.</p>
+            <span id="badge-workers" class="text-[10px] px-2 py-0.5 rounded bg-[var(--background)] border border-[var(--border)] text-[var(--muted-foreground)] font-mono transition-colors">Beklemede</span>
           </div>
-
-          <!-- Alt İşçi Kutuları Ağacı (İşçiler Kutusuna Doğrudan Bağlı) -->
-          <div id="workers-sub-tree" class="hidden relative pl-4 mt-2 transition-all duration-300">
-            <!-- Dikey Bağlantı Hattı (Ana İşçi Kutusundan Sarkan Gövde Çizgisi) -->
-            <div class="absolute left-2 top-0 bottom-3 w-0.5 border-l-2 border-dashed border-emerald-500/50"></div>
-            
-            <!-- Dinamik Alt İşçi Kutuları Listesi (Sınırsız Kapasite) -->
-            <div id="workers-sub-list" class="space-y-1.5 max-h-80 overflow-y-auto pr-1">
-              <!-- Dinamik render edilen alt işçi kutuları buraya gelir -->
-            </div>
-          </div>
+          <p class="text-[10px] text-[var(--muted-foreground)]">Kodu ve birim testlerini yazar, yeşile çevirir; tam bağımsız TDD icra eder.</p>
         </div>
 
-        <!-- Saha Kalkanları Kolonu: 9. Performans & 10. Zero-Leak (md:col-span-1) -->
-        <div class="flex flex-col gap-2 md:col-span-1">
-          <!-- 9. Performans Muhafızı (Anti-Bloat Kalkanı) -->
-          <div id="node-perf" class="node-box bg-[var(--card)] border-2 border-yellow-500/30 hover:border-yellow-500/60 rounded-xl p-2.5 shadow-sm transition-all duration-300">
-            <div class="flex items-center justify-between mb-1">
-              <div class="flex items-center gap-1.5">
-                <span class="text-sm">⚡</span>
-                <h5 class="font-bold text-[11px] text-yellow-400">9. PERFORMANS</h5>
-              </div>
-              <span id="badge-perf" class="text-[9px] px-1.5 py-0.2 rounded font-mono bg-yellow-500/10 text-yellow-300 border border-yellow-500/20">Anti-Bloat</span>
-            </div>
-            <p class="text-[9px] text-[var(--muted-foreground)]">15MB paketleri engeller; yerel hafif kodu korur.</p>
-          </div>
-
-          <!-- 10. Gizli Veri Muhafızı (Zero-Leak Kalkanı) -->
-          <div id="node-shield" class="node-box bg-[var(--card)] border-2 border-cyan-500/30 hover:border-cyan-500/60 rounded-xl p-2.5 shadow-sm transition-all duration-300">
-            <div class="flex items-center justify-between mb-1">
-              <div class="flex items-center gap-1.5">
-                <span class="text-sm">🛡️</span>
-                <h5 class="font-bold text-[11px] text-cyan-400">10. ZERO-LEAK</h5>
-              </div>
-              <span id="badge-shield" class="text-[9px] px-1.5 py-0.2 rounded font-mono bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">Güvenlik</span>
-            </div>
-            <p class="text-[9px] text-[var(--muted-foreground)]">API anahtarı ve .env sızıntılarını anında kilitler!</p>
+        <!-- Alt İşçi Kutuları Ağacı (İşçiler Kutusuna Doğrudan Bağlı - Tam Genişlik) -->
+        <div id="workers-sub-tree" class="hidden relative pl-4 mt-2 transition-all duration-300">
+          <!-- Dikey Bağlantı Hattı (Ana İşçi Kutusundan Sarkan Gövde Çizgisi) -->
+          <div class="absolute left-2 top-0 bottom-3 w-0.5 border-l-2 border-dashed border-emerald-500/50"></div>
+          
+          <!-- Dinamik Alt İşçi Kutuları Listesi (Sınırsız Kapasite) -->
+          <div id="workers-sub-list" class="space-y-1.5 max-h-80 overflow-y-auto pr-1">
+            <!-- Dinamik render edilen alt işçi kutuları buraya gelir -->
           </div>
         </div>
       </div>
@@ -561,132 +535,193 @@
         </div>
         <span id="badge-aux-summary" class="text-[10px] px-2.5 py-1 rounded-full font-mono font-bold bg-purple-500/15 text-purple-300 border border-purple-500/30 flex items-center gap-1.5">
           <span class="w-2 h-2 rounded-full bg-purple-400 animate-pulse"></span>
-          6 Yardımcı Birim Standby 💤
+          8 Yardımcı Birim Standby 💤
         </span>
       </div>
 
-      <!-- 1. Grup: 3'lü Arka Plan ve Nöbetçi Muhafızlar (Hafıza Uzmanı, Gece Nöbetçisi, Kota Dürtücüsü) -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5 mb-2.5">
-        <!-- 14. Hafıza Uzmanı -->
-        <div id="node-memory" class="node-box bg-[var(--card)] border-2 border-purple-500/30 hover:border-purple-500/60 rounded-xl p-3 shadow-sm transition-all duration-300 flex flex-col justify-between">
-          <div>
-            <div class="flex items-center justify-between mb-1.5">
-              <div class="flex items-center gap-2">
-                <span class="text-base">🧠</span>
-                <h5 class="font-bold text-xs text-purple-400">14. HAFIZA UZMANI</h5>
-              </div>
-              <span id="badge-memory" class="text-[9px] px-2 py-0.5 rounded font-mono font-semibold bg-purple-500/15 text-purple-300 border border-purple-500/30">Uyuyor 💤</span>
-            </div>
-            <p class="text-[10px] text-[var(--muted-foreground)] leading-relaxed">
-              İş bitiminde veya çözülen kriz sonrası 5 sn uyanır; dersi KURALLAR.md kütüğüne mühürler.
-            </p>
-          </div>
-          <div class="mt-2 pt-1.5 border-t border-[var(--border)] flex items-center justify-between text-[9px] font-mono text-[var(--muted-foreground)]">
-            <span class="text-purple-400 font-semibold">Tetikleme:</span>
-            <span>Görev Sonu / Post-Mortem</span>
-          </div>
+      <!-- 1. Grup: Canlı Güvenlik ve Kalite Kalkanları (Performans & Zero-Leak) -->
+      <div class="mb-3">
+        <div class="flex items-center gap-1.5 mb-2 px-1">
+          <span class="text-xs">🛡️</span>
+          <span class="text-[10px] font-bold uppercase tracking-wider text-amber-400 font-mono">1. GÜVENLİK VE KALİTE KALKANLARI (MİDDLEWARE)</span>
         </div>
-
-        <!-- 17. Gece Nöbetçisi -->
-        <div id="node-sentinel" class="node-box bg-[var(--card)] border-2 border-cyan-500/30 hover:border-cyan-500/60 rounded-xl p-3 shadow-sm transition-all duration-300 flex flex-col justify-between">
-          <div>
-            <div class="flex items-center justify-between mb-1.5">
-              <div class="flex items-center gap-2">
-                <span class="text-base">🌙</span>
-                <h5 class="font-bold text-xs text-cyan-400">17. GECE NÖBETÇİSİ</h5>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+          <!-- 9. Performans Muhafızı -->
+          <div id="node-perf" class="node-box bg-[var(--card)] border-2 border-yellow-500/30 hover:border-yellow-500/60 rounded-xl p-3 shadow-sm transition-all duration-300 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <div class="flex items-center gap-2">
+                  <span class="text-base">⚡</span>
+                  <h5 class="font-bold text-xs text-yellow-400">9. PERFORMANS MUHAFIZI</h5>
+                </div>
+                <span id="badge-perf" class="text-[9px] px-2 py-0.5 rounded font-mono font-semibold bg-yellow-500/15 text-yellow-300 border border-yellow-500/30">Anti-Bloat ⚡</span>
               </div>
-              <span id="badge-sentinel" class="text-[9px] px-2 py-0.5 rounded font-mono font-semibold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">03:00 Bekliyor 🌙</span>
+              <p class="text-[10px] text-[var(--muted-foreground)] leading-relaxed">
+                15MB paketleri engeller; yerel hafif kodu korur, memory leak ve N+1 sorgularını kilitler.
+              </p>
             </div>
-            <p class="text-[10px] text-[var(--muted-foreground)] leading-relaxed">
-              Gece 03:00'te bağımsız uyanır; güvenlik açıklarını, paket güncellemelerini ve regresyon testlerini tarar.
-            </p>
+            <div class="mt-2 pt-1.5 border-t border-[var(--border)] flex items-center justify-between text-[9px] font-mono text-[var(--muted-foreground)]">
+              <span class="text-yellow-400 font-semibold">Tetikleme:</span>
+              <span>Paket Ekleme / Şişkinlik Tehdidi</span>
+            </div>
           </div>
-          <div class="mt-2 pt-1.5 border-t border-[var(--border)] flex items-center justify-between text-[9px] font-mono text-[var(--muted-foreground)]">
-            <span class="text-cyan-400 font-semibold">Tetikleme:</span>
-            <span>03:00 Cron Servisi</span>
-          </div>
-        </div>
 
-        <!-- 18. Kota Dürtücüsü -->
-        <div id="node-heartbeat" class="node-box bg-[var(--card)] border-2 border-amber-500/30 hover:border-amber-500/60 rounded-xl p-3 shadow-sm transition-all duration-300 flex flex-col justify-between">
-          <div>
-            <div class="flex items-center justify-between mb-1.5">
-              <div class="flex items-center gap-2">
-                <span class="text-base">⚡</span>
-                <h5 class="font-bold text-xs text-amber-400">18. KOTA DÜRTÜCÜSÜ</h5>
+          <!-- 10. Zero-Leak Bekçisi -->
+          <div id="node-shield" class="node-box bg-[var(--card)] border-2 border-cyan-500/30 hover:border-cyan-500/60 rounded-xl p-3 shadow-sm transition-all duration-300 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <div class="flex items-center gap-2">
+                  <span class="text-base">🛡️</span>
+                  <h5 class="font-bold text-xs text-cyan-400">10. ZERO-LEAK BEKÇİSİ</h5>
+                </div>
+                <span id="badge-shield" class="text-[9px] px-2 py-0.5 rounded font-mono font-semibold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">Zırh Devrede 🛡️</span>
               </div>
-              <span id="badge-heartbeat" class="text-[9px] px-2 py-0.5 rounded font-mono font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30">Standby ⏱️</span>
+              <p class="text-[10px] text-[var(--muted-foreground)] leading-relaxed">
+                API anahtarı, .env, şifre ve hassas kimlik verilerinin koda veya Git'e sızmasını anında kilitler!
+              </p>
             </div>
-            <p class="text-[10px] text-[var(--muted-foreground)] leading-relaxed">
-              Kota sıfırlanma döngüsünde 1-token micro-ping atarak sonraki kullanım penceresini zamanında açar.
-            </p>
-          </div>
-          <div class="mt-2 pt-1.5 border-t border-[var(--border)] flex items-center justify-between text-[9px] font-mono text-[var(--muted-foreground)]">
-            <span class="text-amber-400 font-semibold">Tetikleme:</span>
-            <span>5 Saatte Bir / Heartbeat</span>
+            <div class="mt-2 pt-1.5 border-t border-[var(--border)] flex items-center justify-between text-[9px] font-mono text-[var(--muted-foreground)]">
+              <span class="text-cyan-400 font-semibold">Tetikleme:</span>
+              <span>Dosya Yazma / Git Öncesi Tarama</span>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- 2. Grup: Çağrı ve Dış Entegrasyon Masası (Figma, Canlı Hata Dedektifi, Git Dağıtım Fabrikası) -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5">
-        <!-- 3. Figma Tasarım Köprüsü -->
-        <div id="node-figma" class="node-box bg-[var(--card)] border-2 border-pink-500/30 hover:border-pink-500/60 rounded-xl p-3 shadow-sm transition-all duration-300 flex flex-col justify-between">
-          <div>
-            <div class="flex items-center justify-between mb-1.5">
-              <div class="flex items-center gap-2">
-                <span class="text-base">🎨</span>
-                <h5 class="font-bold text-xs text-pink-400">3. FİGMA TASARIM KÖPRÜSÜ</h5>
+      <!-- 2. Grup: 3'lü Nöbetçi ve Periyodik Muhafızlar (Hafıza Uzmanı, Gece Nöbetçisi, Kota Dürtücüsü) -->
+      <div class="mb-3">
+        <div class="flex items-center gap-1.5 mb-2 px-1">
+          <span class="text-xs">🌙</span>
+          <span class="text-[10px] font-bold uppercase tracking-wider text-cyan-400 font-mono">2. NÖBETÇİ VE PERİYODİK GÖREVLER (SCHEDULED)</span>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+          <!-- 14. Hafıza Uzmanı -->
+          <div id="node-memory" class="node-box bg-[var(--card)] border-2 border-purple-500/30 hover:border-purple-500/60 rounded-xl p-3 shadow-sm transition-all duration-300 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <div class="flex items-center gap-2">
+                  <span class="text-base">🧠</span>
+                  <h5 class="font-bold text-xs text-purple-400">14. HAFIZA UZMANI</h5>
+                </div>
+                <span id="badge-memory" class="text-[9px] px-2 py-0.5 rounded font-mono font-semibold bg-purple-500/15 text-purple-300 border border-purple-500/30">Uyuyor 💤</span>
               </div>
-              <span id="badge-figma" class="text-[9px] px-2 py-0.5 rounded font-mono font-semibold bg-pink-500/15 text-pink-300 border border-pink-500/30">Standby 🎨</span>
+              <p class="text-[10px] text-[var(--muted-foreground)] leading-relaxed">
+                İş bitiminde veya çözülen kriz sonrası 5 sn uyanır; dersi KURALLAR.md kütüğüne mühürler.
+              </p>
             </div>
-            <p class="text-[10px] text-[var(--muted-foreground)] leading-relaxed">
-              Tasarım tokenlarını (HEX renkler, fontlar, padding ve grid aralıkları) doğrudan aktarır.
-            </p>
+            <div class="mt-2 pt-1.5 border-t border-[var(--border)] flex items-center justify-between text-[9px] font-mono text-[var(--muted-foreground)]">
+              <span class="text-purple-400 font-semibold">Tetikleme:</span>
+              <span>Görev Sonu / Post-Mortem</span>
+            </div>
           </div>
-          <div class="mt-2 pt-1.5 border-t border-[var(--border)] flex items-center justify-between text-[9px] font-mono text-[var(--muted-foreground)]">
-            <span class="text-pink-400 font-semibold">Tetikleme:</span>
-            <span>UI / Frontend Görevi</span>
+
+          <!-- 17. Gece Nöbetçisi -->
+          <div id="node-sentinel" class="node-box bg-[var(--card)] border-2 border-cyan-500/30 hover:border-cyan-500/60 rounded-xl p-3 shadow-sm transition-all duration-300 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <div class="flex items-center gap-2">
+                  <span class="text-base">🌙</span>
+                  <h5 class="font-bold text-xs text-cyan-400">17. GECE NÖBETÇİSİ</h5>
+                </div>
+                <span id="badge-sentinel" class="text-[9px] px-2 py-0.5 rounded font-mono font-semibold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">03:00 Bekliyor 🌙</span>
+              </div>
+              <p class="text-[10px] text-[var(--muted-foreground)] leading-relaxed">
+                Gece 03:00'te bağımsız uyanır; güvenlik açıklarını, paket güncellemelerini ve regresyon testlerini tarar.
+              </p>
+            </div>
+            <div class="mt-2 pt-1.5 border-t border-[var(--border)] flex items-center justify-between text-[9px] font-mono text-[var(--muted-foreground)]">
+              <span class="text-cyan-400 font-semibold">Tetikleme:</span>
+              <span>03:00 Cron Servisi</span>
+            </div>
+          </div>
+
+          <!-- 18. Kota Dürtücüsü -->
+          <div id="node-heartbeat" class="node-box bg-[var(--card)] border-2 border-amber-500/30 hover:border-amber-500/60 rounded-xl p-3 shadow-sm transition-all duration-300 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <div class="flex items-center gap-2">
+                  <span class="text-base">⚡</span>
+                  <h5 class="font-bold text-xs text-amber-400">18. KOTA DÜRTÜCÜSÜ</h5>
+                </div>
+                <span id="badge-heartbeat" class="text-[9px] px-2 py-0.5 rounded font-mono font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30">Standby ⏱️</span>
+              </div>
+              <p class="text-[10px] text-[var(--muted-foreground)] leading-relaxed">
+                Kota sıfırlanma döngüsünde 1-token micro-ping atarak sonraki kullanım penceresini zamanında açar.
+              </p>
+            </div>
+            <div class="mt-2 pt-1.5 border-t border-[var(--border)] flex items-center justify-between text-[9px] font-mono text-[var(--muted-foreground)]">
+              <span class="text-amber-400 font-semibold">Tetikleme:</span>
+              <span>5 Saatte Bir / Heartbeat</span>
+            </div>
           </div>
         </div>
+      </div>
 
-        <!-- 19. Canlı Hata Dedektifi -->
-        <div id="node-sentry" class="node-box bg-[var(--card)] border-2 border-rose-500/30 hover:border-rose-500/60 rounded-xl p-3 shadow-sm transition-all duration-300 flex flex-col justify-between">
-          <div>
-            <div class="flex items-center justify-between mb-1.5">
-              <div class="flex items-center gap-2">
-                <span class="text-base">🩺</span>
-                <h5 class="font-bold text-xs text-rose-400">19. CANLI HATA DEDEKTİFİ</h5>
-              </div>
-              <span id="badge-sentry" class="text-[9px] px-2 py-0.5 rounded font-mono font-semibold bg-rose-500/15 text-rose-300 border border-rose-500/30">Dinlemede 📡</span>
-            </div>
-            <p class="text-[10px] text-[var(--muted-foreground)] leading-relaxed">
-              Canlı log veya telemetriyi dinler; patlayan istisnaları yakalayıp çözücü TDD birim testine çevirir.
-            </p>
-          </div>
-          <div class="mt-2 pt-1.5 border-t border-[var(--border)] flex items-center justify-between text-[9px] font-mono text-[var(--muted-foreground)]">
-            <span class="text-rose-400 font-semibold">Tetikleme:</span>
-            <span>İstisna / Exception Anında</span>
-          </div>
+      <!-- 3. Grup: Çağrı ve Dış Entegrasyon Masası (Figma, Sentry, Git Dağıtım Fabrikası) -->
+      <div>
+        <div class="flex items-center gap-1.5 mb-2 px-1">
+          <span class="text-xs">🔌</span>
+          <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-400 font-mono">3. ÇAĞRI VE DIŞ ENTEGRASYON MASASI (ON-DEMAND)</span>
         </div>
-
-        <!-- 20. Git & Dağıtım Fabrikası -->
-        <div id="node-pr" class="node-box bg-[var(--card)] border-2 border-indigo-500/30 hover:border-indigo-500/60 rounded-xl p-3 shadow-sm transition-all duration-300 flex flex-col justify-between">
-          <div>
-            <div class="flex items-center justify-between mb-1.5">
-              <div class="flex items-center gap-2">
-                <span class="text-base">🔀</span>
-                <h5 class="font-bold text-xs text-indigo-400">20. GİT & DAĞITIM FABRİKASI</h5>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+          <!-- 3. Figma Tasarım Köprüsü -->
+          <div id="node-figma" class="node-box bg-[var(--card)] border-2 border-pink-500/30 hover:border-pink-500/60 rounded-xl p-3 shadow-sm transition-all duration-300 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <div class="flex items-center gap-2">
+                  <span class="text-base">🎨</span>
+                  <h5 class="font-bold text-xs text-pink-400">3. FİGMA TASARIM KÖPRÜSÜ</h5>
+                </div>
+                <span id="badge-figma" class="text-[9px] px-2 py-0.5 rounded font-mono font-semibold bg-pink-500/15 text-pink-300 border border-pink-500/30">Standby 🎨</span>
               </div>
-              <span id="badge-pr" class="text-[9px] px-2 py-0.5 rounded font-bold bg-zinc-500/20 text-zinc-400 border border-zinc-500/40">KAPALI</span>
+              <p class="text-[10px] text-[var(--muted-foreground)] leading-relaxed">
+                Tasarım tokenlarını (HEX renkler, fontlar, padding ve grid aralıkları) doğrudan aktarır.
+              </p>
             </div>
-            <p class="text-[10px] text-[var(--muted-foreground)] leading-relaxed">
-              Sıfır Otomatik Git ilkesi: Kodlama anında uyur. Yargıç onayından sonra /push komutuyla tek hamlede GitHub'a iletir.
-            </p>
+            <div class="mt-2 pt-1.5 border-t border-[var(--border)] flex items-center justify-between text-[9px] font-mono text-[var(--muted-foreground)]">
+              <span class="text-pink-400 font-semibold">Tetikleme:</span>
+              <span>UI / Frontend Görevi</span>
+            </div>
           </div>
-          <div class="mt-2 pt-1.5 border-t border-[var(--border)] flex items-center justify-between text-[9px] font-mono text-[var(--muted-foreground)]">
-            <span class="text-indigo-400 font-semibold">Tetikleme:</span>
-            <span>Kullanıcı /push Komutu</span>
+
+          <!-- 19. Canlı Hata Dedektifi -->
+          <div id="node-sentry" class="node-box bg-[var(--card)] border-2 border-rose-500/30 hover:border-rose-500/60 rounded-xl p-3 shadow-sm transition-all duration-300 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <div class="flex items-center gap-2">
+                  <span class="text-base">🩺</span>
+                  <h5 class="font-bold text-xs text-rose-400">19. CANLI HATA DEDEKTİFİ</h5>
+                </div>
+                <span id="badge-sentry" class="text-[9px] px-2 py-0.5 rounded font-mono font-semibold bg-rose-500/15 text-rose-300 border border-rose-500/30">Dinlemede 📡</span>
+              </div>
+              <p class="text-[10px] text-[var(--muted-foreground)] leading-relaxed">
+                Canlı log veya telemetriyi dinler; patlayan istisnaları yakalayıp çözücü TDD birim testine çevirir.
+              </p>
+            </div>
+            <div class="mt-2 pt-1.5 border-t border-[var(--border)] flex items-center justify-between text-[9px] font-mono text-[var(--muted-foreground)]">
+              <span class="text-rose-400 font-semibold">Tetikleme:</span>
+              <span>İstisna / Exception Anında</span>
+            </div>
+          </div>
+
+          <!-- 20. Git & Dağıtım Fabrikası -->
+          <div id="node-pr" class="node-box bg-[var(--card)] border-2 border-indigo-500/30 hover:border-indigo-500/60 rounded-xl p-3 shadow-sm transition-all duration-300 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <div class="flex items-center gap-2">
+                  <span class="text-base">🔀</span>
+                  <h5 class="font-bold text-xs text-indigo-400">20. GİT & DAĞITIM FABRİKASI</h5>
+                </div>
+                <span id="badge-pr" class="text-[9px] px-2 py-0.5 rounded font-bold bg-zinc-500/20 text-zinc-400 border border-zinc-500/40">KAPALI</span>
+              </div>
+              <p class="text-[10px] text-[var(--muted-foreground)] leading-relaxed">
+                Sıfır Otomatik Git ilkesi: Kodlama anında uyur. Yargıç onayından sonra /push komutuyla tek hamlede GitHub'a iletir.
+              </p>
+            </div>
+            <div class="mt-2 pt-1.5 border-t border-[var(--border)] flex items-center justify-between text-[9px] font-mono text-[var(--muted-foreground)]">
+              <span class="text-indigo-400 font-semibold">Tetikleme:</span>
+              <span>Kullanıcı /push Komutu</span>
+            </div>
           </div>
         </div>
       </div>
@@ -1021,6 +1056,10 @@
         if (badgeSentry) { badgeSentry.innerText = 'Dinlemede 📡'; badgeSentry.className = 'text-[9px] px-2 py-0.5 rounded font-mono font-semibold bg-rose-500/15 text-rose-300 border border-rose-500/30'; }
         const badgeFigma = document.getElementById('badge-figma');
         if (badgeFigma) { badgeFigma.innerText = 'Standby 🎨'; badgeFigma.className = 'text-[9px] px-2 py-0.5 rounded font-mono font-semibold bg-pink-500/15 text-pink-300 border border-pink-500/30'; }
+        const badgePerf = document.getElementById('badge-perf');
+        if (badgePerf) { badgePerf.innerText = 'Anti-Bloat ⚡'; badgePerf.className = 'text-[9px] px-2 py-0.5 rounded font-mono font-semibold bg-yellow-500/15 text-yellow-300 border border-yellow-500/30'; }
+        const badgeShield = document.getElementById('badge-shield');
+        if (badgeShield) { badgeShield.innerText = 'Zırh Devrede 🛡️'; badgeShield.className = 'text-[9px] px-2 py-0.5 rounded font-mono font-semibold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30'; }
       }
 
       if (s.badge) {
@@ -1102,6 +1141,11 @@
         if (params.has('cid') && params.get('cid')) return params.get('cid');
       } catch (e) {}
 
+      try {
+        const pinned = localStorage.getItem('vigiles-pinned-cid');
+        if (pinned) return pinned;
+      } catch (e) {}
+
       const match = (window.location.pathname || '').match(/brain[/\\]([a-zA-Z0-9\-_]+)[/\\]/);
       if (match) return match[1];
 
@@ -1111,6 +1155,10 @@
       return "";
     }
 
+    let isUserPinned = Boolean(
+      (new URLSearchParams(window.location.search)).get('cid') || 
+      localStorage.getItem('vigiles-pinned-cid')
+    );
     let currentConversationId = detectConversationId();
     let evtSource = null;
     let fetchTimeout = null;
@@ -1177,12 +1225,24 @@
 
         const userSessions = list.filter(s => !s.isTest);
         const testSessions = list.filter(s => s.isTest);
+        const pinBadge = document.getElementById('session-pin-indicator');
 
         if (countBadge) {
           countBadge.innerText = `${userSessions.length || 1} Sohbet`;
         }
         if (statsEl) {
-          statsEl.innerText = `${userSessions.length} Çalışan Chat`;
+          statsEl.innerText = `${userSessions.length} Sohbet`;
+        }
+
+        // Sabitlik / Otomatik mod indikatörünü güncelle
+        if (pinBadge) {
+          if (isUserPinned) {
+            pinBadge.innerText = '📌 SABİT';
+            pinBadge.className = 'text-[9px] px-1.5 py-0.2 rounded font-mono font-bold bg-amber-500/20 text-amber-400 border border-amber-500/40 leading-none';
+          } else {
+            pinBadge.innerText = '⚡ OTO';
+            pinBadge.className = 'text-[9px] px-1.5 py-0.2 rounded font-mono font-bold bg-zinc-700/40 text-zinc-400 border border-zinc-600/40 leading-none';
+          }
         }
 
         // Aktif sohbetin etiketini guncelle
@@ -1226,24 +1286,30 @@
 
           card.className = `p-2.5 rounded-xl border transition cursor-pointer select-none ${
             isCurrent 
-              ? 'bg-emerald-500/10 border-emerald-500/40 shadow-sm ring-1 ring-emerald-500/20' 
+              ? (isUserPinned 
+                  ? 'bg-amber-500/10 border-amber-500/40 shadow-sm ring-1 ring-amber-500/20' 
+                  : 'bg-emerald-500/10 border-emerald-500/40 shadow-sm ring-1 ring-emerald-500/20')
               : 'bg-[var(--background)] hover:bg-[var(--card)] border-[var(--border)] hover:border-blue-500/30'
           }`;
 
           card.onclick = function() {
-            selectSession(sess.conversationId);
+            selectSession(sess.conversationId, true);
           };
 
           card.innerHTML = `
             <div class="flex items-start justify-between gap-2.5">
               <div class="flex items-start gap-2.5 min-w-0">
-                <span class="w-6 h-6 rounded-lg ${isCurrent ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'bg-zinc-700/30 text-zinc-400 border border-zinc-700/50'} flex items-center justify-center text-[10px] font-bold font-mono shrink-0 mt-0.5">
+                <span class="w-6 h-6 rounded-lg ${isCurrent ? (isUserPinned ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40') : 'bg-zinc-700/30 text-zinc-400 border border-zinc-700/50'} flex items-center justify-center text-[10px] font-bold font-mono shrink-0 mt-0.5">
                   #${idx + 1}
                 </span>
                 <div class="min-w-0">
                   <div class="flex items-center gap-1.5 flex-wrap">
                     <span class="text-xs font-bold text-[var(--foreground)] tracking-tight truncate">${title}</span>
-                    ${isCurrent ? '<span class="text-[9px] px-1.5 py-0.5 rounded font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 leading-none">📍 Bu Sohbet</span>' : ''}
+                    ${isCurrent 
+                      ? (isUserPinned 
+                          ? '<span class="text-[9px] px-1.5 py-0.5 rounded font-mono font-bold bg-amber-500/20 text-amber-400 border border-amber-500/40 leading-none">📌 Sabitlendi</span>' 
+                          : '<span class="text-[9px] px-1.5 py-0.5 rounded font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 leading-none">📍 Bu Sohbet</span>')
+                      : ''}
                   </div>
                   <div class="text-[10px] text-[var(--muted-foreground)] font-mono flex items-center gap-1.5 mt-1 truncate">
                     <span class="${isDone ? 'text-blue-400' : 'text-emerald-400'} font-semibold">● ${stepTag}</span>
@@ -1253,9 +1319,12 @@
                 </div>
               </div>
               <div class="text-right shrink-0 flex flex-col items-end">
-                <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-md border ${statusColor} leading-none">
-                  ${statusText} ${statusDot}
-                </span>
+                <div class="flex items-center gap-1">
+                  <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-md border ${statusColor} leading-none">
+                    ${statusText} ${statusDot}
+                  </span>
+                  <button type="button" onclick="deleteSessionFromList(event, '${sess.conversationId}')" title="Bu sohbeti panodan kaldır" class="w-4 h-4 rounded hover:bg-rose-500/20 text-zinc-500 hover:text-rose-400 flex items-center justify-center text-[10px] font-bold transition cursor-pointer select-none">✕</button>
+                </div>
                 <span class="text-[9px] text-[var(--muted-foreground)] font-mono mt-1">${timeStr}</span>
               </div>
             </div>
@@ -1274,7 +1343,7 @@
             testSessions.forEach(sess => {
               const tCard = document.createElement('div');
               tCard.className = "p-1.5 rounded-lg border border-[var(--border)] bg-[var(--background)] hover:bg-[var(--card)] text-[10px] font-mono flex items-center justify-between cursor-pointer text-zinc-400 hover:text-zinc-200";
-              tCard.onclick = function() { selectSession(sess.conversationId); };
+              tCard.onclick = function() { selectSession(sess.conversationId, true); };
               tCard.innerHTML = `
                 <span class="truncate">🧪 ${sess.conversationId} [Aşama ${sess.step || 1}]</span>
                 <span class="shrink-0 text-[9px] text-zinc-500 ml-1">${sess.timeStr || ''}</span>
@@ -1288,14 +1357,49 @@
       } catch (e) {}
     }
 
-    function selectSession(selectedCid) {
+    function selectSession(selectedCid, manual = true) {
       if (!selectedCid) return;
       currentConversationId = selectedCid;
-      addEventLog("SİSTEM", `İzlenen oturum değiştirildi: ${selectedCid}`);
+      if (manual) {
+        isUserPinned = true;
+        try {
+          localStorage.setItem('vigiles-pinned-cid', selectedCid);
+          const url = new URL(window.location.href);
+          url.searchParams.set('cid', selectedCid);
+          window.history.replaceState(null, '', url.toString());
+        } catch (e) {}
+        addEventLog("SİSTEM", `📌 Sohbet kullanıcı tarafından sabitlendi: ${selectedCid}`);
+      }
       closeSessionPopover();
       initSSE();
       fetchSessionState(selectedCid);
       fetchSessionsList();
+    }
+
+    async function deleteSessionFromList(e, cid) {
+      if (e) e.stopPropagation();
+      try {
+        const host = window.location.origin.includes("localhost:9999") ? "" : "http://localhost:9999";
+        await fetch(host + `/delete-session?cid=${encodeURIComponent(cid)}`, { method: 'POST' });
+        if (currentConversationId === cid) {
+          isUserPinned = false;
+          try {
+            localStorage.removeItem('vigiles-pinned-cid');
+            const url = new URL(window.location.href);
+            url.searchParams.delete('cid');
+            window.history.replaceState(null, '', url.toString());
+          } catch (err) {}
+          currentConversationId = "";
+        }
+        addEventLog("SİSTEM", `Sohbet panodan kaldırıldı: ${cid.substring(0, 8)}...`);
+        fetchSessionsList();
+      } catch (err) {}
+    }
+
+    async function purgeDeadSessions(e) {
+      if (e) e.stopPropagation();
+      addEventLog("SİSTEM", "🧹 Silinmiş ve hayalet oturumlar taranıp temizleniyor...");
+      await fetchSessionsList();
     }
 
     async function fetchSessionState(cid) {
@@ -1345,18 +1449,22 @@
           try {
             const parsed = JSON.parse(e.data);
 
-            // Çoklu oturum filtre koruyucusu (Cross-talk engeli)
+            // Kullanıcı bir oturumu sabitlediyse veya o an bir oturumu izliyorsa
+            // BAŞKA sohbetlerin ekranı ezmesine KESİNLİKLE izin verme!
             if (currentConversationId && parsed.conversationId && parsed.conversationId !== currentConversationId) {
               debouncedFetchSessions();
               return;
             }
 
-            if (!currentConversationId && parsed.conversationId) {
+            // Sadece hiçbir oturum seçili değilse VE kullanıcı sabitlemediyse ilk gelen oturumu al
+            if (!currentConversationId && !isUserPinned && parsed.conversationId) {
               currentConversationId = parsed.conversationId;
               debouncedFetchSessions();
             }
 
-            enqueueState(parsed);
+            if (!currentConversationId || parsed.conversationId === currentConversationId) {
+              enqueueState(parsed);
+            }
           } catch (err) {}
         };
 
@@ -1373,6 +1481,9 @@
     // 2. Yedek Dosya Poller'ı (SSE yoksa devreye girer)
     window.onAntigravityStateUpdate = function(state) {
       if (!state || sseActive) return; // SSE aktifse dosya güncellemesini atla
+      if (currentConversationId && state.conversationId && state.conversationId !== currentConversationId) {
+        return;
+      }
       enqueueState(state);
     };
 

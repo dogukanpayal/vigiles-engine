@@ -402,10 +402,59 @@ while ($listener.IsListening) {
             continue
         }
 
-        # 3. GET /sessions (Aktif Oturum Listesi - Akilli Baslik ve Siralama)
-        if ($rawUrl -eq "/sessions") {
+        # 3.1 POST /delete-session veya DELETE /sessions (Manuel Oturum Kapatma)
+        if ($rawUrl -like "/delete-session*" -or ($rawUrl -like "/sessions*" -and $req.HttpMethod -eq "DELETE")) {
+            $delCid = ""
+            if ($rawUrl -match 'cid=([a-zA-Z0-9\-_]+)') {
+                $delCid = $matches[1]
+            } else {
+                try {
+                    $reader = New-Object System.IO.StreamReader($req.InputStream, [System.Text.Encoding]::UTF8)
+                    $body = $reader.ReadToEnd()
+                    $reader.Dispose()
+                    $delObj = $body | ConvertFrom-Json
+                    if ($delObj.conversationId) { $delCid = $delObj.conversationId }
+                    elseif ($delObj.cid) { $delCid = $delObj.cid }
+                } catch {}
+            }
+
+            if (-not [string]::IsNullOrWhiteSpace($delCid) -and $sessions.ContainsKey($delCid)) {
+                $discard = $null
+                $sessions.TryRemove($delCid, [ref]$discard) | Out-Null
+            }
+
             $res.ContentType = "application/json; charset=utf-8"
             $res.StatusCode = 200
+            $ackBytes = [System.Text.Encoding]::UTF8.GetBytes('{"status":"deleted"}')
+            $res.ContentLength64 = $ackBytes.Length
+            $res.OutputStream.Write($ackBytes, 0, $ackBytes.Length)
+            $res.Close()
+            continue
+        }
+
+        # 3. GET /sessions (Aktif Oturum Listesi - Akilli Baslik ve Siralama)
+        if ($rawUrl -like "/sessions*") {
+            $res.ContentType = "application/json; charset=utf-8"
+            $res.StatusCode = 200
+
+            # Otomatik Çöp Toplayıcı (Garbage Collection):
+            # Diskte brain/<cid> klasörü bulunmayan veya silinmiş oturumları bellekten temizle
+            # İstisna: Test oturumları (test- / chaos-) korunur.
+            $brainBaseDir = Join-Path $HOME ".gemini\antigravity\brain"
+            $toRemove = [System.Collections.Generic.List[string]]::new()
+            
+            foreach ($k in $sessions.Keys) {
+                if ($k -notmatch '^(test-|chaos-)') {
+                    $dir = Join-Path $brainBaseDir $k
+                    if (-not [System.IO.Directory]::Exists($dir)) {
+                        $toRemove.Add($k)
+                    }
+                }
+            }
+            foreach ($delId in $toRemove) {
+                $discard = $null
+                $sessions.TryRemove($delId, [ref]$discard) | Out-Null
+            }
 
             $sessList = [System.Collections.Generic.List[hashtable]]::new()
             
@@ -423,15 +472,14 @@ while ($listener.IsListening) {
                 $isTest = ($s.conversationId -match '^(test-|chaos-)')
                 
                 $sessionNum = if (-not $isTest) {
-                    if ($s.sessionIndex -and [int]$s.sessionIndex -gt 0) {
-                        "Sohbet #$($s.sessionIndex)"
-                    } else {
-                        "Sohbet #$userIndex"
-                    }
+                    "Sohbet #$userIndex"
                 } else {
                     "Test"
                 }
-                if (-not $isTest) { $userIndex++ }
+                if (-not $isTest) {
+                    $s.sessionIndex = $userIndex
+                    $userIndex++
+                }
 
                 $timeStr = ""
                 try {
