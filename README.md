@@ -1,9 +1,9 @@
-# 🏛️ Antigravity Veteran Engine
+# 🏛️ Vigiles Engine
 ### Kurşungeçirmez 20 Elemanlı Otonom Yazılım Şirketi ve Canlı Telemetri Merkezi
 
 [![Tests](https://img.shields.io/badge/Tests-7%2F7%20Passing-brightgreen?style=flat-square&logo=powershell)](./Run-MasterVerification.ps1)
 [![Platform](https://img.shields.io/badge/Antigravity-2.0%20Ready-blue?style=flat-square&logo=google)](https://antigravity.google)
-[![Architecture](https://img.shields.io/badge/Protocol-Veteran%2020--Element-purple?style=flat-square)](#-sistem-mimarisi)
+[![Architecture](https://img.shields.io/badge/Protocol-Vigiles%2020--Element-purple?style=flat-square)](#-sistem-mimarisi)
 [![Telemetry](https://img.shields.io/badge/Mission%20Control-SSE%20Port%209999-orange?style=flat-square)](#-canlı-operasyon-merkezi-mission-control)
 [![Security](https://img.shields.io/badge/Security-Zero--Leak%20%26%20Anti--Bloat-red?style=flat-square)](#-g%C3%BCvenlik-ve-performans-muhaf%C4%B1zlar%C4%B1)
 
@@ -11,10 +11,9 @@
 
 ---
 
-## 🌟 Neden Bu Sistem?
+## 🌟 Neden Vigiles Engine?
 
-Geleneksel yapay zeka asistanları pasif cevaplayıcılardır: Prompt yazarsınız, kod verir, hata çıkınca logu tekrar kopyalarsınız.  
-**Antigravity Veteran Engine** ise bir **Staff/Principal Software Engineer ve Operasyon Orkestratörü** gibi çalışır:
+Antik Roma'da şehri gece gündüz koruyan muhafızlardan (*Vigiles Urbani*) ilham alan **Vigiles Engine**, geleneksel yapay zeka asistanlarının pasif "prompt-cevap" sığlığını yıkar. Sisteminize bir **Staff/Principal Software Engineer ve Operasyon Orkestratörü** gibi yaklaşır:
 
 1. **Kör Kodlama Yasağı (Never Code Blindly):** Mimari plan ve kabul kriterleri (`DURUM.md`) çizilmeden tek satır kod yazılmaz.
 2. **Kapalı Döngü TDD (Closed-Loop TDD):** İşçi kod yazmadan önce Özel Testçi testleri yazar. Testler patlarsa hatayı kullanıcıya sormadan kendi düzeltir.

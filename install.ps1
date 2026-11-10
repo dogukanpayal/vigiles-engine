@@ -10,7 +10,7 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $sourceCore = Join-Path $scriptDir "core"
 
 Write-Host "==========================================================" -ForegroundColor Cyan
-Write-Host "🚀 ANTIGRAVITY VETERAN ENGINEERING PROTOCOL KURULUMU" -ForegroundColor Yellow
+Write-Host "🚀 VIGILES ENGINE - 20 ELEMANLI OTONOM FABRIKA KURULUMU" -ForegroundColor Yellow
 Write-Host "   Kaynak : $sourceCore" -ForegroundColor Gray
 Write-Host "   Hedef  : $targetConfig" -ForegroundColor Gray
 Write-Host "==========================================================" -ForegroundColor Cyan
