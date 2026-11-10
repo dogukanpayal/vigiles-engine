@@ -35,7 +35,7 @@ Her elemanın görevi ve sorumluluk sınırı kesindir. Kimse başkasının işi
 5. **GENEL ORKESTRATÖR (Operations Director / COO)**:
    - **PLAN ÇİZMEZ, KOD YAZMAZ.**
    - Mimarın onaylanmış planını alır, ekibin tüm çarklarını koordine eder.
-6. **DURUM.md (Canlı Şantiye Tahtası)**:
+* **📋 DURUM.md (Canlı Şantiye Tahtası)**:
    - Canlı çalışma belleği. Plan adımları, anlık aşama, açık kusurlar ve geçilen testler burada tutulur; context drift engellenir.
 
 ### 2. Uygulama & Güvenlik Katmanı
@@ -113,7 +113,7 @@ Her elemanın görevi ve sorumluluk sınırı kesindir. Kimse başkasının işi
 [4. KARAR SÜZGECİ] ──(Tek Yönlü Kapı)──> [SİZ: ask_question Pop-Up]
        │ (Onaylanan Plan)
        ▼
-[5. GENEL ORKESTRATÖR] ◄──► [6. DURUM.md]
+[5. GENEL ORKESTRATÖR] ◄──► [📋 DURUM.md]
        │
        ▼
 [7. SUBAGENT ŞEFİ]
