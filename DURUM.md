@@ -36,7 +36,8 @@
 - [x] **Aşama 6: Kaos Mühendisi Stres Testi (`Chaos-Heartbeat.ps1`)** (3/3 Dirençli)
 - [x] **Aşama 7: Büyük Konsolide Sistem Doğrulaması (`Run-MasterVerification.ps1`)** (10 / 10 Test Paketi Eksiksiz Başarılı)
 - [x] **Aşama 8: Hafıza Uzmanı & Kural Güncellemesi** (`[KURAL-011]` anayasaya işlendi)
-- [x] **Aşama 9: Dağıtıma Hazır Bildirimi** (Sıfır Otomatik Git ilkesi: `/push` bekliyor)
+- [x] **Aşama 9: Canlı Operasyon Merkezi Karakter Bozulması (Mojibake) Çözümü** (Kök neden saptandı: Windows PowerShell 5.1 BOM'suz `.ps1` dosyalarını varsayılan CP1252 ANSI olarak ayrıştırdığı için string literalleri belleğe bozuk harflerle alınıyordu. Tüm betikler UTF-8 BOM ile donatıldı; `telemetry_server.ps1` ve `live_mission_control.html` içine hem Byte-Mapping hem de kapsamlı Regex tabanlı çift katmanlı oto-onarıcı entegre edildi; `live-desc` ve script etiketlerine `charset="UTF-8"` eklendi; template'lerin çalışma dizinlerine güncel kalması için `ensure_live_mission_control.ps1` kopyalama mantığı senkronize edildi)
+- [x] **Aşama 10: Dağıtıma Hazır Bildirimi** (Sıfır Otomatik Git ilkesi: `/push` bekliyor)
 
 ---
 
