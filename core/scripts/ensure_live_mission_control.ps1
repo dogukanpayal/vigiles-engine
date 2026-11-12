@@ -232,7 +232,8 @@ if (-not $serverRunning) {
         $req = [System.Net.WebRequest]::Create("http://localhost:9999/set-active")
         $req.Method = "POST"
         $req.ContentType = "application/json; charset=utf-8"
-        $req.Timeout = 200
+        $req.ServicePoint.Expect100Continue = $false
+        $req.Timeout = 800
         $activeJson = ($missionInfo | ConvertTo-Json -Compress)
         $bytes = [System.Text.Encoding]::UTF8.GetBytes($activeJson)
         $req.ContentLength = $bytes.Length

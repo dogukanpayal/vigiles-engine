@@ -576,6 +576,20 @@ while ($listener.IsListening) {
 
             [System.Threading.Monitor]::Enter($sseLock)
             try {
+                $staleClients = @()
+                $pingBytes = [System.Text.Encoding]::UTF8.GetBytes(": ping`n`n")
+                foreach ($c in $sseClients) {
+                    try {
+                        $c.Writer.BaseStream.Write($pingBytes, 0, $pingBytes.Length)
+                        $c.Writer.BaseStream.Flush()
+                    } catch {
+                        $staleClients += $c
+                    }
+                }
+                foreach ($sc in $staleClients) {
+                    $sseClients.Remove($sc) | Out-Null
+                    try { $sc.Writer.Dispose() } catch {}
+                }
                 $sseClients.Add($clientRecord)
                 $cidNote = if ($filterCid) { " (Filtre: $filterCid)" } else { " (Global)" }
                 Write-Host "[SSE] Yeni istemci baglandi$cidNote. Toplam: $($sseClients.Count)" -ForegroundColor DarkCyan
@@ -643,7 +657,9 @@ while ($listener.IsListening) {
                         state          = $parsed
                     }
                     $sessions[$cid] = $sessionEntry
-                    $activeConversationId = $cid
+                    if ($cid -notmatch '^(test-|chaos-|session-)') {
+                        $activeConversationId = $cid
+                    }
                 } catch {}
 
                 # Yalnizca ilgili sohbetin istemcilerine veya filtre belirtmeyenlere yay
@@ -855,19 +871,23 @@ while ($listener.IsListening) {
 
             try {
                 $obj = $body | ConvertFrom-Json
-                if ($obj.conversationId) {
-                    $activeConversationId = $obj.conversationId
-                }
-                if ($obj.artifactDirectoryPath) {
-                    $ArtifactDir = $obj.artifactDirectoryPath
-                    Write-Host "[ROUTER] Aktif Gorev Dizini Guncellendi: $ArtifactDir (CID: $activeConversationId)" -ForegroundColor Cyan
-                    $statePath = Join-Path $ArtifactDir "live_state.json"
-                    if (Test-Path $statePath) {
-                        try {
-                            $latestStateJson = [System.IO.File]::ReadAllText($statePath, [System.Text.Encoding]::UTF8)
-                            $latestStateJson = Repair-Utf8String $latestStateJson
-                            Broadcast-SSE -jsonData $latestStateJson -targetCid $activeConversationId
-                        } catch {}
+                $isTestActive = ($obj.conversationId -and ($obj.conversationId -match '^(test-|chaos-|session-)')) -or
+                                ($obj.artifactDirectoryPath -and ($obj.artifactDirectoryPath -match '[\\/]Temp[\\/]'))
+                if (-not $isTestActive) {
+                    if ($obj.conversationId) {
+                        $activeConversationId = $obj.conversationId
+                    }
+                    if ($obj.artifactDirectoryPath) {
+                        $ArtifactDir = $obj.artifactDirectoryPath
+                        Write-Host "[ROUTER] Aktif Gorev Dizini Guncellendi: $ArtifactDir (CID: $activeConversationId)" -ForegroundColor Cyan
+                        $statePath = Join-Path $ArtifactDir "live_state.json"
+                        if (Test-Path $statePath) {
+                            try {
+                                $latestStateJson = [System.IO.File]::ReadAllText($statePath, [System.Text.Encoding]::UTF8)
+                                $latestStateJson = Repair-Utf8String $latestStateJson
+                                Broadcast-SSE -jsonData $latestStateJson -targetCid $activeConversationId
+                            } catch {}
+                        }
                     }
                 }
             } catch {}
@@ -985,7 +1005,14 @@ while ($listener.IsListening) {
         $res.Close()
     }
     catch {
-        Write-Host "Istek isleme hatasi: $($_.Exception.Message)" -ForegroundColor DarkGray
+        $innerEx = $_.Exception
+        while ($innerEx -and -not ($innerEx -is [System.Net.HttpListenerException]) -and $innerEx.InnerException) {
+            $innerEx = $innerEx.InnerException
+        }
+        $isClientDisconnect = ($innerEx -is [System.Net.HttpListenerException]) -and ($innerEx.ErrorCode -in @(1, 64, 995, 1229))
+        if (-not $isClientDisconnect) {
+            Write-Host "Istek isleme hatasi: $($_.Exception.Message)" -ForegroundColor DarkGray
+        }
         if ($context -and $context.Response -and $rawUrl -ne "/events") {
             try { $context.Response.Close() } catch {}
         }

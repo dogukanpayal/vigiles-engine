@@ -124,7 +124,8 @@ try {
     if (-not [string]::IsNullOrWhiteSpace($conversationId)) {
         $req.Headers.Add("X-Conversation-Id", $conversationId)
     }
-    $req.Timeout = 200
+    $req.ServicePoint.Expect100Continue = $false
+    $req.Timeout = 800
     $bytes = [System.Text.Encoding]::UTF8.GetBytes($stateJson)
     $req.ContentLength = $bytes.Length
     $stream = $req.GetRequestStream()

@@ -154,7 +154,8 @@ function Send-Telemetry([hashtable]$state) {
             if (-not [string]::IsNullOrWhiteSpace($cid)) {
                 $req.Headers.Add("X-Conversation-Id", $cid)
             }
-            $req.Timeout = 150
+            $req.ServicePoint.Expect100Continue = $false
+            $req.Timeout = 800
             $bytes = [System.Text.Encoding]::UTF8.GetBytes($stateJson)
             $req.ContentLength = $bytes.Length
             $stream = $req.GetRequestStream()
