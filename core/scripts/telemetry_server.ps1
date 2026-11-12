@@ -1,4 +1,4 @@
-# telemetry_server.ps1
+﻿# telemetry_server.ps1
 # Antigravity Canli Operasyon Merkezi - Coklu Oturum (Multi-Session) SSE & HTTP Telemetri Dagitim Servisi
 # Port: 9999
 
@@ -58,16 +58,76 @@ function Repair-Utf8String([string]$str) {
     return $str
 }
 
-# Insan-Okur Sohbet Basligi Cozucusu (%100 Antigravity Aynasi)
+# --- ANTIGRAVITY RESMI VERITABANI (conversation_summaries.db) KÖPRÜSÜ & ÖNBELLEĞİ ---
+$script:agyDbSummaryCache = @{}
+$script:lastAgyDbFetchTime = [datetime]::MinValue
+$script:agyDbCacheTTLSeconds = 5
+
+function Update-AntigravityDbCache {
+    $now = Get-Date
+    if (($now - $script:lastAgyDbFetchTime).TotalSeconds -lt $script:agyDbCacheTTLSeconds -and $script:agyDbSummaryCache.Count -gt 0) {
+        return
+    }
+    $dbPath = Join-Path $HOME ".gemini\antigravity\conversation_summaries.db"
+    $agyNode = Join-Path $env:APPDATA "Antigravity\bin\agy-node.cmd"
+    if (-not (Test-Path $agyNode)) {
+        $cmd = Get-Command "agy-node*" -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($cmd) { $agyNode = $cmd.Source }
+    }
+    if ((Test-Path $dbPath) -and (Test-Path $agyNode)) {
+        try {
+            $dbPathForward = $dbPath.Replace('\', '/')
+            $jsCode = "const { DatabaseSync } = require('node:sqlite'); const db = new DatabaseSync('$dbPathForward', { open: true, readOnly: true }); const rows = db.prepare('SELECT conversation_id, title, preview, workspace_uris, parent_conversation_id, last_modified_time FROM conversation_summaries').all(); console.log(Buffer.from(JSON.stringify(rows), 'utf8').toString('base64'));"
+            $b64Out = & $agyNode -e $jsCode 2>$null
+            if (-not [string]::IsNullOrWhiteSpace($b64Out)) {
+                $b64Clean = ($b64Out -join '').Trim()
+                $jsonStr = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($b64Clean))
+                $rows = $jsonStr | ConvertFrom-Json
+                $newMap = @{}
+                foreach ($r in $rows) {
+                    if ($r.conversation_id) {
+                        $newMap[[string]$r.conversation_id] = @{
+                            title                = [string]$r.title
+                            preview              = [string]$r.preview
+                            workspaceUris        = [string]$r.workspace_uris
+                            parentConversationId = [string]$r.parent_conversation_id
+                            lastModifiedTime     = [string]$r.last_modified_time
+                        }
+                    }
+                }
+                if ($newMap.Count -gt 0) {
+                    $script:agyDbSummaryCache = $newMap
+                    $script:lastAgyDbFetchTime = $now
+                }
+            }
+        } catch {}
+    }
+}
+
+# Insan-Okur Sohbet Basligi Cozucusu (%100 Antigravity Resmi DB Aynasi)
 function Get-ConversationDisplayName([string]$cid, [string]$wsName, [string]$fallbackTitle) {
     if ([string]::IsNullOrWhiteSpace($cid)) { return "Antigravity Sohbet" }
 
     if ($cid -match '^test-') { return "🧪 [Test] $cid" }
     if ($cid -match '^chaos-') { return "🐒 [Kaos] $cid" }
 
+    # 1. ÖNCE Antigravity Resmi Veritabanından (conversation_summaries.db) gerçek sohbet adını oku (%100 Birebir Ayna)
+    Update-AntigravityDbCache
+    if ($script:agyDbSummaryCache.ContainsKey($cid)) {
+        $dbEntry = $script:agyDbSummaryCache[$cid]
+        if (-not [string]::IsNullOrWhiteSpace($dbEntry.title)) {
+            return $dbEntry.title.Trim()
+        }
+        if (-not [string]::IsNullOrWhiteSpace($dbEntry.preview) -and $dbEntry.preview -ne "ping") {
+            $pClean = ($dbEntry.preview -replace '[\r\n]+', ' ').Trim()
+            if ($pClean.Length -gt 65) { return $pClean.Substring(0, 62) + "..." }
+            return $pClean
+        }
+    }
+
     $artDir = Join-Path $HOME ".gemini\antigravity\brain\$cid"
 
-    # 1. Once Transcript'ten kullanicinin klavyeden girdigi ilk istemi oku (%100 Antigravity Aynasi)
+    # 2. Yedek (Fallback): Henüz DB başlığı oluşmamış yeni sohbetlerde Transcript'ten ilk istemi oku
     $tPath = Join-Path $artDir ".system_generated\logs\transcript.jsonl"
     $rawUserText = ""
     if (Test-Path $tPath) {
@@ -103,15 +163,15 @@ function Get-ConversationDisplayName([string]$cid, [string]$wsName, [string]$fal
         }
         $clean = ($clean -replace '^\s*/[a-zA-Z0-9\-_]+\s*', '').Trim()
 
-        if ($clean.Length -gt 36) {
-            return $clean.Substring(0, 33) + "..."
+        if ($clean.Length -gt 60) {
+            return $clean.Substring(0, 57) + "..."
         }
         if (-not [string]::IsNullOrWhiteSpace($clean)) {
             return $clean
         }
     }
 
-    # 2. transcript yoksa DURUM.md gorev adina bak
+    # 3. transcript yoksa DURUM.md gorev adina bak
     $artDurum = Join-Path $artDir "DURUM.md"
     if (Test-Path $artDurum) {
         try {
@@ -121,7 +181,7 @@ function Get-ConversationDisplayName([string]$cid, [string]$wsName, [string]$fal
                     $gName = $matches[1].Trim()
                     if ($gName -match '—\s*(.+)') { $gName = $matches[1].Trim() }
                     elseif ($gName -match ':\s*(.+)') { $gName = $matches[1].Trim() }
-                    if ($gName.Length -gt 36) { $gName = $gName.Substring(0, 33) + "..." }
+                    if ($gName.Length -gt 60) { $gName = $gName.Substring(0, 57) + "..." }
                     if (-not [string]::IsNullOrWhiteSpace($gName)) {
                         return $gName
                     }
@@ -131,8 +191,8 @@ function Get-ConversationDisplayName([string]$cid, [string]$wsName, [string]$fal
     }
 
     if (-not [string]::IsNullOrWhiteSpace($fallbackTitle) -and 
-        $fallbackTitle -notmatch '^(Canli|CANLI|OTURUM|GÖREV TAMAMLANDI)') {
-        if ($fallbackTitle.Length -gt 36) { return $fallbackTitle.Substring(0, 33) + "..." }
+        $fallbackTitle -notmatch '^(Canli|CANLI|OTURUM|GÖREV TAMAMLANDI|AŞAMA)') {
+        if ($fallbackTitle.Length -gt 60) { return $fallbackTitle.Substring(0, 57) + "..." }
         return $fallbackTitle
     }
 
@@ -142,6 +202,32 @@ function Get-ConversationDisplayName([string]$cid, [string]$wsName, [string]$fal
 
 # --- PROJE ADI TESPİT EDİCİ (WORKSPACE / PROJECT CLASSIFIER - MODEL A) ---
 function Get-ConversationProjectName([string]$cid, [string]$rawText = "", [string]$wsHint = "") {
+    # 1. ÖNCE Antigravity Resmi Veritabanındaki (conversation_summaries.db) gerçek workspace_uris yoluna bak
+    Update-AntigravityDbCache
+    if (-not [string]::IsNullOrWhiteSpace($cid) -and $script:agyDbSummaryCache.ContainsKey($cid)) {
+        $wsUris = $script:agyDbSummaryCache[$cid].workspaceUris
+        if (-not [string]::IsNullOrWhiteSpace($wsUris)) {
+            try { $decodedWs = [System.Uri]::UnescapeDataString($wsUris) } catch { $decodedWs = $wsUris }
+            if ($decodedWs -match 'QRMenuHotel|qrmenu') { return "QRMenuHotel" }
+            if ($decodedWs -match 'WispDock|wispdock') { return "WispDock" }
+            if ($decodedWs -match 'UsageGauge|usagegauge') { return "UsageGauge" }
+            if ($decodedWs -match 'StatusLantern|statuslantern') { return "StatusLantern" }
+            if ($decodedWs -match 'Antigravity Improvement|antigravity') { return "Antigravity Improvement" }
+            if ($decodedWs -notmatch 'system32' -and $decodedWs -match 'file:///[^"\]]+/([^/"\]]+)') {
+                return $matches[1]
+            }
+        }
+    }
+
+    # 2. Yedek: wsHint ve rawText üzerinden kontrol et
+    if (-not [string]::IsNullOrWhiteSpace($wsHint)) {
+        if ($wsHint -match 'QRMenuHotel|qrmenu') { return "QRMenuHotel" }
+        if ($wsHint -match 'WispDock|wispdock') { return "WispDock" }
+        if ($wsHint -match 'UsageGauge|usagegauge') { return "UsageGauge" }
+        if ($wsHint -match 'StatusLantern|statuslantern') { return "StatusLantern" }
+        if ($wsHint -match 'Antigravity Improvement') { return "Antigravity Improvement" }
+    }
+
     $checkText = "$rawText $wsHint"
     if ($checkText -match 'QRMenuHotel|qrmenu') { return "QRMenuHotel" }
     if ($checkText -match 'WispDock|wispdock') { return "WispDock" }
@@ -193,10 +279,18 @@ $discoveryCacheExpirySec = 15
 
 function Get-DiscoveredArchiveSessions([System.Collections.Concurrent.ConcurrentDictionary[string, hashtable]]$activeSessionsMap) {
     $now = Get-Date
+    Update-AntigravityDbCache
     if (($now - $script:lastDiscoveryTime).TotalSeconds -lt $script:discoveryCacheExpirySec -and $script:discoveredArchiveCache.Count -gt 0) {
         $cachedFresh = [System.Collections.Generic.List[hashtable]]::new()
         foreach ($item in $script:discoveredArchiveCache) {
             if (-not $activeSessionsMap.ContainsKey($item.conversationId)) {
+                if ($script:agyDbSummaryCache.ContainsKey($item.conversationId)) {
+                    $dbInfo = $script:agyDbSummaryCache[$item.conversationId]
+                    if (-not [string]::IsNullOrWhiteSpace($dbInfo.title)) {
+                        $item.chatTitle = $dbInfo.title.Trim()
+                        $item.title = $dbInfo.title.Trim()
+                    }
+                }
                 $cachedFresh.Add($item)
             }
         }
@@ -215,11 +309,26 @@ function Get-DiscoveredArchiveSessions([System.Collections.Concurrent.Concurrent
     foreach ($d in $dirs) {
         $cid = $d.Name
 
+        # 1. Antigravity Resmi DB kontrolü: Alt ajanları (parent_conversation_id != '') ve ping oturumlarını kesin olarak ele
+        if ($script:agyDbSummaryCache.ContainsKey($cid)) {
+            $dbRec = $script:agyDbSummaryCache[$cid]
+            if (-not [string]::IsNullOrWhiteSpace($dbRec.parentConversationId)) {
+                continue
+            }
+            if ($dbRec.preview -eq "ping" -and [string]::IsNullOrWhiteSpace($dbRec.title)) {
+                continue
+            }
+        }
+
         # SADECE GERÇEK KULLANICI SOHBETLERİNİ AL (Alt işçi / Subagent görevlerini filtrele)
         $tPath = Join-Path $d.FullName '.system_generated\logs\transcript.jsonl'
         $durumPath = Join-Path $d.FullName 'DURUM.md'
         $isUserChat = $false
         $rawUserText = ""
+
+        if ($script:agyDbSummaryCache.ContainsKey($cid) -and -not [string]::IsNullOrWhiteSpace($script:agyDbSummaryCache[$cid].title)) {
+            $isUserChat = $true
+        }
 
         if (Test-Path $durumPath) {
             $isUserChat = $true
@@ -497,8 +606,11 @@ while ($listener.IsListening) {
                     if ([string]::IsNullOrWhiteSpace($cid)) { $cid = "default" }
                     if ($parsed.workspaceName) { $wsName = [string]$parsed.workspaceName }
 
-                    $cTitle = if ($parsed.chatTitle) { [string]$parsed.chatTitle }
-                              else { Get-ConversationDisplayName -cid $cid -wsName $wsName -fallbackTitle $parsed.title }
+                    $cTitle = if ($cid -match '^(test-|chaos-)' -and $parsed.chatTitle) {
+                        [string]$parsed.chatTitle
+                    } else {
+                        Get-ConversationDisplayName -cid $cid -wsName $wsName -fallbackTitle $parsed.chatTitle
+                    }
 
                     $existing = $null
                     $firstSeen = (Get-Date).ToString("o")
@@ -610,9 +722,13 @@ while ($listener.IsListening) {
 
             $userIndex = 1
             foreach ($s in $sortedList) {
-                $cTitle = if ($s.chatTitle) { $s.chatTitle } else { Get-ConversationDisplayName -cid $s.conversationId -wsName $s.workspaceName -fallbackTitle $s.title }
-                $shortCid = if ($s.conversationId.Length -gt 8) { $s.conversationId.Substring(0, 8) + "..." } else { $s.conversationId }
                 $isTest = ($s.conversationId -match '^(test-|chaos-)')
+                $cTitle = if ($isTest -and $s.chatTitle) {
+                    $s.chatTitle
+                } else {
+                    Get-ConversationDisplayName -cid $s.conversationId -wsName $s.workspaceName -fallbackTitle $s.chatTitle
+                }
+                $shortCid = if ($s.conversationId.Length -gt 8) { $s.conversationId.Substring(0, 8) + "..." } else { $s.conversationId }
                 
                 $sessionNum = if (-not $isTest) {
                     "Sohbet #$userIndex"
@@ -630,7 +746,11 @@ while ($listener.IsListening) {
                     $timeStr = $dt.ToString("HH:mm")
                 } catch {}
 
-                $projName = if ($s.projectName) { $s.projectName } else { Get-ConversationProjectName -cid $s.conversationId -rawText $cTitle -wsHint $s.workspaceName }
+                $projName = if ($isTest -and $s.projectName) {
+                    $s.projectName
+                } else {
+                    Get-ConversationProjectName -cid $s.conversationId -rawText $cTitle -wsHint $s.workspaceName
+                }
 
                 $sessList.Add(@{
                     conversationId = $s.conversationId

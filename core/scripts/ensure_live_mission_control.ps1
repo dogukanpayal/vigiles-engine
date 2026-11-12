@@ -1,4 +1,4 @@
-param()
+﻿param()
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 [Console]::InputEncoding  = [System.Text.Encoding]::UTF8
@@ -65,19 +65,45 @@ $wsName = if ($payload.workspacePaths -and $payload.workspacePaths.Count -gt 0) 
 
 $cleanInput = ($userInput -replace '[\r\n]+', ' ').Trim()
 $chatTitle = ""
-if ($cleanInput -match '^\s*/([a-zA-Z0-9\-_]+)\s*$') {
-    $chatTitle = "⚡ Komut: /$($matches[1])"
-} elseif ($cleanInput -match '^\s*/([a-zA-Z0-9\-_]+)\s+(.+)$') {
-    $cName = $matches[1]
-    $desc = $matches[2].Trim()
-    if ($desc.Length -gt 38) { $desc = $desc.Substring(0, 35) + "..." }
-    $chatTitle = "⚡ /$($cName): $desc"
-} elseif ($cleanInput.Length -gt 38) {
-    $chatTitle = $cleanInput.Substring(0, 35) + "..."
-} elseif (-not [string]::IsNullOrWhiteSpace($cleanInput)) {
-    $chatTitle = $cleanInput
-} else {
-    $chatTitle = "Sohbet ($($conversationId.Substring(0, 8)))"
+
+# 1. ÖNCE Antigravity Resmi Veritabanından (conversation_summaries.db) gerçek sohbet adını oku
+$dbPath = Join-Path $HOME ".gemini\antigravity\conversation_summaries.db"
+$agyNode = Join-Path $env:APPDATA "Antigravity\bin\agy-node.cmd"
+if (-not [string]::IsNullOrWhiteSpace($conversationId) -and (Test-Path $dbPath) -and (Test-Path $agyNode)) {
+    try {
+        $dbPathForward = $dbPath.Replace('\', '/')
+        $safeCid = $conversationId -replace "[^a-zA-Z0-9\-_]", ""
+        $jsCode = "const { DatabaseSync } = require('node:sqlite'); const db = new DatabaseSync('$dbPathForward', { open: true, readOnly: true }); const row = db.prepare('SELECT title, preview FROM conversation_summaries WHERE conversation_id = ?').get('$safeCid'); if (row) console.log(Buffer.from(JSON.stringify(row), 'utf8').toString('base64'));"
+        $b64Out = & $agyNode -e $jsCode 2>$null
+        if (-not [string]::IsNullOrWhiteSpace($b64Out)) {
+            $b64Clean = ($b64Out -join '').Trim()
+            $jsonStr = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($b64Clean))
+            $rowObj = $jsonStr | ConvertFrom-Json
+            if ($rowObj -and -not [string]::IsNullOrWhiteSpace($rowObj.title)) {
+                $chatTitle = $rowObj.title.Trim()
+            } elseif ($rowObj -and -not [string]::IsNullOrWhiteSpace($rowObj.preview) -and $rowObj.preview -ne "ping") {
+                $chatTitle = ($rowObj.preview -replace '[\r\n]+', ' ').Trim()
+            }
+        }
+    } catch {}
+}
+
+# 2. Yedek (Fallback): Henüz DB başlığı oluşmamış yeni sohbetlerde kullanıcı istemini kullan
+if ([string]::IsNullOrWhiteSpace($chatTitle)) {
+    $fallbackClean = ($cleanInput -replace '^\s*/[a-zA-Z0-9\-_]+\s*', '').Trim()
+    if (-not [string]::IsNullOrWhiteSpace($fallbackClean)) {
+        if ($fallbackClean.Length -gt 60) {
+            $chatTitle = $fallbackClean.Substring(0, 57) + "..."
+        } else {
+            $chatTitle = $fallbackClean
+        }
+    } elseif ($cleanInput -match '^\s*/([a-zA-Z0-9\-_]+)\s*$') {
+        $chatTitle = "⚡ Komut: /$($matches[1])"
+    } elseif (-not [string]::IsNullOrWhiteSpace($cleanInput)) {
+        $chatTitle = $cleanInput
+    } else {
+        $chatTitle = "Sohbet ($($conversationId.Substring(0, 8)))"
+    }
 }
 
 # 2. Aktif Görev Kütüğünü Güncelle (active_mission.json) - Yalnızca Vigiles/Live oturumunda
