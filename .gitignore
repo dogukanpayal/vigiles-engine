@@ -18,3 +18,10 @@ Desktop.ini
 # Scratch and test caches
 scratch/
 .system_generated/
+
+# Vigiles Engine runtime telemetry & temporary outputs
+live_state.json
+live_state.js
+live_events.jsonl
+active_workers.json
+SABAH_RAPORU.md

@@ -1,4 +1,4 @@
-# ==============================================================================
+﻿# ==============================================================================
 # Test-VigilesLightIntegrity.ps1
 # Vigiles Light (Fast-Strike) Bütünlük ve Keşif Doğrulama Testi
 # ==============================================================================
@@ -33,7 +33,7 @@ Write-Host "==========================================================" -Foregro
 $configDir = "$HOME\.gemini\config"
 $vigilesLightSkill = Join-Path $configDir "skills\vigiles-light\SKILL.md"
 $liteSkill = Join-Path $configDir "skills\lite\SKILL.md"
-$wsLightTemplate = "c:\Users\Dogukan\Desktop\Antigravity Improvement\core\templates\live_mission_control_light.html"
+$wsLightTemplate = Join-Path (Split-Path -Parent $PSScriptRoot) "core\templates\live_mission_control_light.html"
 $cfgLightTemplate = Join-Path $configDir "templates\live_mission_control_light.html"
 $skillsJson = Join-Path $configDir "skills.json"
 

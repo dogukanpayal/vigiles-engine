@@ -1,65 +1,71 @@
-# Run-MasterVerification.ps1
-# 20 Elemanlı Veteran Otonom Fabrika - Büyük Sistem Doğrulama Testi
+﻿# Vigiles Engine - Master Verification Runner (All Suites)
+# Runs every unit, integration, simulation, and chaos test under .\tests\
 
 $ErrorActionPreference = "Continue"
-$ws = "c:\Users\Dogukan\Desktop\Antigravity Improvement"
+$ws = $PSScriptRoot
+
 $suites = @(
-    "Test-Auth.ps1",
-    "Test-Coupon.ps1",
-    "Test-Wallet.ps1",
-    "Test-TwoFactor.ps1",
-    "Test-GitPushManager.ps1",
-    "Test-Heartbeat.ps1",
-    "Test-MultiSessionTelemetri.ps1",
-    "Test-WorkersSubNodes.ps1",
-    "Test-AuxiliarySection.ps1",
-    "Test-VigilesLightIntegrity.ps1",
-    "Test-VigilesIsolation.ps1",
-    "Test-VigilesConsiliumIntegrity.ps1",
-    "Test-ConsiliumScenarioSimulation.ps1",
-    "Test-SentinelGuardRoleDispatch.ps1",
-    "Scenario-RoleOrderLifecycle.ps1",
-    "Chaos-Coupon.ps1",
-    "Chaos-Wallet.ps1",
-    "Chaos-TwoFactor.ps1",
-    "Chaos-Heartbeat.ps1",
-    "Chaos-MultiSession.ps1",
-    "Chaos-WorkersSubNodes.ps1",
-    "Chaos-AuxiliarySection.ps1"
+    "tests\Test-GitPushManager.ps1",
+    "tests\Test-Heartbeat.ps1",
+    "tests\Test-MultiSessionTelemetri.ps1",
+    "tests\Test-WorkersSubNodes.ps1",
+    "tests\Test-AuxiliarySection.ps1",
+    "tests\Test-VigilesLightIntegrity.ps1",
+    "tests\Test-VigilesIsolation.ps1",
+    "tests\Test-LiveIsolationSimulation.ps1",
+    "tests\Test-VigilesConsiliumIntegrity.ps1",
+    "tests\Test-ConsiliumScenarioSimulation.ps1",
+    "tests\Test-SentinelGuardRoleDispatch.ps1",
+    "tests\Scenario-RoleOrderLifecycle.ps1",
+    "tests\Test-AllChatsDiscovery.ps1",
+    "tests\Test-ProjectPillsAndRecency.ps1",
+    "tests\Test-PillsClickKeepOpen.ps1",
+    "tests\Test-AntigravityDbTitles.ps1",
+    "tests\Chaos-Heartbeat.ps1",
+    "tests\Chaos-MultiSession.ps1",
+    "tests\Chaos-WorkersSubNodes.ps1",
+    "tests\Chaos-AuxiliarySection.ps1"
 )
 
-Write-Host "===========================================================" -ForegroundColor Cyan
-Write-Host "🏆 ASAMA 7: BUYUK UCTAN UCA SISTEM DOGRULAMA TESTI" -ForegroundColor Yellow
-Write-Host "   Calisma Dizini: $ws" -ForegroundColor Gray
-Write-Host "   Tarih / Saat   : $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')" -ForegroundColor Gray
-Write-Host "===========================================================" -ForegroundColor Cyan
+Write-Host "=====================================================" -ForegroundColor Cyan
+Write-Host " VIGILES ENGINE - MASTER TEST SUITE ($($suites.Count) Suites)" -ForegroundColor Cyan
+Write-Host " Workspace: $ws" -ForegroundColor DarkGray
+Write-Host "=====================================================" -ForegroundColor Cyan
 
-$total = 0
-$passed = 0
-$failed = 0
+$totalPassed = 0
+$totalFailed = 0
+$failedSuites = @()
 
 foreach ($s in $suites) {
     $fullPath = Join-Path $ws $s
-    if (Test-Path $fullPath) {
-        $total++
-        Write-Host -NoNewline "Koşuluyor: $s ... "
-        $output = & powershell -ExecutionPolicy Bypass -NoProfile -File $fullPath 2>&1
-        if ($LASTEXITCODE -eq 0) {
-            Write-Host "[BASARILI ✅]" -ForegroundColor Green
-            $passed++
-        } else {
-            Write-Host "[BASARISIZ ❌]" -ForegroundColor Red
-            Write-Host $output -ForegroundColor DarkYellow
-            $failed++
-        }
+    if (-not (Test-Path $fullPath)) {
+        Write-Host "`n[MISSING] $s" -ForegroundColor Red
+        $totalFailed++
+        $failedSuites += "$s (missing)"
+        continue
+    }
+
+    Write-Host "`n>>> Running: $s" -ForegroundColor Yellow
+    $output = & powershell -NoProfile -ExecutionPolicy Bypass -File $fullPath 2>&1
+    $exitCode = $LASTEXITCODE
+    $output | ForEach-Object { Write-Host "  $_" }
+
+    if ($exitCode -eq 0) {
+        Write-Host "[OK] $s" -ForegroundColor Green
+        $totalPassed++
     } else {
-        Write-Host "Bulunamadi: $s [ATLANDI]" -ForegroundColor DarkGray
+        Write-Host "[FAIL] $s (ExitCode: $exitCode)" -ForegroundColor Red
+        $totalFailed++
+        $failedSuites += "$s (ExitCode: $exitCode)"
     }
 }
 
-Write-Host "-----------------------------------------------------------" -ForegroundColor Cyan
-Write-Host "KONSOLİDE RAPOR: $passed / $total Test Paketi Basariyla Gecti." -ForegroundColor $(if ($failed -eq 0) { "Green" } else { "Red" })
-
-if ($failed -gt 0) {
-    exit 1
+Write-Host "`n=====================================================" -ForegroundColor Cyan
+Write-Host " SUMMARY: $totalPassed / $($suites.Count) Passed | Failed: $totalFailed" -ForegroundColor $(if ($totalFailed -eq 0) { "Green" } else { "Red" })
+if ($failedSuites.Count -gt 0) {
+    Write-Host " Failed suites:" -ForegroundColor Red
+    $failedSuites | ForEach-Object { Write-Host "  - $_" -ForegroundColor Red }
 }
+Write-Host "=====================================================" -ForegroundColor Cyan
+
+if ($totalFailed -gt 0) { exit 1 } else { exit 0 }

@@ -4,7 +4,7 @@
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $OutputEncoding = [System.Text.Encoding]::UTF8
 
-$ws = "c:\Users\Dogukan\Desktop\Antigravity Improvement"
+$ws = Split-Path -Parent $PSScriptRoot
 $globalConfig = Join-Path $HOME ".gemini\config\skills"
 $coreSkills = Join-Path $ws "core\skills"
 

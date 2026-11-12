@@ -1,11 +1,11 @@
-param(
+﻿param(
     [switch]$VerboseOutput
 )
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 [Console]::InputEncoding = [System.Text.Encoding]::UTF8
 
-$scriptRoot = $PSScriptRoot
+$scriptRoot = Split-Path -Parent $PSScriptRoot
 $sentinelScript = Join-Path $scriptRoot "core\scripts\heartbeat_sentinel.ps1"
 $managerScript = Join-Path $scriptRoot "core\scripts\manage_heartbeat.ps1"
 $testLog = Join-Path $scriptRoot "test_heartbeat.log"

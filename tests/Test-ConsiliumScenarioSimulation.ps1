@@ -4,7 +4,7 @@
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $OutputEncoding = [System.Text.Encoding]::UTF8
 
-$ws = "c:\Users\Dogukan\Desktop\Antigravity Improvement"
+$ws = Split-Path -Parent $PSScriptRoot
 $failures = 0
 
 function Assert-Condition([bool]$condition, [string]$testName, [string]$detail) {

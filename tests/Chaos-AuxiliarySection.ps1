@@ -1,4 +1,4 @@
-# Chaos-AuxiliarySection.ps1
+﻿# Chaos-AuxiliarySection.ps1
 # Kaos Mühendisi (Chaos Monkey): Yardımcı ve Standby Elemanlar Hızlı Döngü & Stres Testi
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8

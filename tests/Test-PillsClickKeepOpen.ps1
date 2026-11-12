@@ -1,7 +1,7 @@
-# Test-PillsClickKeepOpen.ps1
+﻿# Test-PillsClickKeepOpen.ps1
 # Vigiles Light QA: Proje Haplarina Tiklandiginda Menunun Acik Kalmasi Testi
 
-$htmlPath = "ui\live_mission_control.html"
+$htmlPath = Join-Path (Split-Path -Parent $PSScriptRoot) "core\templates\live_mission_control.html"
 $content = Get-Content -Raw -Encoding UTF8 $htmlPath
 
 $passed = 0

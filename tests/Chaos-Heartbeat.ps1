@@ -1,11 +1,11 @@
-param(
+﻿param(
     [switch]$VerboseOutput
 )
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 [Console]::InputEncoding = [System.Text.Encoding]::UTF8
 
-$scriptRoot = $PSScriptRoot
+$scriptRoot = Split-Path -Parent $PSScriptRoot
 $sentinelScript = Join-Path $scriptRoot "core\scripts\heartbeat_sentinel.ps1"
 
 Write-Host "🐒 [KAOS MÜHENDİSİ]: Stres ve Sınır Değer Kaos Saldırıları Başlatılıyor..." -ForegroundColor Magenta

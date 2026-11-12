@@ -1,4 +1,4 @@
-# Chaos-MultiSession.ps1
+﻿# Chaos-MultiSession.ps1
 # Vigiles Kaos Mühendisi: Çoklu Oturum Eşzamanlılık, Yük ve Çakışma Direnç Testi
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8

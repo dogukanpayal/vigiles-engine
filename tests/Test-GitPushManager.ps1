@@ -1,9 +1,9 @@
-# Test-GitPushManager.ps1
+﻿# Test-GitPushManager.ps1
 # Unit & Integration Tests for git_push_manager.ps1 (Add -> Commit -> Push Pipeline)
 
 $ErrorActionPreference = "Continue"
 
-$scriptPath = Join-Path $PSScriptRoot "core\scripts\git_push_manager.ps1"
+$scriptPath = Join-Path (Split-Path -Parent $PSScriptRoot) "core\scripts\git_push_manager.ps1"
 if (-not (Test-Path $scriptPath)) {
     Write-Host "HATA: git_push_manager.ps1 bulunamadi!" -ForegroundColor Red
     exit 1

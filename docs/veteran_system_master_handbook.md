@@ -114,29 +114,23 @@ Sistem iki güçlü izleme kanalıyla donatılmıştır:
 ├── templates/
 │   ├── DURUM.template.md                      # Canlı Şantiye Defteri Şablonu
 │   ├── KURALLAR.template.md                   # Şirket Anayasası Şablonu
-│   ├── playground_template.html               # İnteraktif Arayüz Şablonu
+│   ├── live_mission_control.html              # Canlı Operasyon Merkezi HUD (Tek Kaynak)
+│   ├── live_mission_control_light.html        # Vigiles Light (/lite) HUD Şablonu
+│   ├── live_playground.html                   # Canlı Deneme Tahtası (Genel Amaçlı Sandbox)
 │   └── mcp_bridges.json                       # MCP Köprüleri
 └── skills/
-    └── veteran/
-        ├── SKILL.md                           # 20 Elemanlı Global Veteran Yeteneği
-        └── personas/                          # 7 Kritik Rol Kartı
-            ├── lead-architect.md
-            ├── decision-matrix.md
-            ├── special-tester.md
-            ├── chaos-monkey.md
-            ├── supreme-judge.md
-            ├── rejection-loop.md
-            └── memory-extractor.md
+    ├── vigiles/                               # 20 Elemanlı Global Vigiles Yeteneği & Rol Kartları
+    ├── consilium/ & think/                    # Vigiles Consilium (/think) Tefekkür Protokolü
+    ├── lite/ & vigiles-light/                 # Vigiles Light (/lite) Cerrahi Müdahale Protokolü
+    ├── live/                                  # Canlı Operasyon Merkezi (/live)
+    └── push/                                  # Güvenli Manuel Git Pipeline (/push)
 
-Workspace (c:\Users\Dogukan\Desktop\Antigravity Improvement\)
+Workspace (Proje Kök Dizini)
 ├── DURUM.md                                   # Canlı Şantiye Defteri (Son durum & karne)
-├── KURALLAR.md                                # Şirket Anayasası (KURAL-001 - KURAL-006)
-├── AuthService.ps1 & Test-Auth.ps1            # Kimlik Doğrulama Servisi (TDD)
-├── CouponService.ps1 & Test-Coupon.ps1        # Kupon Motoru (TDD & Kaos)
-├── WalletService.ps1 & Test-Wallet.ps1        # Dijital Cüzdan (Strict Cap & Thread-Safe)
-├── TwoFactorService.ps1 & Test-TwoFactor.ps1  # 2FA / OTP Servisi (TTL & Brute-Force Lock)
-├── Chaos-Coupon.ps1, Chaos-Wallet.ps1, Chaos-TwoFactor.ps1 # Kaos Saldırı Betikleri
-└── Run-MasterVerification.ps1                 # Konsolide 7/7 Büyük Sistem Doğrulayıcı
+├── KURALLAR.md                                # Şirket Anayasası (KURAL-001 - KURAL-021)
+├── tests/                                     # 20 Paket Sistem, İzolasyon, Senaryo & Kaos Testleri
+├── install.ps1                                # Taşınabilir & Hook-Merge Destekli Kurulum Betiği
+└── Run-MasterVerification.ps1                 # Konsolide 20/20 Sistem Doğrulayıcı
 ```
 
 ---

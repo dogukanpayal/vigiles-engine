@@ -24,7 +24,7 @@ Write-Host "SCENARIO: VIGILES UCTAN UCA GERCEKCI GELISME VE ROL SIRALAMASI" -For
 Write-Host "Gorev: 'Kullanici Bildirim Servisi (Notification Service) Gelistirme'" -ForegroundColor Gray
 Write-Host "==================================================================" -ForegroundColor Cyan
 
-$scriptToTest = "c:\Users\Dogukan\Desktop\Antigravity Improvement\core\scripts\sentinel_guard.ps1"
+$scriptToTest = Join-Path (Split-Path -Parent $PSScriptRoot) "core\scripts\sentinel_guard.ps1"
 if (-not (Test-Path $scriptToTest)) {
     $scriptToTest = Join-Path $HOME ".gemini\config\scripts\sentinel_guard.ps1"
 }

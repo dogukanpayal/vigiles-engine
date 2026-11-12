@@ -1,3 +1,0 @@
-﻿// Antigravity Canli Telemetri Kancasi
-window.__ANTIGRAVITY_STATE__ = {"message":"Versiyonlama ve Branch YÃ¶netimi: git status","activeNode":"node-pr","animClass":"node-active-default","workspaceName":"Antigravity Workspace","step":12,"sender":"[20. GÄ°T VE PR FABRÄ°KASI]","title":"AÅžAMA 12 / 15: Git ve PR FabrikasÄ±","desc":"SÃ¼rÃ¼m YÃ¶netimi: Git deposu gÃ¼ncelleniyor.","badge":{"class":"bg-purple-500/20 text-purple-400 border-purple-500/40 font-bold","id":"badge-pr","text":"Git Ã‡alÄ±ÅŸÄ±yor"},"totalSteps":15,"status":"GIT_ISLEMI","timestamp":"23:05:59"};
-if (typeof window.onAntigravityStateUpdate === 'function') { window.onAntigravityStateUpdate(window.__ANTIGRAVITY_STATE__); }

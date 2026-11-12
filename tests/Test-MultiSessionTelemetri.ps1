@@ -1,4 +1,4 @@
-# Test-MultiSessionTelemetri.ps1
+﻿# Test-MultiSessionTelemetri.ps1
 # Vigiles TDD Test Paketi: Canlı Operasyon Merkezi Çoklu Oturum ve İzolasyon Doğrulaması
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -26,7 +26,7 @@ Write-Host "==========================================================" -Foregro
 # Test 1: URL / Artifact Yolu Üzerinden Oturum ID Algılama Mantığı
 $testUrls = @(
     @{
-        Url = "file:///C:/Users/Dogukan/.gemini/antigravity/brain/05b9c7d2-9fbf-41fc-8695-f21193f4f133/live_mission_control.html"
+        Url = "file:///C:/Users/TestUser/.gemini/antigravity/brain/05b9c7d2-9fbf-41fc-8695-f21193f4f133/live_mission_control.html"
         Expected = "05b9c7d2-9fbf-41fc-8695-f21193f4f133"
     },
     @{

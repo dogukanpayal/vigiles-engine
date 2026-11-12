@@ -1,7 +1,7 @@
 # 🏛️ Vigiles Engine
 ### Kurşungeçirmez 20 Elemanlı Otonom Yazılım Şirketi ve Canlı Telemetri Merkezi
 
-[![Tests](https://img.shields.io/badge/Tests-16%2F16%20Passing-brightgreen?style=flat-square&logo=powershell)](./Run-MasterVerification.ps1)
+[![Tests](https://img.shields.io/badge/Tests-20%2F20%20Passing-brightgreen?style=flat-square&logo=powershell)](./Run-MasterVerification.ps1)
 [![Platform](https://img.shields.io/badge/Antigravity-2.0%20Ready-blue?style=flat-square&logo=google)](https://antigravity.google)
 [![Architecture](https://img.shields.io/badge/Protocol-Vigiles%2020--Element-purple?style=flat-square)](#-sistem-mimarisi)
 [![Telemetry](https://img.shields.io/badge/Mission%20Control-SSE%20Port%209999-orange?style=flat-square)](#-canlı-operasyon-merkezi-mission-control)
@@ -135,7 +135,7 @@ Vigiles Engine sisteminde **Sıfır Otomatik Git Prensibi (Zero Auto-Git)** geç
 Tarayıcınızda açıp arkadaki fabrikayı canlı izleyebileceğiniz Server-Sent Events (SSE) tabanlı kontrol merkezi:
 
 * **Adres:** `http://localhost:9999/`
-* **Yedek Görünüm:** `ui/live_mission_control.html`
+* **Yedek Görünüm:** `core/templates/live_mission_control.html`
 * **Akıcı Olay Kuyruğu (Pacing Queue):** Ajan 2 saniyede 10 araç çalıştırsa bile arayüz her adımı en az 1.2 saniye boyunca odaklayarak sinematik bir akış sunar. Karar Süzgeci pop-up'ı geldiğinde siz yanıt verene kadar kilitlenir.
 
 ---
@@ -143,8 +143,8 @@ Tarayıcınızda açıp arkadaki fabrikayı canlı izleyebileceğiniz Server-Sen
 ## 🎮 Canlı Deneme Tahtası (Live Playground)
 
 * **Adres:** `http://localhost:9999/playground`
-* **Yedek Görünüm:** `ui/live_playground.html`
-* **Özellik:** Tamamlanan servisleri (Cüzdan, Kupon, İki Aşamalı Doğrulama) tarayıcınızda tek tıkla deneyebileceğiniz interaktif sandbox.
+* **Yedek Görünüm:** `core/templates/live_playground.html`
+* **Özellik:** İnteraktif bileşenleri, olay günlüğünü ve koyu/açık tema uyumluluğunu tarayıcınızda tek tıkla deneyebileceğiniz genel amaçlı canlı sandbox.
 
 ---
 
@@ -153,15 +153,15 @@ Tarayıcınızda açıp arkadaki fabrikayı canlı izleyebileceğiniz Server-Sen
 ```text
 .
 ├── core/                                      # Küresel Sistem Bileşenleri
-│   ├── skills/veteran/                        # 20 Elemanlı Global Yetenek & 7 Rol Kartı
-│   ├── templates/                             # DURUM, KURALLAR, Playground, MCP şablonları
-│   ├── scripts/                               # sentinel_guard, telemetry_server, git_pr, gece_nobetci
-│   └── hooks.json                             # Antigravity Engine Lifecycle Hooks
+│   ├── skills/                                # Vigiles, Consilium (/think), Lite (/lite), Live, Push
+│   ├── templates/                             # Tek Kaynak Web Arayüzleri (HUD, Playground) & Şablonlar
+│   ├── scripts/                               # sentinel_guard, telemetry_server, git_push_manager, heartbeat
+│   └── hooks.json                             # Taşınabilir Antigravity Engine Lifecycle Hooks
 │
-├── ui/                                        # Canlı Web Arayüzleri
-│   ├── system_architecture_diagram.html       # 20 Elemanlı Mimari Şeması (Orijinal)
-│   ├── live_mission_control.html              # Canlı Operasyon Merkezi (SSE Port 9999)
-│   └── live_playground.html                   # Canlı Deneme Tahtası (İnteraktif Sandbox)
+├── tests/                                     # Konsolide Sistem, İzolasyon & Kaos Test Paketi (20 Paket)
+│   ├── Test-*.ps1                             # Birim, Entegrasyon & Mod Bütünlüğü Doğrulamaları
+│   ├── Scenario-*.ps1                         # Uçtan Uca Yaşam Döngüsü Senaryoları
+│   └── Chaos-*.ps1                            # Yüksek Yük, Deadlock ve Yarış Durumu Testleri
 │
 ├── docs/                                      # Kapsamlı Rehberler
 │   ├── veteran_system_master_handbook.md      # Büyük Sistem El Kitabı
@@ -169,15 +169,9 @@ Tarayıcınızda açıp arkadaki fabrikayı canlı izleyebileceğiniz Server-Sen
 │   └── live_mission_control_evolution_plan.md # Telemetri Evrim Planı
 │
 ├── DURUM.md                                   # Canlı Şantiye Defteri (Son Görev & Onay Mührü)
-├── KURALLAR.md                                # Şirket Anayasası (KURAL-001 - KURAL-006)
-├── install.ps1                                # Tek Tıkla Kurulum Betiği
-├── Run-MasterVerification.ps1                 # Konsolide 7/7 Büyük Sistem Doğrulayıcı
-│
-├── AuthService.ps1 & Test-Auth.ps1            # Kimlik Doğrulama Servisi (TDD)
-├── CouponService.ps1 & Test-Coupon.ps1        # Kupon Motoru (TDD)
-├── WalletService.ps1 & Test-Wallet.ps1        # Dijital Cüzdan (Strict Cap Korumalı)
-├── TwoFactorService.ps1 & Test-TwoFactor.ps1  # 2FA / OTP Servisi (60s TTL & Rate Limit)
-└── Chaos-Coupon.ps1, Chaos-Wallet.ps1, Chaos-TwoFactor.ps1 # Kaos Saldırı Betikleri
+├── KURALLAR.md                                # Şirket Anayasası (KURAL-001 - KURAL-021)
+├── install.ps1                                # Taşınabilir & Hook-Merge Destekli Kurulum Betiği
+└── Run-MasterVerification.ps1                 # Konsolide 20/20 Sistem Doğrulayıcı
 ```
 
 ---
@@ -225,23 +219,27 @@ Baş Mimar anında `DURUM.md` ve `KURALLAR.md` sözleşmelerini açacak ve 20 el
 
 | Test Paketi | Test Edilen Alan | Sonuç |
 | :--- | :--- | :---: |
-| `Test-Auth.ps1` | PBKDF2 Parola Hashleme & Timing-Attack Savunması | ✅ GEÇTİ |
-| `Test-Coupon.ps1` | Sepet Alt Limiti, Tek Kullanımlık Kupon Doğrulama | ✅ GEÇTİ |
-| `Test-Wallet.ps1` | Bakiye Yükleme, Harcama & 10.000 TL Strict Cap Sınırı | ✅ GEÇTİ |
-| `Test-TwoFactor.ps1` | 6 Haneli OTP, 60s Süre Sınırı & 3 Hatalı Denemede Kilit | ✅ GEÇTİ |
-| `Test-GitPushManager.ps1` | Güvenli Tek Komutla Manuel Git Dağıtım Pipeline'ı (/push) | ✅ GEÇTİ |
-| `Test-Heartbeat.ps1` | 1-Token Otonom Model Kota Dürtücüsü (Heartbeat Sentinel) | ✅ GEÇTİ |
-| `Test-MultiSessionTelemetri.ps1` | Çoklu Chat SSE İzolasyonu ve Oturum Seçici Mekanizması | ✅ GEÇTİ |
-| `Test-WorkersSubNodes.ps1` | Sınırsız Dinamik İşçi Ağacı ve CSS/DOM Render Kontrolü | ✅ GEÇTİ |
-| `Test-VigilesLightIntegrity.ps1` | Vigiles Light (/lite) Cerrahi Müdahale Protokol Bütünlüğü | ✅ GEÇTİ |
-| `Test-VigilesConsiliumIntegrity.ps1` | Vigiles Consilium (/think) Tefekkür & Sıfır Kod Dokunulmazlığı | ✅ GEÇTİ |
-| `Chaos-Coupon.ps1` | Eşzamanlı Çift Harcama Yarış Durumu (Race Condition) | ✅ PÜSKÜRTÜLDÜ |
-| `Chaos-Wallet.ps1` | 10 Paralel Çekim & 1.000.000 TL Bakiye Enjeksiyonu | ✅ PÜSKÜRTÜLDÜ |
-| `Chaos-TwoFactor.ps1` | 100 Seri Kaba Kuvvet (Brute-Force) & Replay Saldırısı | ✅ PÜSKÜRTÜLDÜ |
-| `Chaos-Heartbeat.ps1` | Process Kilitlenmesi, Ağ Kopması ve Deadlock Dayanıklılığı | ✅ PÜSKÜRTÜLDÜ |
-| `Chaos-MultiSession.ps1` | 10 Eşzamanlı Oturum Fırtınası ve Çapraz Karışma (Cross-Talk) | ✅ PÜSKÜRTÜLDÜ |
-| `Chaos-WorkersSubNodes.ps1` | 50-100 İşçili Yüksek Yük Altında Taşma ve Render Dayanıklılığı | ✅ PÜSKÜRTÜLDÜ |
-| **KONSOLİDE RAPOR** | **Tüm Sistem Bileşenleri (16/16 Paket, 0 Kusur)** | **✅ %100 BAŞARILI** |
+| `tests/Test-GitPushManager.ps1` | Güvenli Tek Komutla Manuel Git Dağıtım Pipeline'ı (`/push`) | ✅ GEÇTİ |
+| `tests/Test-Heartbeat.ps1` | 1-Token Otonom Model Kota Dürtücüsü (Heartbeat Sentinel) | ✅ GEÇTİ |
+| `tests/Test-MultiSessionTelemetri.ps1` | Çoklu Chat SSE İzolasyonu ve Oturum Seçici Mekanizması | ✅ GEÇTİ |
+| `tests/Test-WorkersSubNodes.ps1` | Sınırsız Dinamik İşçi Ağacı ve CSS/DOM Render Kontrolü | ✅ GEÇTİ |
+| `tests/Test-AuxiliarySection.ps1` | Yardımcı & Standby Elemanlar İzolasyon Masası Kontrolü | ✅ GEÇTİ |
+| `tests/Test-VigilesLightIntegrity.ps1` | Vigiles Light (`/lite`) Cerrahi Müdahale Protokol Bütünlüğü | ✅ GEÇTİ |
+| `tests/Test-VigilesIsolation.ps1` | Koşullu Vigiles İzolasyonu & Sıfır Müdahale Hook Doğrulaması | ✅ GEÇTİ |
+| `tests/Test-LiveIsolationSimulation.ps1` | Normal Chat vs `/vigiles` Simülasyon & Bayrak İzolasyonu | ✅ GEÇTİ |
+| `tests/Test-VigilesConsiliumIntegrity.ps1` | Vigiles Consilium (`/think`) & Model Danışmanı Bütünlüğü | ✅ GEÇTİ |
+| `tests/Test-ConsiliumScenarioSimulation.ps1` | `/think` Senaryo, Sıfır Kod Mutasyonu & Paket Öneri Simülasyonu | ✅ GEÇTİ |
+| `tests/Test-SentinelGuardRoleDispatch.ps1` | Akıllı Rol Dağıtımı & Read-Only Komut Ayrıştırma | ✅ GEÇTİ |
+| `tests/Scenario-RoleOrderLifecycle.ps1` | Uçtan Uca Faz Geçişleri & Rol Sırası Yaşam Döngüsü | ✅ GEÇTİ |
+| `tests/Test-AllChatsDiscovery.ps1` | Tüm Sohbetlerin Keşfi & SQLite Köprü Doğrulaması | ✅ GEÇTİ |
+| `tests/Test-ProjectPillsAndRecency.ps1` | Proje Sekme Hapları & Zamansal Sıralama Kontrolü | ✅ GEÇTİ |
+| `tests/Test-PillsClickKeepOpen.ps1` | Proje Seçimi & Açık Menü Kalıcılık Etkileşimi | ✅ GEÇTİ |
+| `tests/Test-AntigravityDbTitles.ps1` | `conversation_summaries.db` Saf Başlık Aynalama Doğrulaması | ✅ GEÇTİ |
+| `tests/Chaos-Heartbeat.ps1` | Process Kilitlenmesi, Ağ Kopması ve Deadlock Dayanıklılığı | ✅ PÜSKÜRTÜLDÜ |
+| `tests/Chaos-MultiSession.ps1` | 10 Eşzamanlı Oturum Fırtınası ve Çapraz Karışma (Cross-Talk) | ✅ PÜSKÜRTÜLDÜ |
+| `tests/Chaos-WorkersSubNodes.ps1` | 50-100 İşçili Yüksek Yük Altında Taşma ve Render Dayanıklılığı | ✅ PÜSKÜRTÜLDÜ |
+| `tests/Chaos-AuxiliarySection.ps1` | Yardımcı Elemanlar Fırtına & Anlık Tetikleme Dayanıklılığı | ✅ PÜSKÜRTÜLDÜ |
+| **KONSOLİDE RAPOR** | **Tüm Sistem Bileşenleri (20/20 Paket, 0 Kusur)** | **✅ %100 BAŞARILI** |
 
 ---
 

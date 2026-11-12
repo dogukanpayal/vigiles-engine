@@ -1,4 +1,4 @@
-# Test-AllChatsDiscovery.ps1
+﻿# Test-AllChatsDiscovery.ps1
 # Vigiles QA: Butun Antigravity Sohbetlerinin Kesfi ve Hibrit Gruplama Dogrulama Testi
 
 param(
@@ -94,7 +94,7 @@ try {
 
 # Test 5: Frontend DOM Bilesenleri Denetimi
 try {
-    $htmlContent = Get-Content -Raw -Encoding UTF8 "c:\Users\Dogukan\Desktop\Antigravity Improvement\ui\live_mission_control.html"
+    $htmlContent = Get-Content -Raw -Encoding UTF8 (Join-Path (Split-Path -Parent $PSScriptRoot) "core\templates\live_mission_control.html")
     $hasSearch = $htmlContent.Contains('id="session-search-input"')
     $hasActiveList = $htmlContent.Contains('id="session-cards-list"')
     $hasArchiveList = $htmlContent.Contains('id="archive-cards-list"')

@@ -23,7 +23,7 @@ Write-Host "==========================================================" -Foregro
 Write-Host "VIGILES TDD: AKILLI ROL DAGITIMI & TELEMETRI TESTI" -ForegroundColor Cyan
 Write-Host "==========================================================" -ForegroundColor Cyan
 
-$scriptToTest = "c:\Users\Dogukan\Desktop\Antigravity Improvement\core\scripts\sentinel_guard.ps1"
+$scriptToTest = Join-Path (Split-Path -Parent $PSScriptRoot) "core\scripts\sentinel_guard.ps1"
 if (-not (Test-Path $scriptToTest)) {
     $scriptToTest = Join-Path $HOME ".gemini\config\scripts\sentinel_guard.ps1"
 }

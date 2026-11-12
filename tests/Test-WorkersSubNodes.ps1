@@ -1,4 +1,4 @@
-# Test-WorkersSubNodes.ps1
+﻿# Test-WorkersSubNodes.ps1
 # Vigiles TDD Test Paketi: Canlı Operasyon Merkezi İşçiler Alt Ağacı ve Sınırsız Dinamik Kutu Doğrulaması
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -23,7 +23,7 @@ Write-Host "==========================================================" -Foregro
 Write-Host "🧪 VİGİLES TDD: İŞÇİLER ALT AĞACI & DİNAMİK KUTU TESTİ" -ForegroundColor Cyan
 Write-Host "==========================================================" -ForegroundColor Cyan
 
-$htmlPath = "c:\Users\Dogukan\Desktop\Antigravity Improvement\ui\live_mission_control.html"
+$htmlPath = Join-Path (Split-Path -Parent $PSScriptRoot) "core\templates\live_mission_control.html"
 $htmlContent = if (Test-Path $htmlPath) { [System.IO.File]::ReadAllText($htmlPath, [System.Text.Encoding]::UTF8) } else { "" }
 
 # Test 1: HTML DOM Elemanlarının Varlığı

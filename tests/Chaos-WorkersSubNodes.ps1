@@ -1,4 +1,4 @@
-# Chaos-WorkersSubNodes.ps1
+﻿# Chaos-WorkersSubNodes.ps1
 # Kaos Mühendisi (Chaos Monkey): İşçiler Alt Ağacı ve Sınırsız Dinamik Kutu Stres & Aşırı Yük Testi
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
