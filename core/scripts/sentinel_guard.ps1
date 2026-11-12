@@ -35,7 +35,7 @@ $cid = $payload.conversationId
 $wsName = if ($payload.workspacePaths -and $payload.workspacePaths.Count -gt 0) { Split-Path $payload.workspacePaths[0] -Leaf } else { "Antigravity Workspace" }
 
 if ([string]::IsNullOrWhiteSpace($artifactDir) -and -not [string]::IsNullOrWhiteSpace($cid)) {
-    $artifactDir = "C:\Users\Dogukan\.gemini\antigravity\brain\$cid"
+    $artifactDir = Join-Path $HOME ".gemini\antigravity\brain\$cid"
 }
 
 # Vigiles İzolasyon Kontrolü:
@@ -65,7 +65,7 @@ if ([string]::IsNullOrWhiteSpace($artifactDir)) {
     }
 }
 if ([string]::IsNullOrWhiteSpace($artifactDir)) {
-    $artifactDir = "C:\Users\Dogukan\Desktop\Antigravity Improvement\ui"
+    $artifactDir = Join-Path $env:TEMP "vigiles_fallback"
 }
 
 # --- YARDIMCI: TELEMETRI YAYINI ---

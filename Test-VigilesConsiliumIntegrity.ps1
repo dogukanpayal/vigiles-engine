@@ -1,4 +1,4 @@
-# Test-VigilesConsiliumIntegrity.ps1
+﻿# Test-VigilesConsiliumIntegrity.ps1
 # Vigiles Consilium Protocol (VCP /think) Butunluk ve Anayasal Kural Dogrulama Testi
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -61,6 +61,15 @@ if (Test-Path $coreThink) {
 
     # Vigiles'e Devir Koprusu
     Assert-Condition ($content -match '/vigiles' -and $content -match '/lite') "18. Vigiles ve Lite paslasma koprusu" "/vigiles ve /lite yonlendirmesi eksik"
+
+    # Gemini 4 Model & Efor Danismani (Secenek B)
+    Assert-Condition ($content -match 'Carbon' -and $content -match 'Argon' -and $content -match 'Hydrogen' -and $content -match 'XHigh') "19. Gemini 4 Model & Efor Matrisi" "Carbon/Argon/Hydrogen veya XHigh tanimi eksik"
+    Assert-Condition ($content -match 'Önerilen Vites' -and $content -match 'Önerilen Model' -and $content -match 'Alternatif') "20. Secenek B Teslimat Sablonu" "Önerilen Vites / Model / Alternatif alanlari eksik"
+}
+
+if ((Test-Path $coreThink) -and (Test-Path $coreConsilium)) {
+    $consiliumContent = Get-Content -Raw -Encoding UTF8 $coreConsilium
+    Assert-Condition ($consiliumContent -match 'Model, Efor ve Vites' -and $consiliumContent -match 'Alternatif') "21. consilium/SKILL.md Model Matrisi Senkronizasyonu" "consilium/SKILL.md icerigi guncel degil"
 }
 
 Write-Host "----------------------------------------------------------" -ForegroundColor Cyan

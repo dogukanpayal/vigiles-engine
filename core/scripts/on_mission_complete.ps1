@@ -1,4 +1,4 @@
-param()
+﻿param()
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 [Console]::InputEncoding  = [System.Text.Encoding]::UTF8
@@ -32,7 +32,7 @@ if ([string]::IsNullOrWhiteSpace($artifactDir)) {
 }
 
 if ([string]::IsNullOrWhiteSpace($artifactDir) -and -not [string]::IsNullOrWhiteSpace($conversationId)) {
-    $artifactDir = "C:\Users\Dogukan\.gemini\antigravity\brain\$conversationId"
+    $artifactDir = Join-Path $HOME ".gemini\antigravity\brain\$conversationId"
 }
 
 # Vigiles İzolasyon Kontrolü:

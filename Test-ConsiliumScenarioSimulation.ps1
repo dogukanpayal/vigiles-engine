@@ -1,4 +1,4 @@
-# Test-ConsiliumScenarioSimulation.ps1
+﻿# Test-ConsiliumScenarioSimulation.ps1
 # Vigiles Consilium Protocol (VCP) Canli Senaryo Simülasyonu ve Dogrulama Testi
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -46,8 +46,9 @@ flowchart TD
 ---
 
 🚀 **Zihin Berraklaştı! Şantiye Aşamasını Başlatabilirsiniz:**
-- Kapsamlı ve test güdümlü otonom inşaat için: **/vigiles**
-- Hızlı ve cerrahi tek oturumluk uygulama için: **/lite**
+- **Önerilen Vites:** `/vigiles` *(veya tek modül MVP için `/lite`)*
+- **Önerilen Model:** `Gemini 4 Hydrogen (XHigh)` — *Eşzamanlı rate-limiter state ve test akışı için yüksek isabet ve subagent kota dengesi sağlar.*
+- **Alternatif:** `Gemini 4 Carbon (Medium)` — *Dağıtık Redis Lua Script fazına hemen geçilecekse mimari derinlik için tercih edilebilir.*
 *(Hiçbir kod dosyasına dokunulmamıştır; çalışma dizininiz tertemizdir.)*
 '@
 
@@ -82,6 +83,10 @@ Assert-Condition $hasRoadmap "4. Baş Stratejist (Fazlandırılmış Yol Haritas
 # 5. Vigiles Devir Köprüsü (Spec-Ready Hand-off) Denetimi
 $hasHandOff = $sampleScenarioOutput -match '/vigiles' -and $sampleScenarioOutput -match '/lite'
 Assert-Condition $hasHandOff "5. Vigiles Devir Köprüsü (/vigiles & /lite)" "Vigiles veya Lite çağrısı eksik!"
+
+# 6. Model ve Efor Önerisi (Seçenek B) Denetimi
+$hasModelAdvice = $sampleScenarioOutput -match 'Önerilen Vites' -and $sampleScenarioOutput -match 'Önerilen Model' -and $sampleScenarioOutput -match 'Alternatif'
+Assert-Condition $hasModelAdvice "6. Gemini 4 Model & Alternatif Önerisi (Seçenek B)" "Önerilen Vites, Model veya Alternatif alanı eksik!"
 
 Write-Host "----------------------------------------------------------" -ForegroundColor Cyan
 if ($failures -eq 0) {

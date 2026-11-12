@@ -14,7 +14,8 @@ $OutputEncoding           = [System.Text.Encoding]::UTF8
 $configDir = Join-Path $HOME ".gemini\config"
 $activeMissionFile = Join-Path $configDir "active_mission.json"
 $globalTemplateHtml = Join-Path $configDir "templates\live_mission_control.html"
-$workspaceHtmlFallback = "C:\Users\Dogukan\Desktop\Antigravity Improvement\ui\live_mission_control.html"
+$repoRootFallback = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+$workspaceHtmlFallback = Join-Path $repoRootFallback "core\templates\live_mission_control.html"
 
 # Self-healing UTF-8 / Mojibake onarici
 function Repair-Utf8String([string]$str) {
@@ -925,7 +926,7 @@ while ($listener.IsListening) {
                 $candidates.Add((Join-Path $ArtifactDir "live_playground.html"))
             }
             $candidates.Add((Join-Path $configDir "templates\live_playground.html"))
-            $candidates.Add("C:\Users\Dogukan\Desktop\Antigravity Improvement\ui\live_playground.html")
+            $candidates.Add((Join-Path $repoRootFallback "core\templates\live_playground.html"))
 
             $foundPath = $null
             foreach ($cp in $candidates) {

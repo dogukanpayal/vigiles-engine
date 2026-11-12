@@ -33,7 +33,7 @@ $conversationId = $payload.conversationId
 $artifactDir = $payload.artifactDirectoryPath
 
 if ([string]::IsNullOrWhiteSpace($artifactDir) -and -not [string]::IsNullOrWhiteSpace($conversationId)) {
-    $artifactDir = "C:\Users\Dogukan\.gemini\antigravity\brain\$conversationId"
+    $artifactDir = Join-Path $HOME ".gemini\antigravity\brain\$conversationId"
 }
 
 # Vigiles / Live İzolasyon Filtresi:
@@ -133,7 +133,8 @@ if (-not [string]::IsNullOrWhiteSpace($artifactDir)) {
     # live_mission_control.html kopyala
     $destHtml = Join-Path $artifactDir "live_mission_control.html"
     $templateHtml = Join-Path $templatesDir "live_mission_control.html"
-    $wsFallbackHtml = "C:\Users\Dogukan\Desktop\Antigravity Improvement\ui\live_mission_control.html"
+    $repoRootFallback = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+    $wsFallbackHtml = Join-Path $repoRootFallback "core\templates\live_mission_control.html"
 
     $needCopy = $false
     if (-not (Test-Path $destHtml)) {
@@ -213,7 +214,7 @@ try {
 if (-not $serverRunning) {
     $serverScript = Join-Path $scriptsDir "telemetry_server.ps1"
     if (-not (Test-Path $serverScript)) {
-        $serverScript = "C:\Users\Dogukan\Desktop\Antigravity Improvement\core\scripts\telemetry_server.ps1"
+        $serverScript = Join-Path $PSScriptRoot "telemetry_server.ps1"
     }
 
     if (Test-Path $serverScript) {

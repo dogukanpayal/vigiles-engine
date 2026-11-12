@@ -35,8 +35,8 @@ Unlike Vigiles Classic (which is an aircraft carrier for heavy autonomous softwa
 - Sistem mimarileri, veri akışları ve bileşen ilişkileri **Mermaid diyagramları** (Flowchart, Sequence, State) ile çizilir; sanki ilk kez gören birine anlatılıyormuş gibi analojilerle berraklaştırılır.
 
 ### 5. 📜 VİGİLES DEVİR KÖPRÜSÜ (Spec-Ready Hand-off)
-- Düşünce havada bırakılmaz. Oturum sonunda varılan uzlaşı, Vigiles (`/vigiles`) veya Vigiles Light (`/lite`) motorunun doğrudan yutabileceği **Uygulama Direktifi (Execution Spec)** halinde paketlenir.
-- Kullanıcıya: *"Zihin berraklaştı, plan hazır! Bu planı hayata geçirmek için `/vigiles` veya `/lite` yazabilirsiniz"* çağrısı yapılır.
+- Düşünce havada bırakılmaz. Oturum sonunda eğer bir uygulama / kod adımı gerekiyorsa, varılan uzlaşı Vigiles (`/vigiles`) veya Vigiles Light (`/lite`) motorunun doğrudan yutabileceği **Uygulama Direktifi (Execution Spec)** halinde paketlenir.
+- Kullanıcıya yalnızca vites (`/vigiles` veya `/lite`) değil; aynı zamanda **Gemini 4 Modeli + Efor Seviyesi + 1 Kısa Alternatif (Seçenek B)** önerisi sunulur. Böylece küçük işlerde gereksiz kota yakılmaz, büyük işlerde düşük modelle yarım iş çıkmaz. *(Kod değişikliği gerektirmeyen salt analiz oturumlarında "Uygulama / kod adımı gerekmiyor" notu düşülür.)*
 
 ---
 
@@ -123,10 +123,27 @@ Consilium oturumu tamamlandığında Şirket Sahibine şu şablonla berrak bir k
 ---
 
 🚀 **Zihin Berraklaştı! Şantiye Aşamasını Başlatabilirsiniz:**
-- Kapsamlı ve test güdümlü otonom inşaat için: **/vigiles**
-- Hızlı ve cerrahi tek oturumluk uygulama için: **/lite**
+- **Önerilen Vites:** `/lite` *(cerrahi, 1-2 dosya)* veya `/vigiles` *(kapsamlı, TDD + Kaos + Yargıç)*
+- **Önerilen Model:** `Gemini 4 <Model> (<Efor>)` — *[Bu modelin neden yeterli/gerekli olduğuna dair 1 cümle]*
+- **Alternatif:** `Gemini 4 <Alternatif Model> (<Efor>)` — *[Kota korumak veya kaliteyi artırmak isterseniz: 1 cümle]*
 *(Hiçbir kod dosyasına dokunulmamıştır; çalışma dizininiz tertemizdir.)*
 ```
+
+---
+
+## 🎛️ Model, Efor ve Vites Seçim Matrisi (Seçenek B)
+
+Consilium oturumunda bir uygulama adımı doğduğunda, aşağıdaki Gemini 4 matrisine göre **1 Ana Öneri + 1 Kısa Alternatif** seçilir:
+
+| İş Profili | Önerilen Vites | Ana Model Önerisi | Alternatif (Seçenek B) |
+| :--- | :---: | :--- | :--- |
+| **Küçük / Cerrahi** *(1-2 dosya, net bugfix, UI/CSS, config)* | `/lite` | **Gemini 4 Hydrogen (`Low` / `Medium`)** | Çok basit işlerde **Hydrogen `Low`** *(min. kota)*; ufak iş mantığı varsa **Hydrogen `High`** |
+| **Orta / Netleşmiş Özellik** *(2-5 dosya, standart servis/UI)* | `/lite` veya `/vigiles` | **Gemini 4 Hydrogen (`High`)** | Kota dengesi/yedek için **Argon `Medium`**; kritik edge-case varsa **Hydrogen `XHigh`** |
+| **Büyük / Çok Dosyalı İş** *(5+ dosya, refactor, çoklu subagent)* | `/vigiles` | **Antigravity Orchestrator** *(varsa)* veya **Gemini 4 Hydrogen (`XHigh`)** | Plan hâlâ gri alan içeriyorsa **Carbon `Medium`**; subagent kotasını korumak için **Hydrogen `XHigh`** |
+| **Kritik / En Ağır İş** *(sıfırdan mimari, güvenlik, inatçı kök-neden bug)* | `/vigiles` | **Gemini 4 Carbon (`High`)** | Plan `/think` içinde tamamen oturduysa **Carbon `Medium`** veya **Orchestrator** |
+
+> **Altın Kural 1 (`/think` İndirimi):** Zor mimari ve belirsizlikler zaten `/think` oturumunda çözüldüğü için, planı kristal berraklığında olan işlerde uygulama aşamasına gereksiz yere `Carbon High` önerilmez.
+> **Altın Kural 2 (`/vigiles` Çarpanı):** `/vigiles` modunda alt ajanlar (`invoke_subagent`) varsayılan olarak oturum modelini devraldığı (`inherit`) için ağır modeller yalnızca gerçek karmaşıklıkta önerilir; günlük ve orta işlerde **Hydrogen (`High` / `XHigh`)** hem hız hem zeka/kota dengesinde **Argon**'un önünde ana motor olarak tercih edilir.
 
 ---
 

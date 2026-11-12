@@ -1,32 +1,4 @@
 {
-    "statuslantern": {
-        "PreInvocation": [
-            {
-                "command": "C:\\Users\\Dogukan\\Desktop\\Work\\projects\\statuslantern\\scripts\\statuslantern_hook.bat pre_invocation",
-                "type": "command"
-            }
-        ],
-        "Stop": [
-            {
-                "command": "C:\\Users\\Dogukan\\Desktop\\Work\\projects\\statuslantern\\scripts\\statuslantern_hook.bat stop",
-                "type": "command"
-            }
-        ]
-    },
-    "statuslantern_personal": {
-        "PreInvocation": [
-            {
-                "command": "C:\\Users\\Dogukan\\Desktop\\statuslantern-personal\\scripts\\statuslantern_personal_hook.bat pre_invocation",
-                "type": "command"
-            }
-        ],
-        "Stop": [
-            {
-                "command": "C:\\Users\\Dogukan\\Desktop\\statuslantern-personal\\scripts\\statuslantern_personal_hook.bat stop",
-                "type": "command"
-            }
-        ]
-    },
     "sentinel-guard": {
         "PreToolUse": [
             {
@@ -34,7 +6,7 @@
                 "hooks": [
                     {
                         "type": "command",
-                        "command": "powershell -ExecutionPolicy Bypass -NoProfile -File C:\\Users\\Dogukan\\.gemini\\config\\scripts\\sentinel_guard.ps1",
+                        "command": "powershell -ExecutionPolicy Bypass -NoProfile -File %USERPROFILE%\\.gemini\\config\\scripts\\sentinel_guard.ps1",
                         "timeout": 10
                     }
                 ]
@@ -45,14 +17,14 @@
         "PreInvocation": [
             {
                 "type": "command",
-                "command": "powershell -ExecutionPolicy Bypass -NoProfile -File C:\\Users\\Dogukan\\.gemini\\config\\scripts\\ensure_live_mission_control.ps1",
+                "command": "powershell -ExecutionPolicy Bypass -NoProfile -File %USERPROFILE%\\.gemini\\config\\scripts\\ensure_live_mission_control.ps1",
                 "timeout": 15
             }
         ],
         "Stop": [
             {
                 "type": "command",
-                "command": "powershell -ExecutionPolicy Bypass -NoProfile -File C:\\Users\\Dogukan\\.gemini\\config\\scripts\\on_mission_complete.ps1",
+                "command": "powershell -ExecutionPolicy Bypass -NoProfile -File %USERPROFILE%\\.gemini\\config\\scripts\\on_mission_complete.ps1",
                 "timeout": 10
             }
         ]
