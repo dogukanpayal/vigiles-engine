@@ -15,9 +15,10 @@ Kullanıcı `/live` (veya `/mission-control`, `/hud`) komutunu çalıştırdığ
 ## ⚡ ULTRA HIZLI VE ENTEGRE ÇALIŞMA PROTOKOLÜ (< 1 Saniye)
 
 1. **Önceden Tamamlanan Altyapı:**
-   - `ensure_live_mission_control.ps1` kancası, model ilk kelimesini üretmeden önce:
-     * Port 9999 SSE telemetri sunucusunu denetlemiş ve ayaklandırmıştır,
-     * Mevcut chat oturumunun artifact dizinine `live_mission_control.html` dosyasını yerleştirmiştir,
+   - `ensure_live_mission_control.ps1` kancası, **yalnızca** kullanıcı açıkça `/live`, `/mission-control` veya `/hud` yazdığında (hiçbir zaman `/pro` veya `/lite` üzerinde otomatik değil) model ilk kelimesini üretmeden önce:
+     * Oturuma `.live_active` bayrağını yerleştirir, Port 9999 SSE telemetri sunucusunu denetler ve ayaklandırır,
+     * Aynı sohbette önceden `/pro` veya `/lite` ile sessizce biriktirilmiş `live_state.json` kaydı varsa kaldığı aşamadan Port 9999'a senkronize eder,
+     * Mevcut chat oturumunun artifact dizinine `live_mission_control.html` dosyasını yerleştirir,
      * Harici OS tarayıcısını fırlatmaz; Antigravity dahili webview/artifact paneline hazırlar.
 
 2. **Kesin Yasaklar (5 Dakikalık Gecikmeyi ve UI Kirliliğini Önleme):**

@@ -1,49 +1,56 @@
 ﻿# CANLI ŞANTİYE DEFTERİ (DURUM.md)
 *Bu dosya görevin canlı durumunu, kabul kriterlerini ve test kanıtlarını takip eden yaşayan belgedir.*
 
-**Görev Adı:** VİGİLES ENGINE ALTIN PAKET REPO TEMİZLİĞİ, TEKİLLEŞTİRME VE TAŞINABİLİRLİK REFAKTÖRÜ  
-**Tarih / Saat:** 2026-11-13 01:28:00  
-**Çalışma Vitesi:** 🏛️ Vigiles Engine Protocol (20 Elemanlı Fabrika)  
-**Git & Dağıtım Modu:** TAM MANUEL KONTROL (Sıfır Otomatik Git / Kullanıcı Kontrollü `/push`)  
-**Nihai Karar:** ✅ GÖREV EKSİKSİZ TAMAMLANDI VE MÜHÜRLENDİ (Yargıç Onayı: 20/20 Test & Kaos Paketi Geçti)  
+**Görev Adı:** EVRENSEL SIKIŞAN KOMUT ÖNLEYİCİ & OS SÜREÇ GİYOTİNİ (VIGILES COMMAND WATCHDOG)  
+**Tarih / Saat:** 2026-11-24 22:50:00  
+**Çalışma Vitesi:** 🏛️ Vigiles Engine Protocol (`/pro` - 19 Elemanlı Fabrika)  
+**Git & Dağıtım Modu:** TAM MANUEL & SEÇİCİ KONTROL (Sıfır Otomatik Git / `/pushprep` + `/push`)  
+**Nihai Karar:** 🔄 RED DÖNGÜSÜ ONARIMI TAMAMLANDI (Yeniden Doğrulama & Yargıç Onayı Bekleniyor)  
 
 ---
 
 ## 🎯 1. Görev Özeti ve Vizyon
-*Şirket Sahibinin (Sizin) verdiği vizyon ve temel beklenti:*
-> "/vigiles altın paketi uygula" (GitHub'a pushlanan projeden gereksiz dosyaları, oyuncak servisleri, `ui/` kopyalarını ve kişisel `hooks.json` sızıntılarını uygulamayı hiç bozmadan kaldırmak; testleri `tests/` altında toplayıp tek gerçek kaynak mimarisine geçmek).
+*Şirket Sahibinin (Sizin) `/thinkdeep` ile netleştirdiği ve `/pro` ile onayladığı vizyon:*
+> "Tüm Antigravity sohbetlerinde (düz sohbetlerde sıfır telemetri üreterek sessiz koruma; `/pro` ve `/lite` modlarında tam entegre) sıkışıp sonsuza kadar çalışan terminal komutlarını önlemek için: (1) İnteraktif onay/watch/REPL tuzaklarını `PreToolUse` kancasında AST ile `deny` eden, (2) Eksik `NotificationTimeoutSeconds` parametresini `overwrite` ile otomatik dolduran, (3) Yürütme komutlarını Akıllı Nabız Ölçerli (Log Akışı + Süreç Ağacı CPU Deltası) OS Süreç Ağacı Giyotini (`taskkill /T /F`) ile sarmalayan ve (4) Vigiles iç betiklerini (`Run-MasterVerification.ps1`, `gece_nobetci.ps1`, `on_mission_complete.ps1`) zaman aşımı zırhıyla güçlendiren 4 katmanlı Evrensel Komut Bekçisi sisteminin kurulması."
 
 ---
 
 ## 📐 2. Baş Mimar Kabul Kriterleri
 | # | Kabul Kriteri | Beklenen Çıktı / Davranış | Doğrulama Yöntemi | Durum |
 | :-: | :--- | :--- | :--- | :-: |
-| 1 | Sıfır Riskli Çöplerin Silinmesi | Kök `live_mission_control.html`, `ui/live_mission_control_light.html`, `ui/live_state.*`, `ui/live_events.jsonl`, `start_10_workers_demo.ps1`, `ui/system_architecture_diagram.html` kaldırılır; `.gitignore` güncellenir. | `git status` & `.gitignore` doğrulaması | ✅ Tamamlandı |
-| 2 | Oyuncak Demo Servislerin Kaldırılması | `Auth`, `Coupon`, `Wallet`, `TwoFactor`, `AuditLog` (17 dosya) kaldırılır; `Run-MasterVerification.ps1` ve `README.md` gerçek sistem testleriyle güncellenir. | `Run-MasterVerification.ps1` (20/20) | ✅ Tamamlandı |
-| 3 | `ui/` → `core/templates/` Tekilleştirme | `telemetry_server.ps1`, `ensure_live_mission_control.ps1` ve tüm testlerdeki `ui\` referansları `core\templates\` (ve `$PSScriptRoot`) yapılır; `ui/` klasörü kaldırılır; `playground_template.html` ile `live_playground.html` birleştirilir. | HTTP `localhost:9999/` (200) & `/playground` (200) & HUD testleri | ✅ Tamamlandı |
-| 4 | Testlerin `tests/` Altına Toplanması | Kök dizindeki 16 gerçek sistem/kaos testi `tests/` altına taşınır (toplam 20 paket); `$PSScriptRoot` yolları güncellenir; `Test-AntigravityDbTitles.ps1` canlı SQLite DB'ye göre taşınabilir hale getirilir; `/think` Seçenek B güncellemeleri korunur. | `Run-MasterVerification.ps1` (20 / 20 Geçti) | ✅ Tamamlandı |
-| 5 | Güvenli `hooks.json` & Taşınabilir `install.ps1` | `core/hooks.json` içindeki kişisel `statuslantern` kancaları ve `C:\Users\Dogukan` yolları temizlenir; `install.ps1` lokal kullanıcı kancalarını (`statuslantern`, `statuslantern_personal`) koruyarak merge eder ve `~/.gemini/config` ile senkronize olur. | `install.ps1` & `~/.gemini/config/hooks.json` JSON/BOM doğrulaması | ✅ Tamamlandı |
-| 6 | Anayasa & Dokümantasyon Senkronizasyonu | `KURALLAR.md` mükerrer `[KURAL-017]` düzeltilir (`[KURAL-017]`..`[KURAL-021]`), `core/templates/KURALLAR.template.md` senkronize edilir ve `README.md` temiz 20 testli repo yapısını yansıtır. | Dosya & tutarlılık taraması | ✅ Tamamlandı |
+| 1 | Katman 1: Önleyici Tuzak Kalkanı (`deny`) | `command_watchdog.ps1` AST ayrıştırıcısı ile `vitest` (run olmadan), `jest --watch`, `-m`'siz `git commit`, `Read-Host`, `pause`, argümansız `node`/`python` REPL ve `IsDaemon:false` sunucularını anında `deny` eder; `rg "Read-Host"` gibi aramalarda false-positive üretmez ve `IsDaemon:true` sunuculara izin verir. | `Test-CommandWatchdog.ps1` (Grup 2) | ✅ Geçti |
+| 2 | Katman 2: Yerel Uyandırıcı & Seçici Bypass (`overwrite`) | Eksik `NotificationTimeoutSeconds` alanını komut profiline göre (`15`/`45`/`90`/`120` sn) otomatik enjekte eder. Salt-okunur hızlı komutları, `IsDaemon:true` çağrılarını ve `/think`/`/thinkdeep` oturumlarını (`think_readonly` state) sarmalamaz; düz sohbetlerde sıfır telemetri dosyası üretir (`[KURAL-019]`). | `Test-CommandWatchdog.ps1` (Grup 3) | ✅ Geçti |
+| 3 | Katman 3: Akıllı Nabız Ölçerli OS Giyotini | `invoke_with_timeout.ps1` UTF-8 BOM & non-interactive env (`CI=true`, `GIT_TERMINAL_PROMPT=0`, `NPM_CONFIG_YES=true`) + kapalı stdin ile çalışır. Log veya PID-bazlı süreç ağacı CPU deltası akıyorsa izin verir; hem log hem CPU donuksa (`IdleTimeoutSec`) ya da `HardTimeoutSec` aşılırsa tüm alt süreç ağacını (`taskkill /PID /T /F`) öldürüp `ExitCode 124` döner; `.ps1` payload ile karmaşık tırnakları korur. | `Test-CommandWatchdog.ps1` (Grup 4 — Sahte Donma, Yetim Alt Süreç, Aktif Log/CPU, Sonsuz Döngü) | ✅ Geçti |
+| 4 | Kanca Sıra Bağımsızlığı & İç Betik Zırhı | `sentinel_guard.ps1` boşluklu yollar dahil sarmalanmış `-PayloadFile` komutlarının gerçek niyetini çözer (`Zero-Leak`, `node-tester`/`node-chaos`/`node-pr`). `Run-MasterVerification.ps1` paket başı timeout, `gece_nobetci.ps1` `CI=true` zırhı, `on_mission_complete.ps1` ise güvenli temp temizliği uygular; `core/hooks.json` `%USERPROFILE%` ile taşınabilir kalır. | `Test-CommandWatchdog.ps1` (Grup 1 & 5) & `Test-SentinelGuardRoleDispatch.ps1` & `Test-VigilesIsolation.ps1` | ⏳ Yeniden Doğrulanıyor |
+| 5 | Anayasa (`[KURAL-024]`), Kurulum & Master Test + Yargıç | `KURALLAR.md` & `KURALLAR.template.md`'ye `[KURAL-024]` eklenir; `special-tester.md`, `pro/SKILL.md`, `lite/SKILL.md`, `vigiles-light/SKILL.md`, `README.md` güncellenir; `.\install.ps1` sonrası `~/.gemini/config` hash eşleşmesi ve tüm `Run-MasterVerification.ps1` (20/20) paketleri doğrulanıp Bağımsız Yargıç onayı alınır. | `.\install.ps1` & `.\Run-MasterVerification.ps1` & Bağımsız Yargıç (`invoke_subagent`) | ⏳ Bekliyor |
 
 ---
 
 ## 🚧 3. Şantiye İlerleme Çizelgesi
-- [x] **Aşama 1: Baş Mimar `DURUM.md` & Planlama** (Tamamlandı)
-- [x] **Aşama 2: `core/` Script, Template, `hooks.json` & `install.ps1` Tekilleştirme & Taşınabilirlik** (Tamamlandı)
-- [x] **Aşama 3: Testlerin `tests/` Altına Taşınması & Yol Güncellemeleri (16 + 4 = 20 Test)** (Tamamlandı)
-- [x] **Aşama 4: Gereksiz Çöplerin, Oyuncak Servislerin ve `ui/` Klasörünün Temizlenmesi** (Tamamlandı)
-- [x] **Aşama 5: `.gitignore`, `Run-MasterVerification.ps1`, `KURALLAR.md`, `KURALLAR.template.md` & `README.md` Güncellemesi** (Tamamlandı)
-- [x] **Aşama 6: Kurulum (`install.ps1`), Port 9999 Yenileme, 20/20 Tam Doğrulama & Yargıç Onayı** (Tamamlandı)
+- [x] **Aşama 1: Analiz & Mimari Planlama** (`/thinkdeep` mimari röntgeni çıkarıldı, Baş Mimar kabul kriterleri `DURUM.md`'ye işlendi)
+- [x] **Aşama 2: Karar Süzgeci Kontrolü** (Kullanıcı kapsam, müdahale şiddeti ve Akıllı Nabız Ölçer kararlarını onaylayıp `/pro` ile inşayı başlattı)
+- [x] **Aşama 3: TDD Kırmızı Faz — `tests/Test-CommandWatchdog.ps1` Test Suitinin Yazılması**
+- [x] **Aşama 4: Faz 1 — `command_watchdog.ps1` & `invoke_with_timeout.ps1` (UTF-8 BOM) ve `core/hooks.json` Entegrasyonu**
+- [x] **Aşama 5: Faz 2 — `sentinel_guard.ps1`, `Run-MasterVerification.ps1`, `gece_nobetci.ps1`, `on_mission_complete.ps1` Zırhlanması**
+- [x] **Aşama 6: Faz 3 — Personalar, `KURALLAR.md` (`[KURAL-024]`), `README.md`, Red Döngüsü Onarımları & `.\install.ps1` Senkronizasyonu**
+- [ ] **Aşama 7: Tam Master Doğrulama (20/20) & Bağımsız Yargıç Onayı & Hafıza Uzmanı**
 
 ---
 
-## ❌ 4. Açık Kusurlar ve Düzeltme Kayıtları
-*Açık kusur yok. Uygulama sırasında tespit edilip çözülen bulgu:*
-- `tests\Test-AntigravityDbTitles.ps1` içerisindeki sabitlenmiş eski/silinmiş kişisel sohbet başlıkları ve UUID kontrolleri, yerel `conversation_summaries.db` ile dinamik karşılaştırma yapacak şekilde taşınabilir hale getirildi; PowerShell 5.1 `ConvertFrom-Json` dizi sarmalama hatası düzeltildi ve tüm 6 alt test (`Test 1..6`, 0 hata, ortalama 14.56 ms/istek) geçirildi.
+## ❌ 4. Açık Kusurlar ve Düzeltme Kayıtları (Red Döngüsü)
+| Kusur ID | Tespit Eden | Kusur Açıklaması | Çözüm Durumu |
+| :--- | :--- | :--- | :---: |
+| `DEF-001` | Bağımsız Yargıç | `core/scripts/sentinel_guard.ps1#L213` içinde `-PayloadFile\s+"?([^"\s]+)"?` regex'i boşluk içeren Windows kullanıcı yollarını (`C:\Users\John Doe\...`) keserek Zero-Leak & rol çözümlemesini bypass ediyordu; ayrıca `invoke_with_timeout.ps1` CPU deltası PID bazlı değildi ve `command_watchdog.ps1` re-entrancy regex'i genişti. | ✅ Düzeltildi (Regresyon testleri Grup 5'e eklendi) |
 
 ---
 
-## 🏆 5. Yargıç (Judge) Nihai Mührü ve Kanıt Özeti
-- **Ana Doğrulama Koşumu:** `.\Run-MasterVerification.ps1` → **20 / 20 Geçti, 0 Başarısız** (`Test-VigilesConsiliumIntegrity.ps1` 21/21 ve `Test-ConsiliumScenarioSimulation.ps1` Seçenek B dahil).
-- **Canlı Telemetri Sunucusu:** `http://localhost:9999/` (`200 OK`, `92801` bayt) ve `http://localhost:9999/playground` (`200 OK`, `5181` bayt), `/status` = `running`.
-- **Kodlama ve Git Güvenliği:** Tüm `.ps1` betikleri UTF-8 BOM ile doğrulandı; `~/.gemini/config/hooks.json` UTF-8 (BOM'suz) olarak mevcut 4 kancayla (`statuslantern`, `statuslantern_personal`, `sentinel-guard`, `live-mission-control`) doğrulandı. Hiçbir otomatik `git add / commit / push` komutu çalıştırılmadı.
+## 📸 5. Doğrulama ve Kanıt Dosyaları
+* **Command Watchdog & Kaos Test Çıktısı:** `⏳ Red Döngüsü sonrası yeniden koşuluyor (36 Test — Boşluklu Yol Dahil)`
+* **Master Verification Sonucu:** `⏳ Beklemede (20 Paket)`
+* **Yargıç Mührü:** ⏳ Yeniden Denetim Bekliyor
+
+---
+
+## 🧠 6. Bu Görevden Çıkarılan Ders
+*Görev tamamlandığında Hafıza Uzmanı tarafından doldurulur.*
+> "..."

@@ -1,15 +1,15 @@
-# 🏛️ Vigiles Engine (Kurşungeçirmez 20 Elemanlı Otonom Yazılım Şirketi)
+# 🏛️ Vigiles Engine (Kurşungeçirmez 19 Elemanlı Otonom Yazılım Şirketi)
 ## Nihai Sistem Mimarisi ve Operasyonel El Kitabı (Master Handbook)
 
 > **Sürüm:** 2.0 (Canlı Telemetri & Çekirdek Kanca Entegreli)  
 > **Durum:** ✅ ÜRETİME HAZIR (PRODUCTION-READY)  
-> **Mühendislik Vitesi:** 🚀 20 Elemanlı Otonom Fabrika  
+> **Mühendislik Vitesi:** 🚀 19 Elemanlı Otonom Fabrika  
 
 ---
 
 ## 📌 1. Sistemin Özeti ve Vizyonu
 
-Bu sistem, Google Antigravity'yi sıradan bir "kod tamamlama sohbet botu" olmaktan çıkarıp, **kendi kendine planlayan, yazan, test eden, stres saldırısı yapan, denetleyen, kalıcı hafızasına ders çıkaran ve canlı operasyon merkezinde gerçek zamanlı izlenebilen 20 elemanlı otonom bir yazılım şirketine** dönüştürmüştür.
+Bu sistem, Google Antigravity'yi sıradan bir "kod tamamlama sohbet botu" olmaktan çıkarıp, **kendi kendine planlayan, yazan, test eden, stres saldırısı yapan, denetleyen, kalıcı hafızasına ders çıkaran ve canlı operasyon merkezinde gerçek zamanlı izlenebilen 19 elemanlı otonom bir yazılım şirketine** dönüştürmüştür.
 
 ```mermaid
 flowchart TD
@@ -44,9 +44,8 @@ flowchart TD
         HU["14. HAFIZA UZMANI (KURALLAR.md)"]
         CP["16. CANLI DENEME TAHTASI (Playground)"]
         GN["17. GECE NÖBETÇİSİ (03:00 Devriyesi)"]
-        KD["18. KOTA DÜRTÜCÜSÜ (Heartbeat)"]
-        CD["19. CANLI HATA DEDEKTİFİ (Sentry)"]
-        GP["20. GİT & PR FABRİKASI"]
+        CD["18. CANLI HATA DEDEKTİFİ (Sentry)"]
+        GP["19. GİT & PR FABRİKASI"]
     end
 
     U --> M --> K --> O --> W
@@ -57,7 +56,7 @@ flowchart TD
 
 ---
 
-## 👥 2. 20 Elemanlı Kadro ve Rol Dağılımı
+## 👥 2. 19 Elemanlı Kadro ve Rol Dağılımı
 
 | # | Eleman / Birim | Görevi ve Sorumluluğu | Tetiklenme Sinyali |
 | :-: | :--- | :--- | :--- |
@@ -78,9 +77,8 @@ flowchart TD
 | **15** | **RED DÖNGÜSÜ (Fix Loop)** | Yargıç reddederse açık kusur (defect) açıp işçiyi geri gönderir. | Yargıç Ret Kararı |
 | **16** | **CANLI DENEME TAHTASI** | İş bitince yan panelde çalışan canlı HTML simülatörü sunar. | `live_playground.html` |
 | **17** | **GECE NÖBETÇİSİ** | Gece 03:00'te uykuda refactoring ve güvenlik taraması yapar. | `gece_nobetci.ps1` / cron |
-| **18** | **KOTA DÜRTÜCÜSÜ** | Oturumu uyanık tutmak için minimum token ping'i atar. | Heartbeat servisi |
-| **19** | **CANLI HATA DEDEKTİFİ** | Canlı logları ve Sentry hatalarını TDD testine çevirir. | Sentry MCP / Log İzleyici |
-| **20** | **GİT & PUSH KONTROLÜ** | Sıfır otomatik push prensibi; iş bitince haber verir, `/push` ile GitHub'a aktarır. | `git_push_manager.ps1` |
+| **18** | **CANLI HATA DEDEKTİFİ** | Canlı logları ve Sentry hatalarını TDD testine çevirir. | Sentry MCP / Log İzleyici |
+| **19** | **GİT & PUSH KONTROLÜ** | Sıfır otomatik push prensibi; iş bitince haber verir, `/push` ile GitHub'a aktarır. | `git_push_manager.ps1` |
 
 ---
 
@@ -108,6 +106,7 @@ Sistem iki güçlü izleme kanalıyla donatılmıştır:
 ├── hooks.json                                 # Sentinel Guard & Telemetri Kancası
 ├── scripts/
 │   ├── sentinel_guard.ps1                     # Zero-Leak & Anti-Bloat + Canlı Telemetri
+│   ├── think_readonly_guard.ps1               # /think & /thinkdeep Salt-Okunur Kanca
 │   ├── telemetry_server.ps1                   # Port 9999 SSE Dağıtım Sunucusu
 │   ├── git_pr_manager.ps1                     # Feature Branch & PR Üretici
 │   └── gece_nobetci.ps1                       # 03:00 Gece Nöbetçisi Denetçisi
@@ -119,8 +118,8 @@ Sistem iki güçlü izleme kanalıyla donatılmıştır:
 │   ├── live_playground.html                   # Canlı Deneme Tahtası (Genel Amaçlı Sandbox)
 │   └── mcp_bridges.json                       # MCP Köprüleri
 └── skills/
-    ├── vigiles/                               # 20 Elemanlı Global Vigiles Yeteneği & Rol Kartları
-    ├── consilium/ & think/                    # Vigiles Consilium (/think) Tefekkür Protokolü
+    ├── pro/                                   # 19 Elemanlı Global Vigiles Yeteneği & Rol Kartları
+    ├── think/ & thinkdeep/                    # Hızlı Düşünce (/think) & Consilium (/thinkdeep)
     ├── lite/ & vigiles-light/                 # Vigiles Light (/lite) Cerrahi Müdahale Protokolü
     ├── live/                                  # Canlı Operasyon Merkezi (/live)
     └── push/                                  # Güvenli Manuel Git Pipeline (/push)
@@ -128,9 +127,9 @@ Sistem iki güçlü izleme kanalıyla donatılmıştır:
 Workspace (Proje Kök Dizini)
 ├── DURUM.md                                   # Canlı Şantiye Defteri (Son durum & karne)
 ├── KURALLAR.md                                # Şirket Anayasası (KURAL-001 - KURAL-021)
-├── tests/                                     # 20 Paket Sistem, İzolasyon, Senaryo & Kaos Testleri
+├── tests/                                     # 18 Paket Sistem, İzolasyon, Senaryo & Kaos Testleri
 ├── install.ps1                                # Taşınabilir & Hook-Merge Destekli Kurulum Betiği
-└── Run-MasterVerification.ps1                 # Konsolide 20/20 Sistem Doğrulayıcı
+└── Run-MasterVerification.ps1                 # Konsolide 18/18 Sistem Doğrulayıcı
 ```
 
 ---
@@ -140,13 +139,13 @@ Workspace (Proje Kök Dizini)
 Sistemi gelecekteki herhangi bir projenizde devreye almak için:
 
 1. **Yetenek Çağrısı:**  
-   Sohbete doğrudan `/vigiles` yazın veya *"Vigiles modunu başlat"* deyin.
+   Sohbete doğrudan `/pro` yazın veya *"Vigiles modunu başlat"* deyin.
 2. **Otomatik Kurulum:**  
    Baş Mimar projede `DURUM.md` ve `KURALLAR.md` dosyalarını otomatik olarak açar.
-3. **Canlı İzleme:**  
-   Tarayıcınızda [http://localhost:9999/](http://localhost:9999/) adresini açın.
+3. **Canlı İzleme (İsteğe Bağlı `/live`):**  
+   Takip ekranını açmak istediğinizde sohbette `/live` komutunu çalıştırın; ardından Antigravity yan panelinden veya [http://localhost:9999/](http://localhost:9999/) adresinden izleyin. (`/pro` ve `/lite` otomatik olarak takip ekranını açmaz; adımları sessizce yerel olarak kaydeder.)
 4. **Vizyonu Verin:**  
-   Şirket Sahibi olarak vizyonunuzu söyleyin; 20 elemanlı fabrika planlama, TDD, güvenlik kontrolü, kaos testi, yargıç onayı ve canlı arayüz teslimatını otonom olarak yönetsin!
+   Şirket Sahibi olarak vizyonunuzu söyleyin; 19 elemanlı fabrika planlama, TDD, güvenlik kontrolü, kaos testi, yargıç onayı ve canlı arayüz teslimatını otonom olarak yönetsin!
 
 ---
 

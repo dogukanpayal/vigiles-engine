@@ -1,5 +1,5 @@
 ﻿# install.ps1
-# Kurşungeçirmez 20 Elemanlı Otonom Fabrika Kurulum Betiği
+# Kurşungeçirmez 19 Elemanlı Otonom Fabrika Kurulum Betiği
 # Bu betik, projenin 'core/' dizinindeki yetenekleri, kancaları ve şablonları
 # bilgisayarınızdaki küresel Antigravity dizinine (~/.gemini/config/) kurar.
 
@@ -10,7 +10,7 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $sourceCore = Join-Path $scriptDir "core"
 
 Write-Host "==========================================================" -ForegroundColor Cyan
-Write-Host "🚀 VIGILES ENGINE - 20 ELEMANLI OTONOM FABRIKA KURULUMU" -ForegroundColor Yellow
+Write-Host "🚀 VIGILES ENGINE - 19 ELEMANLI OTONOM FABRIKA KURULUMU" -ForegroundColor Yellow
 Write-Host "   Kaynak : $sourceCore" -ForegroundColor Gray
 Write-Host "   Hedef  : $targetConfig" -ForegroundColor Gray
 Write-Host "==========================================================" -ForegroundColor Cyan
@@ -41,10 +41,43 @@ Copy-Item (Join-Path $sourceCore "scripts\*") (Join-Path $targetConfig "scripts"
 Write-Host "[3/4] Santiye ve Anayasa sablonlari kopyalaniyor..." -ForegroundColor Cyan
 Copy-Item (Join-Path $sourceCore "templates\*") (Join-Path $targetConfig "templates") -Recurse -Force
 
-# Eski tekilleştirilmiş şablon kalıntısını temizle
+# Eski tekilleştirilmiş şablon ve kaldırılan bileşen kalıntılarını temizle
 $legacyPlaygroundTpl = Join-Path $targetConfig "templates\playground_template.html"
 if (Test-Path $legacyPlaygroundTpl) {
     Remove-Item $legacyPlaygroundTpl -Force -ErrorAction SilentlyContinue
+}
+
+# Kaldırılan Kota Dürtücüsü (Heartbeat Sentinel) ve eski skill kalıntılarını temizle
+try {
+    $legacyHbTask = Get-ScheduledTask -TaskName "VigilesKotaDurtucusu" -ErrorAction SilentlyContinue
+    if ($legacyHbTask) {
+        if ($legacyHbTask.State -eq "Running") {
+            Stop-ScheduledTask -TaskName "VigilesKotaDurtucusu" -ErrorAction SilentlyContinue
+        }
+        Unregister-ScheduledTask -TaskName "VigilesKotaDurtucusu" -Confirm:$false -ErrorAction SilentlyContinue
+    }
+} catch {}
+
+$legacyArtifacts = @(
+    (Join-Path $targetConfig "scripts\heartbeat_sentinel.ps1"),
+    (Join-Path $targetConfig "scripts\manage_heartbeat.ps1"),
+    (Join-Path $HOME ".gemini\heartbeat.log"),
+    (Join-Path $HOME ".gemini\antigravity\heartbeat.log")
+)
+foreach ($legacyItem in $legacyArtifacts) {
+    if (Test-Path $legacyItem) {
+        Remove-Item $legacyItem -Force -ErrorAction SilentlyContinue
+    }
+}
+
+$legacySkillDirs = @(
+    (Join-Path $targetConfig "skills\consilium"),
+    (Join-Path $targetConfig "skills\vigiles")
+)
+foreach ($legacySkillDir in $legacySkillDirs) {
+    if (Test-Path $legacySkillDir) {
+        Remove-Item $legacySkillDir -Recurse -Force -ErrorAction SilentlyContinue
+    }
 }
 
 # 5. hooks.json dosyasını güvenli merge ederek güncelle (Mevcut kişisel kancaları korur)
@@ -82,5 +115,5 @@ $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 Write-Host "`n==========================================================" -ForegroundColor Green
 Write-Host "✅ KURULUM BASARIYLA TAMAMLANDI!" -ForegroundColor Green
 Write-Host "   Antigravity sohbetinde artik dilediginiz projede:" -ForegroundColor Yellow
-Write-Host "   '/vigiles' yazarak 20 elemanli fabrikayi baslatabilirsiniz." -ForegroundColor White
+Write-Host "   '/pro' yazarak 19 elemanli fabrikayi baslatabilirsiniz." -ForegroundColor White
 Write-Host "==========================================================" -ForegroundColor Green

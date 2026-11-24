@@ -12,6 +12,12 @@ Figma köprüsü aktif olduğunda:
   1. Figma'dan bir Personal Access Token alın.
   2. `~/.gemini/config/templates/mcp_bridges.json` dosyasındaki `figma-design-bridge` bloğunu `~/.gemini/config/mcp_config.json` içine kopyalayın ve token'ınızı yapıştırın.
 
+### Yerel `DESIGN.md` & `design` Skill Fallback Modu (Figma Tokenı/Linki Yoksa)
+Figma bağlantısı veya Personal Access Token bulunmayan UI/Frontend projelerinde köprü **Yerel Tasarım Sözleşmesi** moduna geçer:
+* Baş Mimar, `design` skill'i ve `core/templates/DESIGN.template.md` şablonu doğrultusunda proje kökünde `DESIGN.md` dosyasının üretilmesini (veya mevcut `DESIGN.md`'nin okunmasını) planlar.
+* Üretilen `DESIGN.md` dosyası renk tokenlarını, tipografi çiftini, `4px/8px` boşluk ritmini, etkileşim durumlarını (`loading`, `empty`, `error`, `:focus-visible`) ve Anti-Slop kurallarını bağlayıcı sözleşme olarak içerir.
+* UI İşçileri stil ve bileşen üretiminde doğrudan `DESIGN.md` tokenlarını uygular; `DESIGN.md` adımları Canlı Operasyon Merkezi'nde `node-figma` üzerinden izlenir ve teslimatta `personas/design-critic.md` tarafından görsel olarak denetlenir.
+
 ---
 
 ## 2. 🩺 Canlı Hata Dedektifi (Sentry Telemetri Can Simidi)

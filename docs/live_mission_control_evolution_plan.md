@@ -77,7 +77,7 @@ sequenceDiagram
 * **Görevi:** Antigravity motorundan gelen `PreToolUse` ve `PostToolUse` JSON girdisini (`stdin`) dinler:
   * Eğer `name == "run_command"` ve komut `Test-*` içeriyorsa ➔ **Özel Testçi (11)**
   * Eğer `name == "run_command"` ve komut `Chaos-*` içeriyorsa ➔ **Kaos Mühendisi (12)**
-  * Eğer `name == "run_command"` ve komut `git` içeriyorsa ➔ **Git Fabrikası (20)**
+  * Eğer `name == "run_command"` ve komut `git` içeriyorsa ➔ **Git Fabrikası (19)**
   * Eğer `name == "write_file"` ve hedef `DURUM.md` ise ➔ **Baş Mimar (2)**
   * Eğer `name == "write_file"` ve hedef `KURALLAR.md` ise ➔ **Hafıza Uzmanı (14)**
   * Eğer `name == "ask_question"` ise ➔ **Karar Süzgeci (4)** (Pop-up bekleme modu)
@@ -101,7 +101,7 @@ sequenceDiagram
 1. **Antigravity İçi Entegre Görünüm (`<agent-embed>`):**  
    Sohbette cevabın hemen yanında veya üstünde çalışan, Antigravity'nin temasıyla %100 uyumlu minyatür operasyon göstergesi.
 2. **Geniş Ekran Kontrol İstasyonu (`http://localhost:9999` veya yan ekran):**  
-   20 elemanın tamamını, gerçek zamanlı telemetri sayacını, aktif bağlantı durumunu ve ses efektlerini içeren tam teşekküllü ekran.
+   19 elemanın tamamını, gerçek zamanlı telemetri sayacını, aktif bağlantı durumunu ve ses efektlerini içeren tam teşekküllü ekran.
 
 ---
 

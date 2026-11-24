@@ -2,7 +2,7 @@
     "sentinel-guard": {
         "PreToolUse": [
             {
-                "matcher": "run_command|write_file|edit_file|ask_question|invoke_subagent|read_file",
+                "matcher": "run_command|write_file|edit_file|write_to_file|replace_file_content|multi_replace_file_content|delete_file|ask_question|invoke_subagent|read_file",
                 "hooks": [
                     {
                         "type": "command",
@@ -26,6 +26,41 @@
                 "type": "command",
                 "command": "powershell -ExecutionPolicy Bypass -NoProfile -File %USERPROFILE%\\.gemini\\config\\scripts\\on_mission_complete.ps1",
                 "timeout": 10
+            }
+        ]
+    },
+    "think-readonly-guard": {
+        "PreInvocation": [
+            {
+                "type": "command",
+                "command": "powershell -ExecutionPolicy Bypass -NoProfile -File %USERPROFILE%\\.gemini\\config\\scripts\\think_readonly_guard.ps1",
+                "timeout": 10
+            }
+        ],
+        "PreToolUse": [
+            {
+                "matcher": "write_file|edit_file|write_to_file|replace_file_content|multi_replace_file_content|delete_file|apply_patch|notebook_edit|run_command|invoke_subagent|define_subagent|run_workflow|swarm",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "powershell -ExecutionPolicy Bypass -NoProfile -File %USERPROFILE%\\.gemini\\config\\scripts\\think_readonly_guard.ps1",
+                        "timeout": 10
+                    }
+                ]
+            }
+        ]
+    },
+    "command-watchdog": {
+        "PreToolUse": [
+            {
+                "matcher": "run_command",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "powershell -ExecutionPolicy Bypass -NoProfile -File %USERPROFILE%\\.gemini\\config\\scripts\\command_watchdog.ps1",
+                        "timeout": 10
+                    }
+                ]
             }
         ]
     }

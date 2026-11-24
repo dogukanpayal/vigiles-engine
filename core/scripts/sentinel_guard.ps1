@@ -29,7 +29,7 @@ if (-not $toolCall) {
 $toolName = $toolCall.name
 $args = $toolCall.args
 
-# Dizin belirleme (Öncelik: payload.artifactDirectoryPath -> payload.conversationId -> active_mission.json)
+# Dizin belirleme (Öncelik: payload.artifactDirectoryPath -> payload.conversationId)
 $artifactDir = $payload.artifactDirectoryPath
 $cid = $payload.conversationId
 $wsName = if ($payload.workspacePaths -and $payload.workspacePaths.Count -gt 0) { Split-Path $payload.workspacePaths[0] -Leaf } else { "Antigravity Workspace" }
@@ -38,14 +38,27 @@ if ([string]::IsNullOrWhiteSpace($artifactDir) -and -not [string]::IsNullOrWhite
     $artifactDir = Join-Path $HOME ".gemini\antigravity\brain\$cid"
 }
 
+$telemetryPort = 9999
+if ($env:VIGILES_TELEMETRY_PORT -match '^\d+$') {
+    $parsedPort = [int]$env:VIGILES_TELEMETRY_PORT
+    if ($parsedPort -ge 1024 -and $parsedPort -le 65535) {
+        $telemetryPort = $parsedPort
+    }
+}
+
 # Vigiles İzolasyon Kontrolü:
-# Bu oturumda /vigiles veya /live komutu çalıştırılmamışsa (artifact dizininde .vigiles_active yoksa)
+# Bu oturumda /pro, /lite veya /live komutu çalıştırılmamışsa (artifact dizininde .vigiles_active yoksa)
 # kanca hiçbir güvenlik kısıtlaması uygulamadan ve telemetri üretmeden anında 'allow' vererek çıkar.
 $isVigilesActive = $false
+$isLiveActive = $false
 if (-not [string]::IsNullOrWhiteSpace($artifactDir) -and (Test-Path $artifactDir)) {
     $markerFile = Join-Path $artifactDir ".vigiles_active"
     if (Test-Path $markerFile) {
         $isVigilesActive = $true
+    }
+    $liveMarkerFile = Join-Path $artifactDir ".live_active"
+    if (Test-Path $liveMarkerFile) {
+        $isLiveActive = $true
     }
 }
 
@@ -54,18 +67,53 @@ if (-not $isVigilesActive) {
     exit 0
 }
 
-if ([string]::IsNullOrWhiteSpace($artifactDir)) {
-    $activeFile = Join-Path $HOME ".gemini\config\active_mission.json"
-    if (Test-Path $activeFile) {
-        try {
-            $act = Get-Content -Raw -Encoding UTF8 $activeFile | ConvertFrom-Json
-            if ($act.artifactDirectoryPath) { $artifactDir = $act.artifactDirectoryPath }
-            if (-not $cid -and $act.conversationId) { $cid = $act.conversationId }
-        } catch {}
+# --- 0. COKLU OTURUM NABIZ & WORKTREE YOL KALKANI (ADR-025) ---
+function Normalize-GuardPath([string]$p) {
+    if ([string]::IsNullOrWhiteSpace($p)) { return "" }
+    try {
+        return [System.IO.Path]::GetFullPath($p.Trim().Replace('/', '\')).TrimEnd('\')
+    } catch {
+        return $p.Trim().Replace('/', '\').TrimEnd('\')
     }
 }
-if ([string]::IsNullOrWhiteSpace($artifactDir)) {
-    $artifactDir = Join-Path $env:TEMP "vigiles_fallback"
+
+function Test-PathUnderDir([string]$candidatePath, [string]$dirPath) {
+    if ([string]::IsNullOrWhiteSpace($candidatePath) -or [string]::IsNullOrWhiteSpace($dirPath)) { return $false }
+    $c = Normalize-GuardPath $candidatePath
+    $d = Normalize-GuardPath $dirPath
+    return ($c.Equals($d, [System.StringComparison]::OrdinalIgnoreCase) -or
+            $c.StartsWith("$d\", [System.StringComparison]::OrdinalIgnoreCase))
+}
+
+$worktreeSessionInfo = $null
+if (-not [string]::IsNullOrWhiteSpace($artifactDir) -and (Test-Path $artifactDir)) {
+    # 0.1 Nabiz damgasini (lastHeartbeatAt) yenile
+    $sessPointerPath = Join-Path $artifactDir ".vigiles_session"
+    if (Test-Path $sessPointerPath) {
+        try {
+            $ptr = [System.IO.File]::ReadAllText($sessPointerPath, [System.Text.Encoding]::UTF8).Trim().Trim([char]65279) | ConvertFrom-Json
+            if ($ptr -and $ptr.sessionFile -and (Test-Path $ptr.sessionFile)) {
+                $sRaw = [System.IO.File]::ReadAllText($ptr.sessionFile, [System.Text.Encoding]::UTF8).Trim().Trim([char]65279)
+                $sObj = $sRaw | ConvertFrom-Json
+                if ($sObj) {
+                    $sObj | Add-Member -NotePropertyName "lastHeartbeatAt" -NotePropertyValue ([datetimeoffset]::Now.ToString("o")) -Force
+                    if ($sObj.status -in @("COMPLETED", "READY_TO_MERGE", "STALE")) {
+                        $sObj | Add-Member -NotePropertyName "status" -NotePropertyValue "ACTIVE" -Force
+                    }
+                    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+                    [System.IO.File]::WriteAllText($ptr.sessionFile, ($sObj | ConvertTo-Json -Depth 6), $utf8NoBom)
+                }
+            }
+        } catch {}
+    }
+
+    # 0.2 Worktree izolasyon bilgisini yukle
+    $wtMarkerPath = Join-Path $artifactDir ".vigiles_worktree"
+    if (Test-Path $wtMarkerPath) {
+        try {
+            $worktreeSessionInfo = [System.IO.File]::ReadAllText($wtMarkerPath, [System.Text.Encoding]::UTF8).Trim().Trim([char]65279) | ConvertFrom-Json
+        } catch {}
+    }
 }
 
 # --- YARDIMCI: TELEMETRI YAYINI ---
@@ -146,36 +194,90 @@ function Send-Telemetry([hashtable]$state) {
             [System.IO.File]::AppendAllText($logPath, "$eventEntry`n", [System.Text.Encoding]::UTF8)
         }
 
-        # 4. Yerel SSE Sunucusuna HTTP POST (Port 9999) - Hızlı ve Non-Blocking
-        try {
-            $req = [System.Net.WebRequest]::Create("http://localhost:9999/notify")
-            $req.Method = "POST"
-            $req.ContentType = "application/json; charset=utf-8"
-            if (-not [string]::IsNullOrWhiteSpace($cid)) {
-                $req.Headers.Add("X-Conversation-Id", $cid)
-            }
-            $req.ServicePoint.Expect100Continue = $false
-            $req.Timeout = 800
-            $bytes = [System.Text.Encoding]::UTF8.GetBytes($stateJson)
-            $req.ContentLength = $bytes.Length
-            $stream = $req.GetRequestStream()
-            $stream.Write($bytes, 0, $bytes.Length)
-            $stream.Dispose()
-            $resp = $req.GetResponse()
-            $resp.Dispose()
-        } catch {}
+        # 4. Yerel SSE Sunucusuna HTTP POST - Yalnizca bu oturumda /live aktifse (.live_active) gonder
+        if ($isLiveActive) {
+            try {
+                $req = [System.Net.WebRequest]::Create("http://localhost:$telemetryPort/notify")
+                $req.Method = "POST"
+                $req.ContentType = "application/json; charset=utf-8"
+                if (-not [string]::IsNullOrWhiteSpace($cid)) {
+                    $req.Headers.Add("X-Conversation-Id", $cid)
+                }
+                $req.ServicePoint.Expect100Continue = $false
+                $req.Timeout = 800
+                $bytes = [System.Text.Encoding]::UTF8.GetBytes($stateJson)
+                $req.ContentLength = $bytes.Length
+                $stream = $req.GetRequestStream()
+                $stream.Write($bytes, 0, $bytes.Length)
+                $stream.Dispose()
+                $resp = $req.GetResponse()
+                $resp.Dispose()
+            } catch {}
+        }
     } catch {}
 }
 
-# --- 1. GÜVENLİK VE SIZINTI KONTROLLERİ (Zero-Leak Muhafızı) ---
-if ($toolName -in @("write_file", "edit_file")) {
+# --- 1. GÜVENLİK, WORKTREE YOL KALKANI VE SIZINTI KONTROLLERİ (Zero-Leak + ADR-025) ---
+$writeLikeTools = @("write_file", "edit_file", "write_to_file", "replace_file_content", "multi_replace_file_content", "delete_file")
+
+if ($worktreeSessionInfo -and $worktreeSessionInfo.mode -eq "WORKTREE" -and
+    -not [string]::IsNullOrWhiteSpace($worktreeSessionInfo.repoRoot) -and
+    -not [string]::IsNullOrWhiteSpace($worktreeSessionInfo.worktreePath)) {
+    if ($toolName -in $writeLikeTools) {
+        $targetArgPath = ""
+        if ($args.Path) { $targetArgPath = [string]$args.Path }
+        elseif ($args.TargetFile) { $targetArgPath = [string]$args.TargetFile }
+        elseif ($args.path) { $targetArgPath = [string]$args.path }
+
+        if (-not [string]::IsNullOrWhiteSpace($targetArgPath)) {
+            $normTarget = Normalize-GuardPath $targetArgPath
+            $normRepo   = Normalize-GuardPath $worktreeSessionInfo.repoRoot
+            $normWt     = Normalize-GuardPath $worktreeSessionInfo.worktreePath
+
+            $inMainRepo = Test-PathUnderDir -candidatePath $normTarget -dirPath $normRepo
+            $inWorktree = Test-PathUnderDir -candidatePath $normTarget -dirPath $normWt
+            $inArtifact = (-not [string]::IsNullOrWhiteSpace($artifactDir)) -and (Test-PathUnderDir -candidatePath $normTarget -dirPath $artifactDir)
+
+            if ($inMainRepo -and -not $inWorktree -and -not $inArtifact) {
+                $relPart = $normTarget.Substring($normRepo.Length).TrimStart('\')
+                $redirectPath = if ([string]::IsNullOrWhiteSpace($relPart)) { $normWt } else { Join-Path $normWt $relPart }
+                $shortWtId = if ($worktreeSessionInfo.shortId) { $worktreeSessionInfo.shortId } else { "izole" }
+
+                $wtTelemetry = @{
+                    step        = 9
+                    totalSteps  = 15
+                    activeNode  = "node-shield"
+                    animClass   = "node-active-red"
+                    status      = "WORKTREE_YOL_ENGELI"
+                    title       = "YOL KALKANI: Ana Klasöre Yazma Engellendi!"
+                    sender      = "[9. GÜVENLİK MUHAFIZI]"
+                    message     = "Paralel worktree oturumu ana klasördeki '$targetArgPath' yoluna yazamaz; '$redirectPath' yoluna yönlendirildi."
+                    timestamp   = (Get-Date).ToString("HH:mm:ss")
+                    badge       = @{ id = "badge-shield"; text = "YOL KORUMASI"; class = "bg-rose-500/20 text-rose-400 border-rose-500/40 font-bold animate-pulse" }
+                }
+                Send-Telemetry $wtTelemetry
+
+                $wtResp = @{
+                    decision = "deny"
+                    reason   = "[VIGILES WORKTREE YOL KALKANI]: Bu oturum paralel izole santiyede (.worktrees/pro-$shortWtId) calisiyor! Ana klasordeki '$targetArgPath' dosyasina yazamazsiniz; bunun yerine su izole worktree yolunu kullanin: '$redirectPath'"
+                }
+                Write-Output ($wtResp | ConvertTo-Json -Compress)
+                exit 0
+            }
+        }
+    }
+}
+
+if ($toolName -in $writeLikeTools) {
     $textToCheck = ""
     if ($args.Content) { $textToCheck += $args.Content }
+    if ($args.CodeContent) { $textToCheck += " " + $args.CodeContent }
     if ($args.Replacement) { $textToCheck += " " + $args.Replacement }
+    if ($args.ReplacementContent) { $textToCheck += " " + $args.ReplacementContent }
 
     $secretPatterns = @(
         'AKIA[0-9A-Z]{16}',
-        'sk-[a-zA-Z0-9]{20,}',
+        '(?<![a-zA-Z0-9_-])sk-(?:proj-|svcacct-|admin-)[a-zA-Z0-9_-]{20,}|(?<![a-zA-Z0-9_-])sk-[a-zA-Z0-9]{20,}',
         '(sk|rk)_(live|test)_[0-9a-zA-Z]{24,}',
         'ghp_[0-9a-zA-Z]{36}',
         '-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----'
@@ -207,13 +309,32 @@ if ($toolName -in @("write_file", "edit_file")) {
     }
 }
 
-if ($toolName -eq "run_command") {
-    $cmd = if ($args.CommandLine) { $args.CommandLine } else { "" }
+function Resolve-EffectiveCommandLine([string]$rawCmd) {
+    if ([string]::IsNullOrWhiteSpace($rawCmd)) { return "" }
+    if ($rawCmd -match 'invoke_with_timeout\.ps1' -and $rawCmd -match '-PayloadFile\s+(?:"([^"]+)"|''([^'']+)''|([^\s]+))') {
+        $pFile = if ($matches[1]) { $matches[1] } elseif ($matches[2]) { $matches[2] } else { $matches[3] }
+        if ($pFile -and (Test-Path -LiteralPath $pFile)) {
+            try {
+                $pJson = [System.IO.File]::ReadAllText($pFile, [System.Text.Encoding]::UTF8).Trim().Trim([char]65279) | ConvertFrom-Json
+                if ($pJson -and $pJson.command) {
+                    return [string]$pJson.command
+                }
+            } catch {}
+        }
+    }
+    return $rawCmd
+}
 
-    if ($cmd -match 'git\s+add\s+.*\.env(\s|$)' -or $cmd -match 'git\s+commit\s+.*\.env') {
+if ($toolName -eq "run_command") {
+    $rawCmd = if ($args.CommandLine) { [string]$args.CommandLine } else { "" }
+    $cmd = Resolve-EffectiveCommandLine $rawCmd
+
+    if ($cmd -match 'git\s+add\s+.*\.env(?!\.(example|template|sample))(\.[a-zA-Z0-9_-]+)?(\s|$|["''])' -or
+        $cmd -match 'git\s+commit\s+.*\.env(?!\.(example|template|sample))(\.[a-zA-Z0-9_-]+)?(\s|$|["''])' -or
+        $cmd -match 'git_push_manager.*-Action\s+Add.*\.env(?!\.(example|template|sample))(\.[a-zA-Z0-9_-]+)?(\s|$|["''])') {
         $response = @{
             decision = "deny"
-            reason = "[ZERO-LEAK GÜVENLİK MUHAFIZI]: .env dosyasını git deposuna ekleyemezsiniz!"
+            reason = "[ZERO-LEAK GÜVENLİK MUHAFIZI]: .env dosyasını git deposuna veya push paketine ekleyemezsiniz!"
         }
         Write-Output ($response | ConvertTo-Json -Compress)
         exit 0
@@ -236,9 +357,22 @@ if ($toolName -eq "run_command") {
         Write-Output ($response | ConvertTo-Json -Compress)
         exit 0
     }
+
+    if ($worktreeSessionInfo -and $worktreeSessionInfo.mode -eq "WORKTREE") {
+        $isReadInspectCmd = ($cmd -match '^\s*(Get-Content|gc|cat|type|Select-String|rg|grep|git\s+(status|diff|log|show)|Test-|Chaos-)')
+        $isInstallExec = (-not $isReadInspectCmd) -and ($cmd -match '(?i)(^|[;&|\s"''\\/])install\.ps1(\s|$|["'';&|])')
+        if ($isInstallExec) {
+            $response = @{
+                decision = "deny"
+                reason = "[VIGILES WORKTREE KALKANI]: Izole paralel santiyede kuresel install.ps1 calistirilamaz! Once degisiklikleri /merge ile ana klasore aktarin, ardindan install.ps1 calistirin."
+            }
+            Write-Output ($response | ConvertTo-Json -Compress)
+            exit 0
+        }
+    }
 }
 
-# --- 2. AKILLI 20-ELEMAN TELEMETRİ EŞLEMESİ ---
+# --- 2. AKILLI 19-ELEMAN TELEMETRİ EŞLEMESİ ---
 $isInternalStateFile = $false
 if ($toolName -in @("write_file", "edit_file") -and $args.Path) {
     if ($args.Path -match 'live_state|live_events|telemetry') {
@@ -251,7 +385,8 @@ if (-not $isInternalStateFile) {
     $telemetry = $null
 
     if ($toolName -eq "run_command") {
-        $cmd = if ($args.CommandLine) { $args.CommandLine } else { "" }
+        $rawCmd = if ($args.CommandLine) { [string]$args.CommandLine } else { "" }
+        $cmd = Resolve-EffectiveCommandLine $rawCmd
         if ($cmd -match 'Test-|pester|pytest|npm test|vitest|jest') {
             $telemetry = @{
                 step        = 5
@@ -280,6 +415,20 @@ if (-not $isInternalStateFile) {
                 timestamp   = $time
                 badge       = @{ id = "badge-chaos"; text = "Stres Saldırısı"; class = "bg-amber-500/20 text-amber-400 border-amber-500/40 font-bold animate-pulse" }
             }
+        } elseif ($cmd -match 'git_push_manager.*-Action\s+(Prep|Remove|Add|Status|Reset)') {
+            $telemetry = @{
+                step        = 12
+                totalSteps  = 15
+                activeNode  = "node-pr"
+                animClass   = "node-active-default"
+                status      = "GIT_HAZIRLIK"
+                title       = "AŞAMA 12 / 15: PushPrep Seçici Paketleme"
+                sender      = "[19. GİT VE PR FABRİKASI]"
+                message     = "Push Önizleme ve Manifesto Yönetimi: $cmd"
+                desc        = "Seçici Dağıtım: Pushlanacak dosyalar listeleniyor ve filtreleniyor."
+                timestamp   = $time
+                badge       = @{ id = "badge-pr"; text = "PushPrep Aktif"; class = "bg-purple-500/20 text-purple-400 border-purple-500/40 font-bold" }
+            }
         } elseif ($cmd -match 'git\s+(commit|push|checkout\s+-b|tag|merge|rebase|stash|cherry-pick)' -or 
                   $cmd -match 'git_push_manager|git_pr_manager|gh\s+pr') {
             $telemetry = @{
@@ -289,7 +438,7 @@ if (-not $isInternalStateFile) {
                 animClass   = "node-active-default"
                 status      = "GIT_ISLEMI"
                 title       = "AŞAMA 12 / 15: Git ve PR Fabrikası"
-                sender      = "[20. GİT VE PR FABRİKASI]"
+                sender      = "[19. GİT VE PR FABRİKASI]"
                 message     = "Versiyonlama ve Dağıtım: $cmd"
                 desc        = "Sürüm Yönetimi: Git deposu güncelleniyor ve dağıtıma hazırlanıyor."
                 timestamp   = $time
@@ -377,6 +526,20 @@ if (-not $isInternalStateFile) {
                 desc        = "Kurumsal Hafıza: Görevden öğrenilen dersler kalıcı anayasaya işleniyor."
                 timestamp   = $time
                 badge       = @{ id = "badge-memory"; text = "Hafıza Kaydediliyor"; class = "bg-purple-500/20 text-purple-400 border-purple-500/40 font-bold animate-pulse" }
+            }
+        } elseif ($path -match '(^|[\\/])DESIGN\.md$') {
+            $telemetry = @{
+                step        = 2
+                totalSteps  = 15
+                activeNode  = "node-figma"
+                animClass   = "node-active-default"
+                status      = "TASARIM_SOZLESMESI"
+                title       = "AŞAMA 2 / 15: Tasarım Sözleşmesi & Anti-Slop Kalkanı"
+                sender      = "[3. FİGMA & TASARIM KÖPRÜSÜ]"
+                message     = "Tasarım Sözleşmesi (DESIGN.md) güncelleniyor: $leaf"
+                desc        = "Anti-Slop Tasarım Sistemi: Tipografi, renk tokenları ve estetik kurallar sözleşmeye işleniyor."
+                timestamp   = $time
+                badge       = @{ id = "badge-figma"; text = "Tasarım Sözleşmesi"; class = "bg-pink-500/20 text-pink-300 border-pink-500/40 font-bold animate-pulse" }
             }
         } elseif ($path -match 'Test-') {
             $telemetry = @{

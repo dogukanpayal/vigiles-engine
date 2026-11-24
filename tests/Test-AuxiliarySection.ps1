@@ -38,32 +38,32 @@ $idxAux   = $htmlContent.IndexOf('id="auxiliary-section"')
 $isAfterJudge = ($idxJudge -gt 0 -and $idxAux -gt $idxJudge)
 Assert-Test "2. Mimari Konumlandırma (13. Yargıç sonrasında ayrı bölüm)" $isAfterJudge "Yardımcı elemanlar ana üretim hattının altında bağımsız bir bölümdedir."
 
-# Test 3: Sürekli Aktif Olmayan 5 Yardımcı Eleman Düğümü ve Rozetleri
+# Test 3: Sürekli Aktif Olmayan 4 Yardımcı Eleman Düğümü ve Rozetleri (Kota Dürtücüsü kaldırıldı)
 $hasMemory    = $htmlContent -match 'id="node-memory"' -and $htmlContent -match 'id="badge-memory"'
 $hasSentinel  = $htmlContent -match 'id="node-sentinel"' -and $htmlContent -match 'id="badge-sentinel"'
-$hasHeartbeat = $htmlContent -match 'id="node-heartbeat"' -and $htmlContent -match 'id="badge-heartbeat"'
 $hasSentry    = $htmlContent -match 'id="node-sentry"' -and $htmlContent -match 'id="badge-sentry"'
 $hasGitPr     = $htmlContent -match 'id="node-pr"' -and $htmlContent -match 'id="badge-pr"'
-$allNodesOk   = ($hasMemory -and $hasSentinel -and $hasHeartbeat -and $hasSentry -and $hasGitPr)
-Assert-Test "3. 5 Yardımcı Düğüm ve Rozetlerinin Varlığı (Hafıza, Gece, Dürtücü, Sentry, Git)" $allNodesOk "5 yardımcı birim tam rozet ve ID yapısıyla mevcut."
+$noHeartbeat  = ($htmlContent -notmatch 'node-heartbeat') -and ($htmlContent -notmatch 'badge-heartbeat') -and ($htmlContent -notmatch 'KOTA DÜRTÜCÜSÜ')
+$hasAux7      = $htmlContent -match '7 Yardımcı Birim Standby'
+$allNodesOk   = ($hasMemory -and $hasSentinel -and $hasSentry -and $hasGitPr -and $noHeartbeat -and $hasAux7)
+Assert-Test "3. 4 Yardımcı Düğüm Varlığı ve Kota Dürtücüsü İmhası (Hafıza, Gece, Sentry, Git)" $allNodesOk "4 yardımcı birim mevcut, node-heartbeat tamamen kaldırılmış, 7 Yardımcı Birim etiketi güncel."
 
 # Test 4: Tetikleyici ve Görev Bilgileri (Trigger Context) Doğrulaması
 $hasMemoryCtx    = $htmlContent -match 'KURALLAR\.md|Post-Mortem|Görev Sonu'
 $hasSentinelCtx  = $htmlContent -match '03:00|Gece Nöbet|Regresyon'
-$hasHeartbeatCtx = $htmlContent -match '5 Saat|1-Token|Kota'
-$hasSentryCtx    = $htmlContent -match 'Sentry|Log|İstisna|Hata'
-$hasGitCtx       = $htmlContent -match '/push|Sıfır Otomatik Git|Dağıtım'
-$allCtxOk        = ($hasMemoryCtx -and $hasSentinelCtx -and $hasHeartbeatCtx -and $hasSentryCtx -and $hasGitCtx)
-Assert-Test "4. Yardımcı Eleman Tetikleyici ve Görev Bilgisi Zenginliği" $allCtxOk "Tüm elemanlar ne zaman uyandıklarını ve tetikleyicilerini net yansıtıyor."
+$hasSentryCtx    = $htmlContent -match 'Sentry|Log|İstisna|Hata' -and $htmlContent -match '18\. CANLI HATA DEDEKTİFİ'
+$hasGitCtx       = $htmlContent -match '/push|Sıfır Otomatik Git|Dağıtım' -and $htmlContent -match '19\. GİT & DAĞITIM FABRİKASI'
+$allCtxOk        = ($hasMemoryCtx -and $hasSentinelCtx -and $hasSentryCtx -and $hasGitCtx)
+Assert-Test "4. Yardımcı Eleman Tetikleyici ve Güncel Numara Bilgisi" $allCtxOk "Tüm elemanlar ne zaman uyandıklarını ve 18/19 numaralandırmasını net yansıtıyor."
 
 # Test 5: JavaScript allNodeIds ve Reset Entegrasyonu
 $hasJsNodes = ($htmlContent -match "'node-memory'" -and 
                $htmlContent -match "'node-sentinel'" -and 
-               $htmlContent -match "'node-heartbeat'" -and 
                $htmlContent -match "'node-sentry'" -and 
-               $htmlContent -match "'node-pr'")
+               $htmlContent -match "'node-pr'" -and
+               $htmlContent -notmatch "'node-heartbeat'")
 $hasResetLogic = $htmlContent -match 'badge-memory' -and $htmlContent -match 'badge-sentinel'
-Assert-Test "5. JavaScript Animasyon ve Standby Reset Entegrasyonu" ($hasJsNodes -and $hasResetLogic) "allNodeIds ve renderState reset mantığı tüm yardımcı düğümleri kapsıyor."
+Assert-Test "5. JavaScript Animasyon ve Standby Reset Entegrasyonu" ($hasJsNodes -and $hasResetLogic) "allNodeIds ve renderState reset mantığı kalan yardımcı düğümleri kapsıyor ve heartbeat izini taşımıyordur."
 
 # Test 6: Telemetri Sunucusu (Port 9999) Yardımcı Düğüm İletişim Doğrulaması
 $port = 9999

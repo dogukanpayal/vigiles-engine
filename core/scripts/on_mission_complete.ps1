@@ -20,29 +20,31 @@ if (-not [string]::IsNullOrWhiteSpace($rawInput)) {
     } catch {}
 }
 
-if ([string]::IsNullOrWhiteSpace($artifactDir)) {
-    $activeFile = Join-Path $HOME ".gemini\config\active_mission.json"
-    if (Test-Path $activeFile) {
-        try {
-            $act = Get-Content -Raw -Encoding UTF8 $activeFile | ConvertFrom-Json
-            if ($act.artifactDirectoryPath) { $artifactDir = $act.artifactDirectoryPath }
-            if ($act.conversationId) { $conversationId = $act.conversationId }
-        } catch {}
-    }
-}
-
 if ([string]::IsNullOrWhiteSpace($artifactDir) -and -not [string]::IsNullOrWhiteSpace($conversationId)) {
     $artifactDir = Join-Path $HOME ".gemini\antigravity\brain\$conversationId"
 }
 
+$telemetryPort = 9999
+if ($env:VIGILES_TELEMETRY_PORT -match '^\d+$') {
+    $parsedPort = [int]$env:VIGILES_TELEMETRY_PORT
+    if ($parsedPort -ge 1024 -and $parsedPort -le 65535) {
+        $telemetryPort = $parsedPort
+    }
+}
+
 # Vigiles İzolasyon Kontrolü:
-# Bu oturumda /vigiles veya /live komutu çalıştırılmamışsa (artifact dizininde .vigiles_active yoksa)
+# Bu oturumda /pro, /lite veya /live komutu çalıştırılmamışsa (artifact dizininde .vigiles_active yoksa)
 # kanca hiçbir işlem yapmadan ve telemetri yayınlamadan anında çıkar.
 $isVigilesActive = $false
+$isLiveActive = $false
 if (-not [string]::IsNullOrWhiteSpace($artifactDir) -and (Test-Path $artifactDir)) {
     $markerFile = Join-Path $artifactDir ".vigiles_active"
     if (Test-Path $markerFile) {
         $isVigilesActive = $true
+    }
+    $liveMarkerFile = Join-Path $artifactDir ".live_active"
+    if (Test-Path $liveMarkerFile) {
+        $isLiveActive = $true
     }
 }
 
@@ -50,6 +52,58 @@ if (-not $isVigilesActive) {
     Write-Output "{}"
     exit 0
 }
+
+# Oturum kilidi ve izole mission kaydi guncellemesi (ADR-025)
+try {
+    $defaultConfigDir = Join-Path $HOME ".gemini\config"
+    $cfgRoot = if (-not [string]::IsNullOrWhiteSpace($env:VIGILES_CONFIG_DIR)) { $env:VIGILES_CONFIG_DIR } else { $defaultConfigDir }
+    $missionsDir = Join-Path $cfgRoot "state\missions"
+    $rawKey = if (-not [string]::IsNullOrWhiteSpace($conversationId)) { $conversationId } else { $artifactDir }
+    if (-not [string]::IsNullOrWhiteSpace($rawKey) -and (Test-Path -LiteralPath $missionsDir)) {
+        $safeKey = ($rawKey -replace '[^a-zA-Z0-9\-_]', '_')
+        if ($safeKey.Length -gt 80) { $safeKey = $safeKey.Substring(0, 80) }
+        $mFile = Join-Path $missionsDir "$safeKey.json"
+        if (Test-Path -LiteralPath $mFile) {
+            $mObj = [System.IO.File]::ReadAllText($mFile, [System.Text.Encoding]::UTF8).Trim().Trim([char]65279) | ConvertFrom-Json
+            if ($mObj) {
+                $mObj | Add-Member -NotePropertyName "status" -NotePropertyValue "COMPLETED" -Force
+                $mObj | Add-Member -NotePropertyName "completedAt" -NotePropertyValue ([datetimeoffset]::Now.ToString("o")) -Force
+                $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+                [System.IO.File]::WriteAllText($mFile, ($mObj | ConvertTo-Json -Depth 5), $utf8NoBom)
+            }
+        }
+    }
+} catch {}
+
+if (-not [string]::IsNullOrWhiteSpace($artifactDir)) {
+    $sessPointer = Join-Path $artifactDir ".vigiles_session"
+    if (Test-Path -LiteralPath $sessPointer) {
+        try {
+            $ptr = [System.IO.File]::ReadAllText($sessPointer, [System.Text.Encoding]::UTF8).Trim().Trim([char]65279) | ConvertFrom-Json
+            $sessMgr = Join-Path $PSScriptRoot "vigiles_session_manager.ps1"
+            if (-not (Test-Path -LiteralPath $sessMgr)) {
+                $sessMgr = Join-Path $HOME ".gemini\config\scripts\vigiles_session_manager.ps1"
+            }
+            if (Test-Path -LiteralPath $sessMgr) {
+                $wsHint = if ($ptr -and $ptr.effectiveWorkDir) { [string]$ptr.effectiveWorkDir } elseif ($ptr -and $ptr.repoRoot) { [string]$ptr.repoRoot } else { "" }
+                if (-not [string]::IsNullOrWhiteSpace($wsHint)) {
+                    $null = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $sessMgr -Action Complete -ConversationId $conversationId -ArtifactDir $artifactDir -WorkspacePath $wsHint -Json 2>$null
+                }
+            }
+        } catch {}
+    }
+}
+
+# Watchdog gecici dosya supurmesi (Yalnizca 1 saatten eski yetim payload/exec artıkları; Port 9999 sunucusuna dokunulmaz)
+try {
+    $wdTempDir = Join-Path ([System.IO.Path]::GetTempPath()) "vigiles_watchdog"
+    if (Test-Path $wdTempDir) {
+        $cutoff = (Get-Date).AddHours(-1)
+        Get-ChildItem -Path $wdTempDir -File -ErrorAction SilentlyContinue |
+            Where-Object { ($_.Name -match '^(cmd_|exec_)') -and ($_.LastWriteTime -lt $cutoff) } |
+            Remove-Item -Force -ErrorAction SilentlyContinue
+    }
+} catch {}
 
 # Görev Tamamlandı Durumu (1. SİZ - Şirket Sahibi / Vibe Coder)
 $time = (Get-Date).ToString("HH:mm:ss")
@@ -64,7 +118,7 @@ $completionState = @{
     title         = "GÖREV TAMAMLANDI - KONTROL SİZDE"
     sender        = "[1. SİZ (Şirket Sahibi / Vibe Coder)]"
     message       = "Tüm işlemler tamamlandı ve çıktı teslim edildi. Sistem kontrolü sizde."
-    desc          = "20 elemanlı otonom fabrika görevini tamamladı. Proje Şirket Sahibine teslim edildi."
+    desc          = "19 elemanlı otonom fabrika görevini tamamladı. Proje Şirket Sahibine teslim edildi."
     timestamp     = $time
     badge         = @{
         id    = "badge-user"
@@ -116,24 +170,26 @@ if (-not [string]::IsNullOrWhiteSpace($artifactDir) -and (Test-Path $artifactDir
     } catch {}
 }
 
-# 4. Port 9999 SSE Sunucusuna Bildir
-try {
-    $req = [System.Net.WebRequest]::Create("http://localhost:9999/notify")
-    $req.Method = "POST"
-    $req.ContentType = "application/json; charset=utf-8"
-    if (-not [string]::IsNullOrWhiteSpace($conversationId)) {
-        $req.Headers.Add("X-Conversation-Id", $conversationId)
-    }
-    $req.ServicePoint.Expect100Continue = $false
-    $req.Timeout = 800
-    $bytes = [System.Text.Encoding]::UTF8.GetBytes($stateJson)
-    $req.ContentLength = $bytes.Length
-    $stream = $req.GetRequestStream()
-    $stream.Write($bytes, 0, $bytes.Length)
-    $stream.Dispose()
-    $resp = $req.GetResponse()
-    $resp.Dispose()
-} catch {}
+# 4. Port 9999 SSE Sunucusuna Bildir (Yalnizca /live aktifse)
+if ($isLiveActive) {
+    try {
+        $req = [System.Net.WebRequest]::Create("http://localhost:$telemetryPort/notify")
+        $req.Method = "POST"
+        $req.ContentType = "application/json; charset=utf-8"
+        if (-not [string]::IsNullOrWhiteSpace($conversationId)) {
+            $req.Headers.Add("X-Conversation-Id", $conversationId)
+        }
+        $req.ServicePoint.Expect100Continue = $false
+        $req.Timeout = 800
+        $bytes = [System.Text.Encoding]::UTF8.GetBytes($stateJson)
+        $req.ContentLength = $bytes.Length
+        $stream = $req.GetRequestStream()
+        $stream.Write($bytes, 0, $bytes.Length)
+        $stream.Dispose()
+        $resp = $req.GetResponse()
+        $resp.Dispose()
+    } catch {}
+}
 
 Write-Output "{}"
 exit 0

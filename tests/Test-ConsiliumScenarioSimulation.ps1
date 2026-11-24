@@ -45,11 +45,9 @@ flowchart TD
 
 ---
 
-🚀 **Zihin Berraklaştı! Şantiye Aşamasını Başlatabilirsiniz:**
-- **Önerilen Vites:** `/vigiles` *(veya tek modül MVP için `/lite`)*
-- **Önerilen Model:** `Gemini 4 Hydrogen (XHigh)` — *Eşzamanlı rate-limiter state ve test akışı için yüksek isabet ve subagent kota dengesi sağlar.*
-- **Alternatif:** `Gemini 4 Carbon (Medium)` — *Dağıtık Redis Lua Script fazına hemen geçilecekse mimari derinlik için tercih edilebilir.*
-*(Hiçbir kod dosyasına dokunulmamıştır; çalışma dizininiz tertemizdir.)*
+🚀 **Öneri:**
+- **Vites:** `/pro`
+- **Model:** `Gemini 4 Hydrogen (XHigh)`
 '@
 
 # 1. Zero Code Mutation Kontrolü
@@ -81,12 +79,12 @@ $hasRoadmap = $sampleScenarioOutput -match 'Faz 1' -and $sampleScenarioOutput -m
 Assert-Condition $hasRoadmap "4. Baş Stratejist (Fazlandırılmış Yol Haritası)" "Faz 1 / Faz 2 yol haritası eksik!"
 
 # 5. Vigiles Devir Köprüsü (Spec-Ready Hand-off) Denetimi
-$hasHandOff = $sampleScenarioOutput -match '/vigiles' -and $sampleScenarioOutput -match '/lite'
-Assert-Condition $hasHandOff "5. Vigiles Devir Köprüsü (/vigiles & /lite)" "Vigiles veya Lite çağrısı eksik!"
+$hasHandOff = $sampleScenarioOutput -match 'Vites:\*\*\s*`(/pro|/lite)`'
+Assert-Condition $hasHandOff "5. Vigiles Devir Köprüsü (Tek Vites /pro veya /lite)" "Tekil Vites (/pro veya /lite) satırı eksik!"
 
-# 6. Model ve Efor Önerisi (Seçenek B) Denetimi
-$hasModelAdvice = $sampleScenarioOutput -match 'Önerilen Vites' -and $sampleScenarioOutput -match 'Önerilen Model' -and $sampleScenarioOutput -match 'Alternatif'
-Assert-Condition $hasModelAdvice "6. Gemini 4 Model & Alternatif Önerisi (Seçenek B)" "Önerilen Vites, Model veya Alternatif alanı eksik!"
+# 6. Minimal Model Önerisi (Alternatif ve Uzun Açıklama Yok) Denetimi
+$hasModelAdvice = ($sampleScenarioOutput -match 'Model:\*\*\s*`Gemini 4 ') -and ($sampleScenarioOutput -notmatch 'Alternatif|Seçenek B|—')
+Assert-Condition $hasModelAdvice "6. Minimal Gemini 4 Model Önerisi (Alternatifsiz & Açıklamasız)" "Model satırı eksik veya yasaklı Alternatif/açıklama metni tespit edildi!"
 
 Write-Host "----------------------------------------------------------" -ForegroundColor Cyan
 if ($failures -eq 0) {

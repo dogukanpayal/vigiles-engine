@@ -6,7 +6,7 @@ Bu protokol, Bağımsız Yargıç bir işi reddettiğinde işleyecek onarım zin
 [Bağımsız Yargıç: ❌ RED]
          │
          ▼
-[DURUM.md: Açık Kusurlar Tablosu Doldurulur]
+[<artifactDirectoryPath>/DURUM.md: Açık Kusurlar Tablosu Doldurulur]
          │
          ▼
 [Subagent Şefi: İlgili İşçiye Kusur Raporunu İletir]

@@ -1,12 +1,14 @@
 ﻿# Test-VigilesConsiliumIntegrity.ps1
-# Vigiles Consilium Protocol (VCP /think) Butunluk ve Anayasal Kural Dogrulama Testi
+# Vigiles Think (/think) & ThinkDeep (/thinkdeep) Butunluk, Salt-Okunur Kanca ve 19-Eleman Senkron Testi
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $OutputEncoding = [System.Text.Encoding]::UTF8
 
 $ws = Split-Path -Parent $PSScriptRoot
 $globalConfig = Join-Path $HOME ".gemini\config\skills"
+$globalScripts = Join-Path $HOME ".gemini\config\scripts"
 $coreSkills = Join-Path $ws "core\skills"
+$coreScripts = Join-Path $ws "core\scripts"
 
 $failures = 0
 
@@ -20,56 +22,71 @@ function Assert-Condition([bool]$condition, [string]$testName, [string]$detail) 
 }
 
 Write-Host "==========================================================" -ForegroundColor Cyan
-Write-Host "VIGILES CONSILIUM (THINK) BUTUNLUK TESTI" -ForegroundColor Yellow
+Write-Host "VIGILES THINK & THINKDEEP (CONSILIUM) BUTUNLUK TESTI" -ForegroundColor Yellow
 Write-Host "==========================================================" -ForegroundColor Cyan
 
 # 1. Dosya Varlik Testleri
 $coreThink = Join-Path $coreSkills "think\SKILL.md"
-$coreConsilium = Join-Path $coreSkills "consilium\SKILL.md"
+$coreThinkDeep = Join-Path $coreSkills "thinkdeep\SKILL.md"
 $globalThink = Join-Path $globalConfig "think\SKILL.md"
-$globalConsilium = Join-Path $globalConfig "consilium\SKILL.md"
+$globalThinkDeep = Join-Path $globalConfig "thinkdeep\SKILL.md"
+$coreGuard = Join-Path $coreScripts "think_readonly_guard.ps1"
+$globalGuard = Join-Path $globalScripts "think_readonly_guard.ps1"
+$coreHooks = Join-Path $ws "core\hooks.json"
+$globalHooks = Join-Path $HOME ".gemini\config\hooks.json"
 
 Assert-Condition (Test-Path $coreThink) "1. Core think/SKILL.md varligi" "Dosya bulunamadi: $coreThink"
-Assert-Condition (Test-Path $coreConsilium) "2. Core consilium/SKILL.md varligi" "Dosya bulunamadi: $coreConsilium"
+Assert-Condition (Test-Path $coreThinkDeep) "2. Core thinkdeep/SKILL.md varligi" "Dosya bulunamadi: $coreThinkDeep"
 Assert-Condition (Test-Path $globalThink) "3. Global think/SKILL.md varligi" "Dosya bulunamadi: $globalThink"
-Assert-Condition (Test-Path $globalConsilium) "4. Global consilium/SKILL.md varligi" "Dosya bulunamadi: $globalConsilium"
+Assert-Condition (Test-Path $globalThinkDeep) "4. Global thinkdeep/SKILL.md varligi" "Dosya bulunamadi: $globalThinkDeep"
+Assert-Condition (Test-Path $coreGuard) "5. Core think_readonly_guard.ps1 varligi" "Dosya bulunamadi: $coreGuard"
+Assert-Condition (Test-Path $globalGuard) "6. Global think_readonly_guard.ps1 varligi" "Dosya bulunamadi: $globalGuard"
 
-# 2. Icerik ve Anayasal Kural Denetimi
+# 2. Hızlı Düşünme (/think) Denetimi
 if (Test-Path $coreThink) {
-    $content = Get-Content -Raw -Encoding UTF8 $coreThink
-
-    # YAML Frontmatter
-    Assert-Condition ($content -match 'name:\s*think') "5. Frontmatter name: think" "Frontmatter'da name: think yok"
-    Assert-Condition ($content -match '/think' -and $content -match '/consilium') "6. Tetikleyici komutlar tanimli" "/think veya /consilium tetikleyicisi eksik"
-
-    # Sifir Kod Dokunulmazligi (Zero Code Mutation)
-    Assert-Condition ($content -match 'Zero Code Mutation' -or $content -match 'KOD DOKUNULMAZL') "7. Anayasa: Sifir Kod Dokunulmazligi Kuralı" "Sıfır Kod Dokunulmazlığı ilkesi eksik"
-    Assert-Condition ($content -match 'ASLA' -and ($content -match 'kod' -or $content -match 'yasakt')) "8. Kod degisikligi yasagi acikca belirtilmis" "Kod degistirme yasagi vurgulanmamis"
-
-    # 5 Cekirdek Dusunce Rolu
-    Assert-Condition ($content -match 'SOKRATES' -or $content -match 'Sokrates') "9. Rol: Sokrates (Dugum Cozucu)" "Sokrates rolu eksik"
-    Assert-Condition ($content -match 'Deep Scout' -or $content -match 'ARASTIRMACI' -or $content -match 'Archaeologist') "10. Rol: Bas Arastirmaci (Deep Scout)" "Arastirmaci rolu eksik"
-    Assert-Condition ($content -match "Adversary" -or $content -match "Devil" -or $content -match "AVUKAT") "11. Rol: Seytanin Avukati (Adversary)" "Seytanin Avukati rolu eksik"
-    Assert-Condition ($content -match 'FEYNMAN' -or $content -match 'Feynman') "12. Rol: Feynman (Gorsellestirici)" "Feynman rolu eksik"
-    Assert-Condition ($content -match 'STRATEJ' -or $content -match 'Roadmap Crafter') "13. Rol: Bas Stratejist & Vigiles Elcisi" "Stratejist rolu eksik"
-
-    # 4 Dusunce Senaryosu
-    Assert-Condition ($content -match 'Kafa' -or $content -match 'Confusion' -or $content -match 'Sokratik') "14. Senaryo 1: Kafa Karisikligi Cozumu" "Kafa karisikligi senaryosu eksik"
-    Assert-Condition ($content -match 'Trade-Off' -or $content -match 'Kiyaslama' -or $content -match 'Derin') "15. Senaryo 2: Derin Arastirma & Kiyaslama" "Derin arastirma senaryosu eksik"
-    Assert-Condition ($content -match 'Rontgen' -or $content -match 'Sensemaking' -or $content -match 'Anlama') "16. Senaryo 3: Sistem Anlama & Rontgen" "Anlama / Rontgen senaryosu eksik"
-    Assert-Condition ($content -match 'Mimari Planlama' -or $content -match 'Roadmap' -or $content -match 'ADR') "17. Senaryo 4: Mimari Planlama & ADR" "Mimari planlama senaryosu eksik"
-
-    # Vigiles'e Devir Koprusu
-    Assert-Condition ($content -match '/vigiles' -and $content -match '/lite') "18. Vigiles ve Lite paslasma koprusu" "/vigiles ve /lite yonlendirmesi eksik"
-
-    # Gemini 4 Model & Efor Danismani (Secenek B)
-    Assert-Condition ($content -match 'Carbon' -and $content -match 'Argon' -and $content -match 'Hydrogen' -and $content -match 'XHigh') "19. Gemini 4 Model & Efor Matrisi" "Carbon/Argon/Hydrogen veya XHigh tanimi eksik"
-    Assert-Condition ($content -match 'Önerilen Vites' -and $content -match 'Önerilen Model' -and $content -match 'Alternatif') "20. Secenek B Teslimat Sablonu" "Önerilen Vites / Model / Alternatif alanlari eksik"
+    $thinkContent = Get-Content -Raw -Encoding UTF8 $coreThink
+    Assert-Condition ($thinkContent -match 'name:\s*think') "7. /think frontmatter name: think" "Frontmatter'da name: think yok"
+    Assert-Condition ($thinkContent -match '/think' -and $thinkContent -match '/thinkdeep') "8. /think -> /thinkdeep yonlendirmesi" "/think veya /thinkdeep tanimi eksik"
+    Assert-Condition ($thinkContent -match 'think-readonly-guard') "9. /think salt-okunur kanca korumasi" "think-readonly-guard referansi eksik"
+    Assert-Condition ($thinkContent -match '/pro' -and $thinkContent -match '/lite') "10. /think -> /pro ve /lite devir koprusu" "/pro veya /lite yonlendirmesi eksik"
 }
 
-if ((Test-Path $coreThink) -and (Test-Path $coreConsilium)) {
-    $consiliumContent = Get-Content -Raw -Encoding UTF8 $coreConsilium
-    Assert-Condition ($consiliumContent -match 'Model, Efor ve Vites' -and $consiliumContent -match 'Alternatif') "21. consilium/SKILL.md Model Matrisi Senkronizasyonu" "consilium/SKILL.md icerigi guncel degil"
+# 3. Vigiles ThinkDeep / Consilium (/thinkdeep) Icerik ve Anayasal Kural Denetimi
+if (Test-Path $coreThinkDeep) {
+    $content = Get-Content -Raw -Encoding UTF8 $coreThinkDeep
+
+    Assert-Condition ($content -match 'name:\s*thinkdeep') "11. /thinkdeep frontmatter name: thinkdeep" "Frontmatter'da name: thinkdeep yok"
+    Assert-Condition ($content -match 'Strict Read-Only' -or $content -match 'SIFIR DOSYA YAZMA') "12. Anayasa: Sifir Dosya Yazma & Kod Dokunulmazligi" "Strict Read-Only ilkesi eksik"
+    Assert-Condition ($content -match 'think-readonly-guard') "13. /thinkdeep think-readonly-guard kancasi" "think-readonly-guard belirtilmemis"
+
+    # 5 Cekirdek Dusunce Rolu
+    Assert-Condition ($content -match 'SOKRATES' -or $content -match 'Sokrates') "14. Rol: Sokrates (Dugum Cozucu)" "Sokrates rolu eksik"
+    Assert-Condition ($content -match 'Deep Scout' -or $content -match 'ARASTIRMACI' -or $content -match 'Archaeologist') "15. Rol: Bas Arastirmaci (Deep Scout)" "Arastirmaci rolu eksik"
+    Assert-Condition ($content -match "Adversary" -or $content -match "Devil" -or $content -match "AVUKAT") "16. Rol: Seytanin Avukati (Adversary)" "Seytanin Avukati rolu eksik"
+    Assert-Condition ($content -match 'FEYNMAN' -or $content -match 'Feynman') "17. Rol: Feynman (Gorsellestirici)" "Feynman rolu eksik"
+    Assert-Condition ($content -match 'STRATEJ' -or $content -match 'Roadmap Crafter') "18. Rol: Bas Stratejist & Vigiles Elcisi" "Stratejist rolu eksik"
+
+    # 4 Dusunce Senaryosu & Devir Koprusu
+    Assert-Condition ($content -match 'Kafa Kar' -and $content -match 'Trade-Off' -and $content -match 'Röntgen|Sensemaking' -and $content -match 'Roadmap|Yol Harit') "19. 4 Temel Dusunce Senaryosu" "Senaryolardan biri eksik"
+    Assert-Condition ($content -match '/pro' -and $content -match '/lite') "20. Vigiles Pro ve Lite paslasma koprusu" "/pro ve /lite yonlendirmesi eksik"
+
+    # Minimal Gemini 4 Model & Vites Matrisi (Alternatif ve uzun aciklama yok) & 19 Elemanlı Kadro
+    Assert-Condition ($content -match 'Carbon' -and $content -match 'Argon' -and $content -match 'Hydrogen' -and $content -match 'XHigh') "21. Gemini 4 Model & Efor Matrisi" "Carbon/Argon/Hydrogen veya XHigh tanimi eksik"
+    Assert-Condition (($content -match '\*\*Vites:\*\*') -and ($content -match '\*\*Model:\*\*') -and ($content -notmatch 'Seçenek B|\*\*Alternatif:\*\*|Alternatif \(Seçenek B\)')) "22. Minimal Teslimat Sablonu (Alternatifsiz)" "Vites/Model satiri eksik veya eski Alternatif/Secenek B kalintisi var"
+    Assert-Condition ($content -match '19 Elemanlı Kadro' -and $content -notmatch '20 Elemanlı Kadro') "23. 19 Elemanlı Kadro guncellemesi" "thinkdeep/SKILL.md hala 20 Elemanli Kadro iceriyor"
+}
+
+# 4. Hooks ve Dosya Senkronizasyonu
+if ((Test-Path $coreHooks) -and (Test-Path $globalHooks)) {
+    $coreHooksRaw = Get-Content -Raw -Encoding UTF8 $coreHooks
+    $globalHooksRaw = Get-Content -Raw -Encoding UTF8 $globalHooks
+    Assert-Condition (($coreHooksRaw -match 'think-readonly-guard') -and ($globalHooksRaw -match 'think-readonly-guard')) "24. hooks.json think-readonly-guard kaydi" "core veya global hooks.json icinde think-readonly-guard eksik"
+}
+
+if ((Test-Path $coreThink) -and (Test-Path $globalThink) -and (Test-Path $coreThinkDeep) -and (Test-Path $globalThinkDeep)) {
+    $hashMatch = ((Get-FileHash $coreThink).Hash -eq (Get-FileHash $globalThink).Hash) -and
+                 ((Get-FileHash $coreThinkDeep).Hash -eq (Get-FileHash $globalThinkDeep).Hash)
+    Assert-Condition $hashMatch "25. Core ve Global think/thinkdeep dosya eslesmesi" "core ve global think/thinkdeep dosyalari farkli (install.ps1 calistirilmali)"
 }
 
 Write-Host "----------------------------------------------------------" -ForegroundColor Cyan

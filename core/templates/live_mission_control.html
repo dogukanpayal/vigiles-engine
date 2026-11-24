@@ -559,13 +559,13 @@
               </span>
             </div>
             <p class="text-[10px] text-[var(--muted-foreground)]">
-              Sistem çalışırken sürekli aktif görev almaz; iş bitimi, kriz, gece nöbeti, kota döngüsü veya /push komutuyla tetiklenirler.
+              Sistem çalışırken sürekli aktif görev almaz; iş bitimi, kriz, gece nöbeti veya /push komutuyla tetiklenirler.
             </p>
           </div>
         </div>
         <span id="badge-aux-summary" class="text-[10px] px-2.5 py-1 rounded-full font-mono font-bold bg-purple-500/15 text-purple-300 border border-purple-500/30 flex items-center gap-1.5">
           <span class="w-2 h-2 rounded-full bg-purple-400 animate-pulse"></span>
-          8 Yardımcı Birim Standby 💤
+          7 Yardımcı Birim Standby 💤
         </span>
       </div>
 
@@ -618,13 +618,13 @@
         </div>
       </div>
 
-      <!-- 2. Grup: 3'lü Nöbetçi ve Periyodik Muhafızlar (Hafıza Uzmanı, Gece Nöbetçisi, Kota Dürtücüsü) -->
+      <!-- 2. Grup: 2'li Nöbetçi ve Periyodik Muhafızlar (Hafıza Uzmanı, Gece Nöbetçisi) -->
       <div class="mb-3">
         <div class="flex items-center gap-1.5 mb-2 px-1">
           <span class="text-xs">🌙</span>
           <span class="text-[10px] font-bold uppercase tracking-wider text-cyan-400 font-mono">2. NÖBETÇİ VE PERİYODİK GÖREVLER (SCHEDULED)</span>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
           <!-- 14. Hafıza Uzmanı -->
           <div id="node-memory" class="node-box bg-[var(--card)] border-2 border-purple-500/30 hover:border-purple-500/60 rounded-xl p-3 shadow-sm transition-all duration-300 flex flex-col justify-between">
             <div>
@@ -664,26 +664,6 @@
               <span>03:00 Cron Servisi</span>
             </div>
           </div>
-
-          <!-- 18. Kota Dürtücüsü -->
-          <div id="node-heartbeat" class="node-box bg-[var(--card)] border-2 border-amber-500/30 hover:border-amber-500/60 rounded-xl p-3 shadow-sm transition-all duration-300 flex flex-col justify-between">
-            <div>
-              <div class="flex items-center justify-between mb-1.5">
-                <div class="flex items-center gap-2">
-                  <span class="text-base">⚡</span>
-                  <h5 class="font-bold text-xs text-amber-400">18. KOTA DÜRTÜCÜSÜ</h5>
-                </div>
-                <span id="badge-heartbeat" class="text-[9px] px-2 py-0.5 rounded font-mono font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30">Standby ⏱️</span>
-              </div>
-              <p class="text-[10px] text-[var(--muted-foreground)] leading-relaxed">
-                Kota sıfırlanma döngüsünde 1-token micro-ping atarak sonraki kullanım penceresini zamanında açar.
-              </p>
-            </div>
-            <div class="mt-2 pt-1.5 border-t border-[var(--border)] flex items-center justify-between text-[9px] font-mono text-[var(--muted-foreground)]">
-              <span class="text-amber-400 font-semibold">Tetikleme:</span>
-              <span>5 Saatte Bir / Heartbeat</span>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -694,33 +674,33 @@
           <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-400 font-mono">3. ÇAĞRI VE DIŞ ENTEGRASYON MASASI (ON-DEMAND)</span>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5">
-          <!-- 3. Figma Tasarım Köprüsü -->
+          <!-- 3. Figma & DESIGN.md Tasarım Köprüsü -->
           <div id="node-figma" class="node-box bg-[var(--card)] border-2 border-pink-500/30 hover:border-pink-500/60 rounded-xl p-3 shadow-sm transition-all duration-300 flex flex-col justify-between">
             <div>
               <div class="flex items-center justify-between mb-1.5">
                 <div class="flex items-center gap-2">
                   <span class="text-base">🎨</span>
-                  <h5 class="font-bold text-xs text-pink-400">3. FİGMA TASARIM KÖPRÜSÜ</h5>
+                  <h5 class="font-bold text-xs text-pink-400">3. FİGMA &amp; TASARIM KÖPRÜSÜ</h5>
                 </div>
                 <span id="badge-figma" class="text-[9px] px-2 py-0.5 rounded font-mono font-semibold bg-pink-500/15 text-pink-300 border border-pink-500/30">Standby 🎨</span>
               </div>
               <p class="text-[10px] text-[var(--muted-foreground)] leading-relaxed">
-                Tasarım tokenlarını (HEX renkler, fontlar, padding ve grid aralıkları) doğrudan aktarır.
+                Figma tokenlarını veya DESIGN.md Anti-Slop tasarım sözleşmesini (font, renk, 4px/8px ritim) aktarır.
               </p>
             </div>
             <div class="mt-2 pt-1.5 border-t border-[var(--border)] flex items-center justify-between text-[9px] font-mono text-[var(--muted-foreground)]">
               <span class="text-pink-400 font-semibold">Tetikleme:</span>
-              <span>UI / Frontend Görevi</span>
+              <span>DESIGN.md / UI Görevi</span>
             </div>
           </div>
 
-          <!-- 19. Canlı Hata Dedektifi -->
+          <!-- 18. Canlı Hata Dedektifi -->
           <div id="node-sentry" class="node-box bg-[var(--card)] border-2 border-rose-500/30 hover:border-rose-500/60 rounded-xl p-3 shadow-sm transition-all duration-300 flex flex-col justify-between">
             <div>
               <div class="flex items-center justify-between mb-1.5">
                 <div class="flex items-center gap-2">
                   <span class="text-base">🩺</span>
-                  <h5 class="font-bold text-xs text-rose-400">19. CANLI HATA DEDEKTİFİ</h5>
+                  <h5 class="font-bold text-xs text-rose-400">18. CANLI HATA DEDEKTİFİ</h5>
                 </div>
                 <span id="badge-sentry" class="text-[9px] px-2 py-0.5 rounded font-mono font-semibold bg-rose-500/15 text-rose-300 border border-rose-500/30">Dinlemede 📡</span>
               </div>
@@ -734,13 +714,13 @@
             </div>
           </div>
 
-          <!-- 20. Git & Dağıtım Fabrikası -->
+          <!-- 19. Git & Dağıtım Fabrikası -->
           <div id="node-pr" class="node-box bg-[var(--card)] border-2 border-indigo-500/30 hover:border-indigo-500/60 rounded-xl p-3 shadow-sm transition-all duration-300 flex flex-col justify-between">
             <div>
               <div class="flex items-center justify-between mb-1.5">
                 <div class="flex items-center gap-2">
                   <span class="text-base">🔀</span>
-                  <h5 class="font-bold text-xs text-indigo-400">20. GİT & DAĞITIM FABRİKASI</h5>
+                  <h5 class="font-bold text-xs text-indigo-400">19. GİT & DAĞITIM FABRİKASI</h5>
                 </div>
                 <span id="badge-pr" class="text-[9px] px-2 py-0.5 rounded font-bold bg-zinc-500/20 text-zinc-400 border border-zinc-500/40">KAPALI</span>
               </div>
@@ -917,7 +897,7 @@
       'node-user', 'node-playground', 'node-architect', 'node-figma', 'node-gatekeeper',
       'node-orch', 'node-state', 'node-chief', 'node-workers', 'node-perf', 'node-shield',
       'node-tester', 'node-chaos', 'node-judge', 'node-sentry', 'node-pr', 'node-memory',
-      'node-sentinel', 'node-heartbeat'
+      'node-sentinel'
     ];
 
     function applyActiveNode(nodeId, animClass = 'node-active-default') {
@@ -1080,8 +1060,6 @@
         if (badgeMem) { badgeMem.innerText = 'Uyuyor 💤'; badgeMem.className = 'text-[9px] px-2 py-0.5 rounded font-mono font-semibold bg-purple-500/15 text-purple-300 border border-purple-500/30'; }
         const badgeSent = document.getElementById('badge-sentinel');
         if (badgeSent) { badgeSent.innerText = '03:00 Bekliyor 🌙'; badgeSent.className = 'text-[9px] px-2 py-0.5 rounded font-mono font-semibold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30'; }
-        const badgeHb = document.getElementById('badge-heartbeat');
-        if (badgeHb) { badgeHb.innerText = 'Standby ⏱️'; badgeHb.className = 'text-[9px] px-2 py-0.5 rounded font-mono font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30'; }
         const badgeSentry = document.getElementById('badge-sentry');
         if (badgeSentry) { badgeSentry.innerText = 'Dinlemede 📡'; badgeSentry.className = 'text-[9px] px-2 py-0.5 rounded font-mono font-semibold bg-rose-500/15 text-rose-300 border border-rose-500/30'; }
         const badgeFigma = document.getElementById('badge-figma');

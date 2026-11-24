@@ -1,9 +1,9 @@
 # CANLI ŞANTİYE DEFTERİ (DURUM.md)
-*Bu dosya görevin canlı durumunu, kabul kriterlerini ve test kanıtlarını takip eden yaşayan belgedir.*
+*Bu dosya görevin canlı durumunu, kabul kriterlerini ve test kanıtlarını takip eden oturuma özel (`<artifactDirectoryPath>/DURUM.md`) yaşayan belgedir.*
 
 **Görev Adı:** [GÖREV_BAŞLIĞI]  
 **Tarih / Saat:** [TARİH_SAAT]  
-**Çalışma Vitesi:** 🚀 Veteran Engineering Protocol (20 Elemanlı Fabrika)  
+**Çalışma Vitesi:** 🚀 Veteran Engineering Protocol (19 Elemanlı Fabrika)  
 **Git & PR Modu:** [AÇIK / KAPALI]  
 
 ---

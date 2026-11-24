@@ -24,7 +24,7 @@ Write-Host "🐒 KAOS MÜHENDİSİ: YARDIMCI ELEMANLAR STRES VE SERİ GEÇİŞ T
 Write-Host "==========================================================" -ForegroundColor Red
 
 $port = 9999
-$nodes = @("node-memory", "node-sentinel", "node-heartbeat", "node-sentry", "node-pr")
+$nodes = @("node-memory", "node-sentinel", "node-sentry", "node-pr")
 
 # 1. Kaos Testi: 25 Seri Döngüsel Tetikleme (Burst Auxiliary Cycling)
 $burstCount = 25
