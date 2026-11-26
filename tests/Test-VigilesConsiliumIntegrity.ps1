@@ -74,6 +74,11 @@ if (Test-Path $coreThinkDeep) {
     Assert-Condition ($content -match 'Carbon' -and $content -match 'Argon' -and $content -match 'Hydrogen' -and $content -match 'XHigh') "21. Gemini 4 Model & Efor Matrisi" "Carbon/Argon/Hydrogen veya XHigh tanimi eksik"
     Assert-Condition (($content -match '\*\*Vites:\*\*') -and ($content -match '\*\*Model:\*\*') -and ($content -notmatch 'Seçenek B|\*\*Alternatif:\*\*|Alternatif \(Seçenek B\)')) "22. Minimal Teslimat Sablonu (Alternatifsiz)" "Vites/Model satiri eksik veya eski Alternatif/Secenek B kalintisi var"
     Assert-Condition ($content -match '19 Elemanlı Kadro' -and $content -notmatch '20 Elemanlı Kadro') "23. 19 Elemanlı Kadro guncellemesi" "thinkdeep/SKILL.md hala 20 Elemanli Kadro iceriyor"
+
+    # Sade Sunum, Sifir Jargon & Kisa Turlar (3 Yeni Okunabilirlik Kurali)
+    Assert-Condition ($content -match 'Önce 3–5 Satır Özet' -and $content -match 'Katmanlı Sunum') "26. Kural: Once 3-5 satir ozet ve satir butcesi" "Katmanli sunum ve ozet kurali eksik"
+    Assert-Condition ($content -match 'Sıfır Jargon' -and $content -match 'Sade Türkçe') "27. Kural: Sifir Jargon ve Sade Turkce" "Sifir jargon veya sade Turkce kurali eksik"
+    Assert-Condition ($content -match 'Kısa Turlarla İlerleme' -and $content -match 'Kaçış Vanası' -and $content -match 'Format A' -and $content -match 'Format B') "28. Kural: Kisa turlar, kacis vanasi ve cift format" "Kisa tur, kacis vanasi veya Format A/B sablonu eksik"
 }
 
 # 4. Hooks ve Dosya Senkronizasyonu

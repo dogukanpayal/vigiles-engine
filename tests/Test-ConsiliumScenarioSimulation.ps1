@@ -21,27 +21,27 @@ Write-Host "🧪 VİGİLES CONSILIUM GERÇEK SENARYO SİMÜLASYON TESTİ" -Foreg
 Write-Host "   Senaryo: 'Rate Limiter Mimarisi Kıyaslaması ve Yol Haritası'" -ForegroundColor Gray
 Write-Host "==========================================================" -ForegroundColor Cyan
 
-# Simülasyon Senaryosu Çıktısı (Mock / Generated Consilium Spec)
+# Simülasyon Senaryosu Çıktısı (Mock / Generated Consilium Spec - Sade Türkçe Şablon)
 $sampleScenarioOutput = @'
-🏛️ **Vigiles Consilium Değerlendirmesi Tamamlandı**
+🏛️ **Vigiles ThinkDeep Değerlendirmesi Tamamlandı**
 
-### 💡 Netleşen Karar / Özet
-Rate Limiting ihtiyacı için 'Sliding Window Counter' algoritması seçildi. Bellek ayak izi düşük tutulurken ani trafik patlamaları (bursts) pürüzsüzce filtrelenir.
+### 💡 Özet (Tek Bakışta)
+İstek sınırlama (Rate Limiting) için kayan pencere sayacı yaklaşımı seçildi. Hem az bellek harcar hem de ani trafik artışlarını sorunsuz dengeler.
 
-### ⚖️ Temel Gerekçe & Riskler (Trade-Offs)
-- **Tercih Edilen Yol:** Sliding Window Counter (Memory: O(1), Accuracy: %99.8)
-- **Önlenen Risk / Şeytanın Avukatı Notu:** Fixed Window algoritmasındaki pencere sınırı sıfırlanma anında (boundary reset) izin verilen kotanın 2 katına çıkabilme riski tamamen ortadan kaldırıldı.
+### ⚖️ Neden Bu Yol ve En Büyük Risk
+- **Seçilen Yol:** Kayan pencere sayacı hem çok hafif çalışır hem de kotayı yüksek doğrulukla korur.
+- **Dikkat Edilecek Risk:** Sabit pencere yönteminde dakika başında kotanın iki katına çıkma açığı yaşanıyordu; bu tasarımda o açık tamamen kapatıldı.
 
 ```mermaid
 flowchart TD
     Req[Gelen İstek] --> Check{Kota Dolu mu?}
-    Check -- Hayır --> Pass[İsteğe İzin Ver]
-    Check -- Evet --> Deny[429 Too Many Requests]
+    Check -- Hayır --> Pass[İzin Ver]
+    Check -- Evet --> Deny[429 Limiti Aşıldı]
 ```
 
-### 🗺️ Yol Haritası (Roadmap)
-- **Faz 1 (MVP):** Bellek içi (In-Memory) Sliding Window Store & Express/PowerShell Middleware.
-- **Faz 2 (İlerleme):** Dağıtık ortamlar için Redis Atomic Lua Script entegrasyonu.
+### 🗺️ Adımlar
+- **Faz 1 (İlk Adım):** Bellek içi sayaç ve istek filtresi ara katmanı.
+- **Faz 2 (Sonraki Adım):** Çoklu sunucu için ortak Redis sayacı bağlantısı.
 
 ---
 
@@ -85,6 +85,15 @@ Assert-Condition $hasHandOff "5. Vigiles Devir Köprüsü (Tek Vites /pro veya /
 # 6. Minimal Model Önerisi (Alternatif ve Uzun Açıklama Yok) Denetimi
 $hasModelAdvice = ($sampleScenarioOutput -match 'Model:\*\*\s*`Gemini 4 ') -and ($sampleScenarioOutput -notmatch 'Alternatif|Seçenek B|—')
 Assert-Condition $hasModelAdvice "6. Minimal Gemini 4 Model Önerisi (Alternatifsiz & Açıklamasız)" "Model satırı eksik veya yasaklı Alternatif/açıklama metni tespit edildi!"
+
+# 7. Sıfır Jargon Kontrolü
+$hasNoJargon = ($sampleScenarioOutput -notmatch '\b(SPOF|ADR|Execution Spec|Sensemaking|Adversarial|boundary reset)\b')
+Assert-Condition $hasNoJargon "7. Sıfır Jargon & Sade Türkçe Çıktı" "Örnek çıktıda yasaklı teknik jargon tespit edildi!"
+
+# 8. Özet Başlığı & Kısa Çıktı Bütçesi Kontrolü
+$lineCount = ($sampleScenarioOutput -split "`n").Count
+$hasSummaryFirst = ($sampleScenarioOutput -match '### 💡 Özet') -and ($lineCount -le 35)
+Assert-Condition $hasSummaryFirst "8. Önce Özet & Kompakt Uzunluk ($lineCount satır)" "Özet başlığı eksik veya satır bütçesi (<=35) aşıldı!"
 
 Write-Host "----------------------------------------------------------" -ForegroundColor Cyan
 if ($failures -eq 0) {

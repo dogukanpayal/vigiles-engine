@@ -37,9 +37,19 @@ Unlike Vigiles Classic (which is an aircraft carrier for heavy autonomous softwa
 - Fikirlere körü körüne *"harika fikir"* diyen evet efendimci tutum yasaktır.
 - *"Bu karar 6 ay sonra nerede patlar?"*, *"Veri 100 katına çıkınca darboğaz nerede oluşur?"*, *"Hangi edge-case sistemi kilitler?"* soruları masaya yatırılır ve alternatif maliyetler (trade-offs) açıkça listelenir.
 
-### 4. 🎨 FEYNMAN İLKESİ & GÖRSEL RÖNTGEN (Sensemaking & Diagrams)
-- Karmaşık terim kalabalığı ve soyut kavram karmaşası yasaktır.
-- Sistem mimarileri, veri akışları ve bileşen ilişkileri **Mermaid diyagramları** (Flowchart, Sequence, State) ile çizilir; sanki ilk kez gören birine anlatılıyormuş gibi analojilerle berraklaştırılır.
+### 4. 🎨 FEYNMAN İLKESİ, SADE TÜRKÇE & KATMANLI SUNUM (Sensemaking & Readability)
+- Karmaşık terim kalabalığı, tekrar eden rol başlıkları ve uzun duvar yazıları yasaktır. Arka planda 5 rol derin analiz yapar; ancak ekrana rol adları başlık olarak basılmaz.
+- **Önce 3–5 Satır Özet ve Satır Bütçesi (Katmanlı Sunum):**
+  - Her `/thinkdeep` yanıtı en tepede **3–5 satırlık sade bir özetle** başlar.
+  - Her alt bölümde en fazla **3–4 madde**, her maddede en fazla **1–2 kısa cümle** bulunur; 4 satırdan uzun blok paragraf yazılmaz.
+  - Tablolar en fazla **4 sütun** ve kısa hücrelerle tutulur.
+  - Sistem mimarileri ve veri akışları **Mermaid diyagramları** (`flowchart`, `sequenceDiagram`, `stateDiagram`) ile yalnızca akışı gerçekten kolaylaştırıyorsa çizilir ve en fazla **6–8 kutu** içerir.
+- **Sıfır Jargon & Sade Türkçe:**
+  - Çıktıda ağır İngilizce/teknik kısaltmalar yerine günlük Türkçe kullanılır: `ADR` → *Mimari Karar*, `SPOF` → *Tek Arıza Noktası*, `Trade-Off` → *Artı / Eksi*, `Execution Spec` → *Uygulama Planı*, `Sensemaking` → *Sistemi Anlama*, `Edge-Case` → *Uç Durum / Risk*, `Adversarial` → *Risk Kontrolü*.
+  - Gerçek dosya, komut veya fonksiyon adları olduğu gibi yazılır; geçmek zorunda olan teknik terimin yanına parantez içinde **3–5 kelimelik basit açıklama** eklenir.
+- **Kısa Turlarla İlerleme & Kaçış Vanası:**
+  - Varsayılan ilk yanıt yaklaşık **15–25 satır** tutulur (Özet + 3–4 ana madde/seçenek + en büyük tek risk + 1 satırlık devam sorusu); konu netleşmeden ilk mesajda hemen kapanış şablonu ve yol haritası basılmaz.
+  - **Kaçış Vanası:** Kullanıcı açıkça *"detaylı plan hazırla"*, *"tek seferde ver"* veya *"tam raporu yaz"* derse kısa turda kesilmez; **Önce Özet + kısa maddeler** ve **Sıfır Jargon** kuralları korunarak eksiksiz plan tek seferde verilir.
 
 ### 5. 📜 VİGİLES DEVİR KÖPRÜSÜ (Spec-Ready Hand-off)
 - Düşünce havada bırakılmaz. Oturum sonunda eğer bir uygulama / kod adımı gerekiyorsa, varılan uzlaşı Vigiles (`/pro`) veya Vigiles Light (`/lite`) motorunun doğrudan yutabileceği **Uygulama Direktifi (Execution Spec)** halinde paketlenir.
@@ -111,21 +121,39 @@ Kullanıcı `/thinkdeep` ile geldiğinde şu 4 senaryodan hangisinin geçerli ol
 
 ## 📋 Çıktı Formatı ve Teslimat Şablonu
 
-ThinkDeep oturumu tamamlandığında Şirket Sahibine şu şablonla berrak bir kapanış sunulur:
+### Format A — Ara Tur / İlk Yanıt Formatı (Konu Henüz Netleşmediyse)
+İlk mesajda veya araştırma/tartışma sürerken tüm raporu dökmek yerine yalnızca bu kısa format kullanılır *(kullanıcı açıkça "detaylı plan" / "tek seferde ver" demedikçe)*:
+
+```markdown
+### 💡 Özet
+[3-5 satırda sade Türkçe ana sonuç]
+
+### 📌 Ana Noktalar
+- [Kısa madde 1]
+- [Kısa madde 2]
+- [Kısa madde 3]
+
+**⚠️ En Büyük Risk:** [1-2 sade cümle]
+
+👉 **Sonraki adım:** [Şu kısmı açayım mı?] yoksa [karara geçelim mi?]
+```
+
+### Format B — Kapanış Şablonu (Karar Netleştiğinde veya Tam Plan İstendiğinde)
+ThinkDeep oturumu tamamlandığında (veya kullanıcı tek seferde tam plan istediğinde) Şirket Sahibine şu sadeleştirilmiş şablonla kapanış sunulur:
 
 ```markdown
 🏛️ **Vigiles ThinkDeep Değerlendirmesi Tamamlandı**
 
-### 💡 Netleşen Karar / Özet
-[Kısa ve kristal berraklığında varılan sonuç]
+### 💡 Özet (Tek Bakışta)
+[2-3 cümleyle sade Türkçe kesin sonuç]
 
-### ⚖️ Temel Gerekçe & Riskler (Trade-Offs)
-- **Tercih Edilen Yol:** [Neden bu yol seçildi?]
-- **Önlenen Risk / Şeytanın Avukatı Notu:** [Dikkat edilmesi gereken tuzak]
+### ⚖️ Neden Bu Yol ve En Büyük Risk
+- **Seçilen Yol:** [1-2 sade cümle]
+- **Dikkat Edilecek Risk:** [1-2 sade cümle]
 
-### 🗺️ Yol Haritası (Roadmap)
-- **Faz 1 (MVP):** [İlk yapılacak çekirdek parça]
-- **Faz 2 (İlerleme):** [Ek özellikler ve sağlamlaştırma]
+### 🗺️ Adımlar
+- **Faz 1 (İlk Adım):** [İlk yapılacak çekirdek iş]
+- **Faz 2 (Sonraki Adım):** [Tamamlayıcı ve doğrulama işi]
 
 ---
 
@@ -134,7 +162,7 @@ ThinkDeep oturumu tamamlandığında Şirket Sahibine şu şablonla berrak bir k
 - **Model:** `Gemini 4 <Model> (<Efor>)`
 ```
 
-> **Kapanış Kuralı:** `Vites` satırına yalnızca tek bir komut (`/lite` veya `/pro`), `Model` satırına yalnızca tek bir model yaz. Yanlarına tire (`—`), gerekçe cümlesi, parantez içi ek açıklama veya alternatif model satırı **EKLEME**.
+> **Kapanış Kuralı:** `Vites` satırına yalnızca tek bir komut (`/lite` veya `/pro`), `Model` satırına yalnızca tek bir model yaz. Yanlarına tire (`—`), gerekçe cümlesi, parantez içi ek açıklama veya alternatif model satırı **EKLEME**. Kod değişikliği gerektirmeyen salt analiz oturumlarında `Adımlar` ve `🚀 Öneri:` yerine yalnızca `Kod adımı gerekmiyor.` satırı yazılır.
 
 ---
 
@@ -159,7 +187,7 @@ ThinkDeep oturumunda bir uygulama adımı doğduğunda, aşağıdaki matrise gö
 | Vites | Komut | Odak | Kod Yazar mı? | Subagent? |
 | :--- | :--- | :--- | :---: | :---: |
 | **Think (Hızlı Düşünce)** | `/think` | Kısa, sade soru-cevap, fikir netleştirme (0 jargon) | ❌ **ASLA (Salt-Okunur Kanca)** | 0 / `research` |
-| **ThinkDeep (Derin Meclis)** | `/thinkdeep` | Derin araştırma, 5 rol, risk analizi, Mermaid şeması, Yol Haritası | ❌ **ASLA (Salt-Okunur Kanca)** | Salt-Okunur (`research` / `browser`) |
+| **ThinkDeep (Derin Meclis)** | `/thinkdeep` | Derin araştırma + başta özetli, jargonsuz, kısa turlu sunum (Mermaid & Adımlar) | ❌ **ASLA (Salt-Okunur Kanca)** | Salt-Okunur (`research` / `browser`) |
 | **Vigiles Pro (Ağır İnşaat)** | `/pro` | Sıfırdan Modül, Büyük Özellik, Refactor, TDD, Kaos, Yargıç | ✅ Evet (19 Elemanlı Kadro) | Dinamik (1-10+) |
 | **Vigiles Light (Cerrahi)** | `/lite` | Hızlı Bugfix, Küçük UI/CSS Rötuşu, Sanity Test | ✅ Evet (Nokta Atışı <30s) | 0 |
 | **Push (Dağıtım)** | `/pushprep`, `/pushremove`, `/pushadd`, `/push` | İki aşamalı önizlemeli & seçici Git dağıtımı | ❌ Yalnızca Git Pipeline | 0 |
