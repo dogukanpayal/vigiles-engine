@@ -357,6 +357,46 @@ function Test-IsFastReadOnlyCommand($ast) {
     return $true
 }
 
+function Test-IsDirectPushOrDiffInvocation($ast, [string]$commandLine) {
+    $testRunnerPattern = '^(?i)(Test-|Chaos-|Scenario-|Run-MasterVerification).*\.ps1$'
+    $pushOrDiffPattern = '^(?i)(git_push_manager|chat_diff_viewer)\.ps1$'
+
+    if ($ast) {
+        $cmdNodes = $ast.FindAll({ param($n) $n.GetType().Name -eq "CommandAst" }, $true)
+        $hasPushOrDiff = $false
+        foreach ($cn in $cmdNodes) {
+            $rawName = $cn.GetCommandName()
+            if ([string]::IsNullOrWhiteSpace($rawName)) { continue }
+            $leaf = [System.IO.Path]::GetFileName($rawName.Trim('"', "'")).ToLowerInvariant()
+            if ($leaf -match $testRunnerPattern) { return $false }
+            if ($leaf -match $pushOrDiffPattern) { $hasPushOrDiff = $true; continue }
+
+            if ($leaf -in @("powershell", "powershell.exe", "pwsh", "pwsh.exe")) {
+                $cArgs = Get-CmdArgs $cn
+                for ($i = 0; $i -lt $cArgs.Length; $i++) {
+                    if ($cArgs[$i] -match '^(?i)-File$' -and ($i + 1) -lt $cArgs.Length) {
+                        $scriptLeaf = [System.IO.Path]::GetFileName($cArgs[$i + 1].Trim('"', "'"))
+                        if ($scriptLeaf -match $testRunnerPattern) { return $false }
+                        if ($scriptLeaf -match $pushOrDiffPattern) { $hasPushOrDiff = $true }
+                        break
+                    }
+                    if ($cArgs[$i] -match '^(?i)(-Command|-c)$' -and ($i + 1) -lt $cArgs.Length) {
+                        if ($cArgs[$i + 1] -match '(?i)(?:^|[;&|\s\\/"''])(?:Test-|Chaos-|Scenario-|Run-MasterVerification)[^\s;&|"'' ]*\.ps1') {
+                            return $false
+                        }
+                    }
+                }
+            }
+        }
+        if ($hasPushOrDiff) { return $true }
+        return ($commandLine -match '\b(git_push_manager|chat_diff_viewer)\.ps1\b')
+    }
+
+    $isOuterTest = ($commandLine -match '^\s*(?:powershell(?:\.exe)?\s+(?:[^;&|\r\n]*?-File\s+["'']?)?)?(?:[^;&|\r\n]*[\\/])?(?:Test-|Chaos-|Scenario-|Run-MasterVerification)[^;&|\r\n]*\.ps1(?:\s|$|["''])')
+    $isDirectScript = ($commandLine -match '\b(git_push_manager|chat_diff_viewer)\.ps1\b')
+    return ($isDirectScript -and -not $isOuterTest)
+}
+
 function Test-IsMasterSuiteWorkload([string]$commandLine) {
     return ($commandLine -match '(?i)Run-MasterVerification')
 }
@@ -464,16 +504,18 @@ if (Test-Path $wrapperScript) {
     $cid = if ($payload.conversationId) { [string]$payload.conversationId } else { "" }
     $artDir = if ($payload.artifactDirectoryPath) { [string]$payload.artifactDirectoryPath } else { "" }
     $cwd = if ($payload.cwd) { [string]$payload.cwd } elseif ($payload.workspacePaths -and $payload.workspacePaths.Count -gt 0) { [string]$payload.workspacePaths[0] } else { "" }
+    $isDirectPushOrDiff = Test-IsDirectPushOrDiffInvocation -ast $ast -commandLine $cmdLine
 
     $payloadFile = Join-Path $payloadDir ("cmd_" + [System.Guid]::NewGuid().ToString("N") + ".json")
     $wrapObj = @{
-        command        = $cmdLine
-        cwd            = $cwd
-        conversationId = $cid
-        artifactDir    = $artDir
-        idleTimeoutSec = $idleSec
-        hardTimeoutSec = $hardSec
-        pollIntervalMs = 1000
+        command               = $cmdLine
+        cwd                   = $cwd
+        conversationId        = $cid
+        artifactDir           = $artDir
+        injectConversationEnv = [bool]$isDirectPushOrDiff
+        idleTimeoutSec        = $idleSec
+        hardTimeoutSec        = $hardSec
+        pollIntervalMs        = 1000
     }
     try {
         $utf8NoBom = New-Object System.Text.UTF8Encoding($false)

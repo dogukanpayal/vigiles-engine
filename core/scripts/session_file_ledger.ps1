@@ -420,9 +420,27 @@ if ($userText.Length -gt 60) { $userText = $userText.Substring(0, 57) + "..." }
 
 if ([string]::IsNullOrWhiteSpace($cid)) { Write-Allow }
 
+function Resolve-EffectiveCommandLine([string]$rawCmd) {
+    if ([string]::IsNullOrWhiteSpace($rawCmd)) { return "" }
+    if ($rawCmd -match 'invoke_with_timeout\.ps1' -and $rawCmd -match '-PayloadFile\s+(?:"([^"]+)"|''([^'']+)''|([^\s]+))') {
+        $pFile = if ($matches[1]) { $matches[1] } elseif ($matches[2]) { $matches[2] } else { $matches[3] }
+        if ($pFile -and (Test-Path -LiteralPath $pFile)) {
+            try {
+                $pJson = [System.IO.File]::ReadAllText($pFile, [System.Text.Encoding]::UTF8).Trim().Trim([char]65279) | ConvertFrom-Json
+                if ($pJson -and $pJson.command) {
+                    return [string]$pJson.command
+                }
+            } catch {}
+        }
+    }
+    return $rawCmd
+}
+
 # 1. PreToolUse ISLEMLERI
 if ($hookEventName -eq "PreToolUse" -and $toolName -eq "run_command") {
-    $cmd = if ($toolArgs -and $toolArgs.CommandLine) { [string]$toolArgs.CommandLine } else { "" }
+    $rawCmd = if ($toolArgs -and $toolArgs.CommandLine) { [string]$toolArgs.CommandLine } else { "" }
+    $cmd = Resolve-EffectiveCommandLine $rawCmd
+    $isWrappedWatchdog = ($cmd -ne $rawCmd)
     $gitCtx = Find-GitContextForPath "" $cwd
     if (-not $gitCtx) { Write-Allow }
 
@@ -430,14 +448,71 @@ if ($hookEventName -eq "PreToolUse" -and $toolName -eq "run_command") {
     $rootCid = $identity.RootCid
 
     # A. Ajanin dogrudan git add / commit / push calistirmasini AST + komut zinciri ile engelle (test kosuculari haric)
-    $isPureTestRunner = ($cmd -match '^\s*(?:powershell(?:\.exe)?\s+(?:[^;&|\r\n]*?-File\s+["'']?)?)?(?:[^;&|\r\n]*[\\/])?(?:Test-|Scenario-|Chaos-|Run-MasterVerification)[^;&|\r\n]*\.ps1[^;&|\r\n]*$') -and ($cmd -notmatch '\bgit_push_manager\.ps1\b')
-    $isPushManager = ($cmd -match '\bgit_push_manager\.ps1\b')
+    $parseErrs = $null
+    $cmdAst = [System.Management.Automation.Language.Parser]::ParseInput($cmd, [ref]$null, [ref]$parseErrs)
+    $isReadOnly = ($cmd -match '^\s*(git\s+(status|diff|log|show|branch|remote|rev-parse)|Get-ChildItem|gci|dir|ls|Get-Content|gc|cat|type|rg|Select-String|findstr|tree|Test-Path)\b')
+
+    $isPureTestRunner = $false
+    $isPushManager = $false
+    $isChatDiffViewer = $false
+    $testScriptRx = '^(?i)(Test-|Scenario-|Chaos-|Run-MasterVerification).*\.ps1$'
+    $hasChainTokens = ($cmd -match '[;&|\r\n]')
+    if ($cmdAst) {
+        $allCmdNodes = @($cmdAst.FindAll({ param($n) $n.GetType().Name -eq "CommandAst" }, $true))
+        if (-not $hasChainTokens -and $allCmdNodes.Count -eq 1) {
+            $cn0 = $allCmdNodes[0]
+            $rn0 = $cn0.GetCommandName()
+            if (-not [string]::IsNullOrWhiteSpace($rn0)) {
+                $lf0 = [System.IO.Path]::GetFileName($rn0.Trim('"', "'"))
+                if ($lf0 -match $testScriptRx) { $isPureTestRunner = $true }
+                elseif ($lf0 -match '^(?i)(powershell|pwsh)(\.exe)?$') {
+                    $elems0 = $cn0.CommandElements
+                    for ($ei = 1; $ei -lt $elems0.Count; $ei++) {
+                        if ($elems0[$ei].Extent.Text -match '^(?i)-File$' -and ($ei + 1) -lt $elems0.Count) {
+                            $sfLeaf0 = [System.IO.Path]::GetFileName($elems0[$ei + 1].Extent.Text.Trim('"', "'"))
+                            if ($sfLeaf0 -match $testScriptRx) { $isPureTestRunner = $true }
+                            break
+                        }
+                    }
+                }
+            }
+        }
+        foreach ($cn in $allCmdNodes) {
+            $rn = $cn.GetCommandName()
+            if ([string]::IsNullOrWhiteSpace($rn)) { continue }
+            $lf = [System.IO.Path]::GetFileName($rn.Trim('"', "'"))
+            if ($lf -match '^(?i)git_push_manager\.ps1$') { $isPushManager = $true }
+            elseif ($lf -match '^(?i)chat_diff_viewer\.ps1$') { $isChatDiffViewer = $true }
+            elseif ($lf -match '^(?i)(powershell|pwsh)(\.exe)?$') {
+                $elems = $cn.CommandElements
+                for ($ei = 1; $ei -lt $elems.Count; $ei++) {
+                    if ($elems[$ei].Extent.Text -match '^(?i)-File$' -and ($ei + 1) -lt $elems.Count) {
+                        $sfLeaf = [System.IO.Path]::GetFileName($elems[$ei + 1].Extent.Text.Trim('"', "'"))
+                        if ($sfLeaf -match '^(?i)git_push_manager\.ps1$') { $isPushManager = $true }
+                        elseif ($sfLeaf -match '^(?i)chat_diff_viewer\.ps1$') { $isChatDiffViewer = $true }
+                        elseif ($sfLeaf.StartsWith('$')) {
+                            if ($cmd -match '\bgit_push_manager\.ps1\b') { $isPushManager = $true }
+                            if ($cmd -match '\bchat_diff_viewer\.ps1\b') { $isChatDiffViewer = $true }
+                        }
+                        break
+                    }
+                }
+            }
+        }
+    } else {
+        $isPureTestRunner = ($cmd -match '^\s*(?:powershell(?:\.exe)?\s+(?:[^;&|\r\n]*?-File\s+["'']?)?)?(?:[^;&|\r\n]*[\\/])?(?:Test-|Scenario-|Chaos-|Run-MasterVerification)[^;&|\r\n]*\.ps1(?:\s|$|["''])') -and ($cmd -notmatch '\b(git_push_manager|chat_diff_viewer)\.ps1\b')
+        $isPushManager = (-not $isReadOnly) -and (-not $isPureTestRunner) -and ($cmd -match '\bgit_push_manager\.ps1\b')
+        $isChatDiffViewer = (-not $isReadOnly) -and (-not $isPureTestRunner) -and ($cmd -match '\bchat_diff_viewer\.ps1\b')
+    }
+
+    if ($isPureTestRunner) {
+        $isPushManager = $false
+        $isChatDiffViewer = $false
+    }
 
     if (-not $isPureTestRunner) {
         $hasRawGitMutation = $false
         $blockedVerb = ""
-        $parseErrs = $null
-        $cmdAst = [System.Management.Automation.Language.Parser]::ParseInput($cmd, [ref]$null, [ref]$parseErrs)
         if ($cmdAst) {
             $cmdNodes = $cmdAst.FindAll({ param($n) $n.GetType().Name -eq "CommandAst" }, $true)
             foreach ($cn in $cmdNodes) {
@@ -485,18 +560,26 @@ if ($hookEventName -eq "PreToolUse" -and $toolName -eq "run_command") {
         }
     }
 
-    # B. git_push_manager.ps1 cagrilarinda gercek rootConversationId kimligini izole env + arguman overwrite ile kilitle
-    if ($isPushManager) {
-        $cleanedCmd = [regex]::Replace($cmd, '(?i)\s+[-/]Con[a-z]*(?:\s*[:=]\s*|\s+)(?:"[^"]*"|''[^'']*''|[^\s;&|\r\n]+)', '')
+    # B. git_push_manager.ps1 ve chat_diff_viewer.ps1 cagrilarinda gercek rootConversationId kimligini izole env + arguman overwrite ile kilitle
+    if ($isPushManager -or $isChatDiffViewer) {
+        if ($isWrappedWatchdog) {
+            # command_watchdog zaten sarmalamis ise wrapper'i bozma (VIGILES_HOOK_CONVERSATION_ID aktif) ve cmd_snap uretme
+            Write-Allow
+        }
+        $cleanedCmd = if ($isPushManager) {
+            [regex]::Replace($cmd, '(?i)\s+[-/]Con[a-z]*(?:\s*[:=]\s*|\s+)(?:"[^"]*"|''[^'']*''|[^\s;&|\r\n]+)', '')
+        } else {
+            # /chatdiff icinde sahte -CallerConversationId temizlenir ancak -TargetChat korunur
+            [regex]::Replace($cmd, '(?i)\s+[-/]Cal[a-z]*(?:\s*[:=]\s*|\s+)(?:"[^"]*"|''[^'']*''|[^\s;&|\r\n]+)', '')
+        }
         $safeRoot = ($rootCid -replace '[^a-zA-Z0-9\-_]', '')
         $safeTitle = ($identity.Title -replace "['\u2018\u2019\u201A\u201B\r\n]", ' ')
         $rewritten = "`$env:VIGILES_CONVERSATION_ID='$safeRoot'; `$env:VIGILES_CONVERSATION_TITLE='$safeTitle'; $cleanedCmd"
         Write-Allow -overwriteCmd $rewritten
     }
 
-    # C. Salt-okunur olmayan terminal komutlari icin oncesi/sonrasi git snapshot al (push manager & testler haric)
-    $isReadOnly = ($cmd -match '^\s*(git\s+(status|diff|log|show|branch|remote|rev-parse)|Get-ChildItem|gci|dir|ls|Get-Content|gc|cat|type|rg|Select-String|findstr|tree|Test-Path)\b')
-    if (-not $isReadOnly -and -not $isPushManager -and -not $isPureTestRunner) {
+    # C. Salt-okunur olmayan terminal komutlari icin oncesi/sonrasi git snapshot al (push manager, chat_diff_viewer & testler haric)
+    if (-not $isReadOnly -and -not $isPushManager -and -not $isChatDiffViewer -and -not $isPureTestRunner) {
         $vigDir = Join-Path $gitCtx.GitDir "vigiles"
         if (-not (Test-Path -LiteralPath $vigDir)) { New-Item -ItemType Directory -Path $vigDir -Force | Out-Null }
         $snapPath = Join-Path $vigDir "cmd_snap_${toolCallId}.json"

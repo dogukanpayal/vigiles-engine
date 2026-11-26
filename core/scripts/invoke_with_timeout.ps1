@@ -13,6 +13,7 @@ $OutputEncoding           = [System.Text.Encoding]::UTF8
 
 $conversationId = ""
 $artifactDir = ""
+$injectConversationEnv = $false
 $telemetryPort = 9999
 if ($env:VIGILES_TELEMETRY_PORT -match '^\d+$') {
     $parsedPort = [int]$env:VIGILES_TELEMETRY_PORT
@@ -32,6 +33,7 @@ if (-not [string]::IsNullOrWhiteSpace($PayloadFile) -and (Test-Path $PayloadFile
             if ($pObj.cwd) { $Cwd = [string]$pObj.cwd }
             if ($pObj.conversationId) { $conversationId = [string]$pObj.conversationId }
             if ($pObj.artifactDir) { $artifactDir = [string]$pObj.artifactDir }
+            if ($pObj.injectConversationEnv -eq $true) { $injectConversationEnv = $true }
             if ($pObj.idleTimeoutSec -and [int]$pObj.idleTimeoutSec -gt 0) { $IdleTimeoutSec = [int]$pObj.idleTimeoutSec }
             if ($pObj.hardTimeoutSec -and [int]$pObj.hardTimeoutSec -gt 0) { $HardTimeoutSec = [int]$pObj.hardTimeoutSec }
             if ($pObj.pollIntervalMs -and [int]$pObj.pollIntervalMs -ge 100) { $PollIntervalMs = [int]$pObj.pollIntervalMs }
@@ -211,6 +213,9 @@ try {
     $psi.EnvironmentVariables["PAGER"] = "cat"
     $psi.EnvironmentVariables["GIT_PAGER"] = "cat"
     $psi.EnvironmentVariables["VIGILES_WATCHDOG_ACTIVE"] = "1"
+    if ($injectConversationEnv -and -not [string]::IsNullOrWhiteSpace($conversationId)) {
+        $psi.EnvironmentVariables["VIGILES_HOOK_CONVERSATION_ID"] = $conversationId
+    }
 
     $proc = [System.Diagnostics.Process]::Start($psi)
     # Stdin'i aninda kapat (interaktif input() / Read-Host / pause cagrilari EOF alip kilitlenmesin)

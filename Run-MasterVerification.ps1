@@ -15,6 +15,7 @@ $suiteTimeoutMs = $suiteTimeoutSec * 1000
 
 $suites = @(
     "tests\Test-CommandWatchdog.ps1",
+    "tests\Test-ChatDiffViewer.ps1",
     "tests\Test-GitPushManager.ps1",
     "tests\Test-SessionPushIsolation.ps1",
     "tests\Test-MultiSessionTelemetri.ps1",
@@ -60,6 +61,7 @@ if (-not $port9999Up) {
                 break
             }
         }
+        try { $null = Invoke-RestMethod -Uri "http://localhost:9999/sessions" -Method GET -TimeoutSec 15 -ErrorAction SilentlyContinue } catch {}
     }
 }
 

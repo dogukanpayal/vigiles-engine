@@ -116,6 +116,44 @@ function Get-RepoHash([string]$text) {
     }
 }
 
+function Resolve-HookRawConversationId([string]$rawCid, [string]$vigilesDir) {
+    if ([string]::IsNullOrWhiteSpace($rawCid)) { return "" }
+    $root = $rawCid.Trim()
+    $subMapPath = Join-Path $vigilesDir "subagent_map.json"
+    if (Test-Path -LiteralPath $subMapPath) {
+        try {
+            $m = ([System.IO.File]::ReadAllText($subMapPath, [System.Text.Encoding]::UTF8)) | ConvertFrom-Json
+            $seen = @{}
+            while ($m.PSObject.Properties[$root] -and -not $seen.ContainsKey($root)) {
+                $seen[$root] = $true
+                $pv = [string]$m.$root
+                if ([string]::IsNullOrWhiteSpace($pv)) { break }
+                $root = $pv
+            }
+        } catch {}
+    }
+    $dbPath = if ($env:VIGILES_DB_PATH) { $env:VIGILES_DB_PATH } else { Join-Path $HOME ".gemini\antigravity\conversation_summaries.db" }
+    $agyNode = Join-Path $env:APPDATA "Antigravity\bin\agy-node.cmd"
+    if (-not $env:VIGILES_SKIP_DB -and (Test-Path -LiteralPath $dbPath) -and (Test-Path -LiteralPath $agyNode)) {
+        try {
+            $dbFwd = $dbPath.Replace('\', '/')
+            $js = "const { DatabaseSync } = require('node:sqlite'); const db = new DatabaseSync('$dbFwd', { open: true, readOnly: true }); const rows = db.prepare('SELECT conversation_id, parent_conversation_id FROM conversation_summaries').all(); const m = {}; for (const r of rows) { m[r.conversation_id] = r.parent_conversation_id || ''; } console.log(JSON.stringify(m));"
+            $rawJson = & $agyNode -e $js 2>$null
+            if (-not [string]::IsNullOrWhiteSpace($rawJson)) {
+                $dbMap = ($rawJson -join '') | ConvertFrom-Json
+                $seenDb = @{}
+                while ($dbMap.PSObject.Properties[$root] -and -not $seenDb.ContainsKey($root)) {
+                    $seenDb[$root] = $true
+                    $pv = [string]$dbMap.$root
+                    if ([string]::IsNullOrWhiteSpace($pv)) { break }
+                    $root = $pv
+                }
+            }
+        } catch {}
+    }
+    return $root
+}
+
 function Get-RepoContext {
     $insideRes = Invoke-GitRaw -GitArgs @("rev-parse", "--is-inside-work-tree")
     if ($insideRes.ExitCode -ne 0 -or $insideRes.StdOut.Trim() -ne "true") {
@@ -174,8 +212,13 @@ function Get-RepoContext {
     $headSha = if ($headRes.ExitCode -eq 0) { $headRes.StdOut.Trim() } else { "UNBORN" }
 
     $vigilesDir = Join-Path $gitDir "vigiles"
-    $safeCid = if (-not [string]::IsNullOrWhiteSpace($ConversationId)) {
-        ($ConversationId -replace '[^a-zA-Z0-9\-_]', '_')
+    $resolvedCid = $ConversationId
+    if ([string]::IsNullOrWhiteSpace($env:VIGILES_CONVERSATION_ID) -and -not [string]::IsNullOrWhiteSpace($env:VIGILES_HOOK_CONVERSATION_ID)) {
+        $resolvedCid = Resolve-HookRawConversationId $env:VIGILES_HOOK_CONVERSATION_ID $vigilesDir
+        $script:ConversationId = $resolvedCid
+    }
+    $safeCid = if (-not [string]::IsNullOrWhiteSpace($resolvedCid)) {
+        ($resolvedCid -replace '[^a-zA-Z0-9\-_]', '_')
     } else {
         "cli"
     }
@@ -189,7 +232,7 @@ function Get-RepoContext {
         VigilesDir     = $vigilesDir
         ManifestPath   = $manifestPath
         LedgerPath     = $ledgerPath
-        ConversationId = $ConversationId.Trim()
+        ConversationId = $resolvedCid.Trim()
         SafeCid        = $safeCid
         Branch         = $activeBranch
         Remote         = $Remote

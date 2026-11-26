@@ -359,7 +359,7 @@ if ($toolName -eq "run_command") {
     }
 
     if ($worktreeSessionInfo -and $worktreeSessionInfo.mode -eq "WORKTREE") {
-        $isReadInspectCmd = ($cmd -match '^\s*(Get-Content|gc|cat|type|Select-String|rg|grep|git\s+(status|diff|log|show)|Test-|Chaos-)')
+        $isReadInspectCmd = ($cmd -match '^\s*(Get-Content|gc|cat|type|Select-String|rg|grep|git\s+(status|diff|log|show)|Test-|Chaos-)') -or ($cmd -match '\bchat_diff_viewer\.ps1\b')
         $isInstallExec = (-not $isReadInspectCmd) -and ($cmd -match '(?i)(^|[;&|\s"''\\/])install\.ps1(\s|$|["'';&|])')
         if ($isInstallExec) {
             $response = @{
@@ -444,7 +444,8 @@ if (-not $isInternalStateFile) {
                 timestamp   = $time
                 badge       = @{ id = "badge-pr"; text = "Git Çalışıyor"; class = "bg-purple-500/20 text-purple-400 border-purple-500/40 font-bold" }
             }
-        } elseif ($cmd -match 'git\s+(status|diff|log|show|branch|remote|describe|check-ignore|rev-parse)') {
+        } elseif ($cmd -match 'git\s+(status|diff|log|show|branch|remote|describe|check-ignore|rev-parse)' -or
+                  $cmd -match '\bchat_diff_viewer\.ps1\b') {
             $telemetry = @{
                 step        = 1
                 totalSteps  = 15
