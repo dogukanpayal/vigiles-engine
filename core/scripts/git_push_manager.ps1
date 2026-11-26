@@ -1,5 +1,5 @@
 ﻿# core/scripts/git_push_manager.ps1
-# Vigiles Engine - Iki Asamali Guvenli Git Pipeline Yoneticisi (PushPrep -> Remove/Add -> Push)
+# Vigiles Engine - Sohbet Izolasyonlu & Iki Asamali Guvenli Git Pipeline Yoneticisi (v3.0)
 # Komutlar: /pushprep, /pushremove, /pushadd, /push
 
 param(
@@ -9,10 +9,13 @@ param(
     [string]$Branch = "",
     [string]$CommitMessage = "",
     [string[]]$Targets = @(),
+    [string]$ConversationId = "",
     [switch]$Ignore = $false,
     [switch]$Approved = $false,
+    [switch]$IncludeShared = $false,
     [switch]$DryRun = $false,
-    [switch]$Json = $false
+    [switch]$Json = $false,
+    [switch]$SkipTranscriptScan = $false
 )
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -20,7 +23,11 @@ param(
 $OutputEncoding           = [System.Text.Encoding]::UTF8
 
 $Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
-$Utf8Bom   = New-Object System.Text.UTF8Encoding($true)
+
+# Kancanin enjekte ettigi gercek kimlik her zaman parametreye onceliklidir (sahtecilik engeli)
+if (-not [string]::IsNullOrWhiteSpace($env:VIGILES_CONVERSATION_ID)) {
+    $ConversationId = $env:VIGILES_CONVERSATION_ID.Trim()
+}
 
 # --- YARDIMCI FONKSIYONLAR ---
 
@@ -43,9 +50,16 @@ function ConvertTo-Array($val) {
     return @($val)
 }
 
+function Set-ObjProp($obj, [string]$name, $value) {
+    if ($obj.PSObject.Properties[$name]) {
+        $obj.$name = $value
+    } else {
+        $obj | Add-Member -NotePropertyName $name -NotePropertyValue $value -Force
+    }
+}
+
 function Format-ProcessArg([string]$arg) {
-    if ($null -eq $arg) { return '""' }
-    if ($arg -eq "") { return '""' }
+    if ($null -eq $arg -or $arg -eq "") { return '""' }
     if ($arg -notmatch '[\s"]') { return $arg }
     $escaped = [regex]::Replace($arg, '(\\*)"', '$1$1\"')
     $escaped = [regex]::Replace($escaped, '(\\+)$', '$1$1')
@@ -91,28 +105,37 @@ function Invoke-GitRaw {
     }
 }
 
-function Get-RepoContext {
-    $rpRes = Invoke-GitRaw -GitArgs @("rev-parse", "--is-inside-work-tree", "--show-toplevel", "--git-dir", "--git-common-dir")
-    $rpLines = if ($rpRes.ExitCode -eq 0 -and -not [string]::IsNullOrWhiteSpace($rpRes.StdOut)) {
-        @($rpRes.StdOut.Trim() -split "`r?`n")
-    } else {
-        @()
+function Get-RepoHash([string]$text) {
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $bytes = [System.Text.Encoding]::UTF8.GetBytes($text.ToLowerInvariant())
+        $hash = $sha.ComputeHash($bytes)
+        return ([BitConverter]::ToString($hash) -replace '-', '').ToLowerInvariant().Substring(0, 12)
+    } finally {
+        $sha.Dispose()
     }
-    if ($rpRes.ExitCode -ne 0 -or $rpLines.Count -lt 4 -or $rpLines[0].Trim() -ne "true") {
+}
+
+function Get-RepoContext {
+    $insideRes = Invoke-GitRaw -GitArgs @("rev-parse", "--is-inside-work-tree")
+    if ($insideRes.ExitCode -ne 0 -or $insideRes.StdOut.Trim() -ne "true") {
         Write-Host "[HATA]: Mevcut calisma dizini bir Git deposu degil!" -ForegroundColor Red
         exit 1
     }
 
-    $repoRoot = $rpLines[1].Trim()
-    $gitDirRaw = $rpLines[2].Trim()
-    $commonRaw = $rpLines[3].Trim()
+    $topRes = Invoke-GitRaw -GitArgs @("rev-parse", "--show-toplevel")
+    $repoRoot = $topRes.StdOut.Trim()
 
+    $gitDirRes = Invoke-GitRaw -GitArgs @("rev-parse", "--git-dir")
+    $gitDirRaw = $gitDirRes.StdOut.Trim()
     if (-not [System.IO.Path]::IsPathRooted($gitDirRaw)) {
         $gitDir = [System.IO.Path]::GetFullPath((Join-Path (Get-Location).Path $gitDirRaw))
     } else {
         $gitDir = [System.IO.Path]::GetFullPath($gitDirRaw)
     }
 
+    $commonRes = Invoke-GitRaw -GitArgs @("rev-parse", "--git-common-dir")
+    $commonRaw = if ($commonRes.ExitCode -eq 0) { $commonRes.StdOut.Trim() } else { "" }
     if (-not [string]::IsNullOrWhiteSpace($commonRaw)) {
         if (-not [System.IO.Path]::IsPathRooted($commonRaw)) {
             $commonGitDir = [System.IO.Path]::GetFullPath((Join-Path (Get-Location).Path $commonRaw))
@@ -151,20 +174,239 @@ function Get-RepoContext {
     $headSha = if ($headRes.ExitCode -eq 0) { $headRes.StdOut.Trim() } else { "UNBORN" }
 
     $vigilesDir = Join-Path $gitDir "vigiles"
-    $manifestPath = Join-Path $vigilesDir "pushprep.json"
+    $safeCid = if (-not [string]::IsNullOrWhiteSpace($ConversationId)) {
+        ($ConversationId -replace '[^a-zA-Z0-9\-_]', '_')
+    } else {
+        "cli"
+    }
+    $manifestPath = Join-Path $vigilesDir "pushprep_${safeCid}.json"
+    $ledgerPath   = Join-Path $vigilesDir "file_ledger.json"
 
     return @{
-        RepoRoot     = $repoRoot
-        GitDir       = $gitDir
-        CommonGitDir = $commonGitDir
-        VigilesDir   = $vigilesDir
-        ManifestPath = $manifestPath
-        Branch       = $activeBranch
-        Remote       = $Remote
-        RemoteUrl    = $remoteUrl
-        HeadSha      = $headSha
+        RepoRoot       = $repoRoot
+        GitDir         = $gitDir
+        CommonGitDir   = $commonGitDir
+        VigilesDir     = $vigilesDir
+        ManifestPath   = $manifestPath
+        LedgerPath     = $ledgerPath
+        ConversationId = $ConversationId.Trim()
+        SafeCid        = $safeCid
+        Branch         = $activeBranch
+        Remote         = $Remote
+        RemoteUrl      = $remoteUrl
+        HeadSha        = $headSha
     }
 }
+
+# --- ZIMMET DEFTERI (FILE LEDGER) YONETIMI ---
+
+function Invoke-WithLedgerLock($ctx, [scriptblock]$action, [switch]$ReadOnly) {
+    $mutexName = "Local\VigilesFileLedger_" + (Get-RepoHash $ctx.GitDir)
+    $mutex = New-Object System.Threading.Mutex($false, $mutexName)
+    $acquired = $false
+    try {
+        try {
+            $acquired = $mutex.WaitOne(5000)
+        } catch [System.Threading.AbandonedMutexException] {
+            $acquired = $true
+        }
+
+        $ledger = $null
+        if (Test-Path -LiteralPath $ctx.LedgerPath) {
+            try {
+                $raw = [System.IO.File]::ReadAllText($ctx.LedgerPath, [System.Text.Encoding]::UTF8)
+                if (-not [string]::IsNullOrWhiteSpace($raw)) {
+                    $ledger = $raw | ConvertFrom-Json
+                }
+            } catch {}
+        }
+        if (-not $ledger) {
+            $ledger = [PSCustomObject]@{
+                version = 1
+                chats   = [PSCustomObject]@{}
+                files   = [PSCustomObject]@{}
+                commits = [PSCustomObject]@{}
+            }
+        }
+        if (-not $ledger.chats)   { Set-ObjProp $ledger "chats"   ([PSCustomObject]@{}) }
+        if (-not $ledger.files)   { Set-ObjProp $ledger "files"   ([PSCustomObject]@{}) }
+        if (-not $ledger.commits) { Set-ObjProp $ledger "commits" ([PSCustomObject]@{}) }
+
+        $result = & $action $ledger
+        if (-not $ReadOnly) {
+            if (-not (Test-Path -LiteralPath $ctx.VigilesDir)) {
+                New-Item -ItemType Directory -Path $ctx.VigilesDir -Force | Out-Null
+            }
+            $jsonStr = $ledger | ConvertTo-Json -Depth 10
+            $tmp = "$($ctx.LedgerPath).tmp." + ([System.Guid]::NewGuid().ToString().Substring(0, 6))
+            [System.IO.File]::WriteAllText($tmp, $jsonStr, $Utf8NoBom)
+            Move-Item -LiteralPath $tmp -Destination $ctx.LedgerPath -Force
+        }
+        return $result
+    } finally {
+        if ($acquired) {
+            try { $mutex.ReleaseMutex() } catch {}
+        }
+        $mutex.Dispose()
+    }
+}
+
+function Read-LedgerSnapshot($ctx) {
+    return (Invoke-WithLedgerLock $ctx { param($l) return $l } -ReadOnly)
+}
+
+function Resolve-ChatDisplayTitle($ledger, [string]$cid) {
+    if ([string]::IsNullOrWhiteSpace($cid)) { return "Bilinmeyen Sohbet" }
+    if ($ledger -and $ledger.chats -and $ledger.chats.PSObject.Properties[$cid]) {
+        $t = [string]$ledger.chats.$cid.title
+        if (-not [string]::IsNullOrWhiteSpace($t)) { return $t }
+    }
+    $short = if ($cid.Length -ge 8) { $cid.Substring(0, 8) } else { $cid }
+    return "Sohbet ($short)"
+}
+
+function Import-HistoricalTranscriptEdits($ctx, $wtEntries, [switch]$NoSave) {
+    $ledger = Read-LedgerSnapshot $ctx
+    if ($SkipTranscriptScan -or $env:VIGILES_SKIP_TRANSCRIPT -eq "1") { return $ledger }
+    if ([string]::IsNullOrWhiteSpace($ctx.ConversationId)) { return $ledger }
+    if (-not $wtEntries -or $wtEntries.Count -eq 0) { return $ledger }
+
+    $brainDir = if ($env:VIGILES_BRAIN_DIR) { $env:VIGILES_BRAIN_DIR } else { Join-Path $HOME ".gemini\antigravity\brain" }
+    if (-not (Test-Path -LiteralPath $brainDir)) { return $ledger }
+
+    $unownedTargets = @{}
+    foreach ($wt in $wtEntries) {
+        $hasEd = $false
+        if ($ledger.files -and $ledger.files.PSObject.Properties[$wt.path]) {
+            $ed = $ledger.files.$($wt.path).editors
+            if ($ed -and @($ed.PSObject.Properties).Count -gt 0) { $hasEd = $true }
+        }
+        if (-not $hasEd) { $unownedTargets[$wt.path] = $true }
+    }
+    if ($unownedTargets.Count -eq 0) { return $ledger }
+
+    $normRoot = ([System.IO.Path]::GetFullPath($ctx.RepoRoot)).TrimEnd('\', '/').Replace('\', '/')
+    $cutoff = (Get-Date).AddDays(-7)
+    $discovered = @{} # relPath -> @{ cid -> title }
+
+    # Son 7 gun icindeki transcript.jsonl dosyalarini hizlica tara
+    $convDirs = Get-ChildItem -Path $brainDir -Directory -ErrorAction SilentlyContinue | Where-Object { $_.LastWriteTime -gt $cutoff }
+    foreach ($cd in $convDirs) {
+        $tPath = Join-Path $cd.FullName ".system_generated\logs\transcript.jsonl"
+        if (-not (Test-Path -LiteralPath $tPath)) { continue }
+        $tCid = $cd.Name
+        try {
+            $sr = New-Object System.IO.StreamReader($tPath, [System.Text.Encoding]::UTF8)
+            try {
+                while ($null -ne ($line = $sr.ReadLine())) {
+                    if ($line -notmatch '"write_file"|"edit_file"|"replace_file_content"|"multi_replace_file_content"|"write_to_file"|"delete_file"') { continue }
+                    try {
+                        $step = $line | ConvertFrom-Json
+                        if (-not $step.tool_calls) { continue }
+                        foreach ($tc in $step.tool_calls) {
+                            if ($tc.name -notin @("write_file", "edit_file", "replace_file_content", "multi_replace_file_content", "write_to_file", "delete_file")) { continue }
+                            $rawP = $null
+                            foreach ($pn in @("Path", "path", "TargetFile", "file_path")) {
+                                if ($tc.args -and $tc.args.PSObject.Properties[$pn]) {
+                                    $rawP = [string]$tc.args.$pn
+                                    break
+                                }
+                            }
+                            if ([string]::IsNullOrWhiteSpace($rawP)) { continue }
+                            $cleanP = $rawP.Trim().Trim('"').Replace('\', '/')
+                            if ($cleanP.StartsWith($normRoot + "/", [System.StringComparison]::OrdinalIgnoreCase)) {
+                                $rel = $cleanP.Substring($normRoot.Length + 1)
+                                if ($unownedTargets.ContainsKey($rel)) {
+                                    if (-not $discovered.ContainsKey($rel)) { $discovered[$rel] = @{} }
+                                    $discovered[$rel][$tCid] = $true
+                                }
+                            }
+                        }
+                    } catch {}
+                }
+            } finally {
+                $sr.Dispose()
+            }
+        } catch {}
+    }
+
+    if ($discovered.Count -gt 0) {
+        $nowIso = (Get-Date).ToString("o")
+        $applyDiscovered = {
+            param($l)
+            foreach ($rel in $discovered.Keys) {
+                if (-not $l.files.PSObject.Properties[$rel]) {
+                    Set-ObjProp $l.files $rel ([PSCustomObject]@{
+                        editors                = [PSCustomObject]@{}
+                        lastKnownMtimeUtcTicks = 0
+                        lastKnownExists        = $true
+                    })
+                }
+                foreach ($tCid in $discovered[$rel].Keys) {
+                    if (-not $l.chats.PSObject.Properties[$tCid]) {
+                        $sId = if ($tCid.Length -ge 8) { $tCid.Substring(0, 8) } else { $tCid }
+                        Set-ObjProp $l.chats $tCid ([PSCustomObject]@{ title = "Sohbet ($sId)"; lastSeenAt = $nowIso })
+                    }
+                    if (-not $l.files.$rel.editors.PSObject.Properties[$tCid]) {
+                        Set-ObjProp $l.files.$rel.editors $tCid ([PSCustomObject]@{
+                            firstEditedAt = $nowIso
+                            lastEditedAt  = $nowIso
+                            tool          = "transcript_recovery"
+                        })
+                    }
+                }
+            }
+            return $l
+        }
+
+        if ($NoSave) {
+            return (& $applyDiscovered $ledger)
+        } else {
+            return (Invoke-WithLedgerLock $ctx $applyDiscovered)
+        }
+    }
+    return $ledger
+}
+
+function Register-CommitOwner($ctx, [string]$sha, [string]$subject) {
+    if ([string]::IsNullOrWhiteSpace($ctx.ConversationId) -or [string]::IsNullOrWhiteSpace($sha)) { return }
+    $nowIso = (Get-Date).ToString("o")
+    $title = if (-not [string]::IsNullOrWhiteSpace($env:VIGILES_CONVERSATION_TITLE)) { $env:VIGILES_CONVERSATION_TITLE } else { "" }
+
+    Invoke-WithLedgerLock $ctx {
+        param($l)
+        if (-not $l.chats.PSObject.Properties[$ctx.ConversationId]) {
+            $sId = if ($ctx.ConversationId.Length -ge 8) { $ctx.ConversationId.Substring(0, 8) } else { $ctx.ConversationId }
+            $tVal = if ($title) { $title } else { "Sohbet ($sId)" }
+            Set-ObjProp $l.chats $ctx.ConversationId ([PSCustomObject]@{ title = $tVal; lastSeenAt = $nowIso })
+        }
+        Set-ObjProp $l.commits $sha ([PSCustomObject]@{
+            conversationId = $ctx.ConversationId
+            at             = $nowIso
+            subject        = $subject
+        })
+    } | Out-Null
+}
+
+function Cleanup-LedgerAfterPush($ctx, [string[]]$pushedPaths) {
+    if (-not $pushedPaths -or $pushedPaths.Count -eq 0) { return }
+    Invoke-WithLedgerLock $ctx {
+        param($l)
+        if (-not $l.files) { return }
+        foreach ($p in $pushedPaths) {
+            if (-not $l.files.PSObject.Properties[$p]) { continue }
+            # Eger dosya calisma agacinda artik temizse zimmetten kaldir
+            $stRes = Invoke-GitRaw -GitArgs @("status", "--porcelain=v1", "--", $p) -UseQuotepathFalse
+            if ($stRes.ExitCode -eq 0 -and [string]::IsNullOrWhiteSpace($stRes.StdOut)) {
+                $l.files.PSObject.Properties.Remove($p)
+            } elseif (-not [string]::IsNullOrWhiteSpace($ctx.ConversationId) -and $l.files.$p.editors.PSObject.Properties[$ctx.ConversationId]) {
+                $l.files.$p.editors.PSObject.Properties.Remove($ctx.ConversationId)
+            }
+        }
+    } | Out-Null
+}
+
+# --- DURUM VE ZERO-LEAK DENETIMI ---
 
 function Get-StatusLabel([string]$xy) {
     if ($xy -eq "??") { return "Yeni (Takipsiz)" }
@@ -183,7 +425,6 @@ function Test-ZeroLeakFile([string]$repoRoot, [string]$relPath, [string]$statusX
     $norm = Normalize-RepoPath $relPath
     $leaf = [System.IO.Path]::GetFileName($norm)
 
-    # 1. Hassas dosya adi kontrolu (.env.example / .env.template / .env.sample istisnadir)
     if ($leaf -match '^\.env(\..+)?$') {
         if ($leaf -notmatch '^\.env\.(example|template|sample)$') {
             return @{ IsLeak = $true; Reason = "Hassas ortam dosyasi ($leaf) Git'e gonderilemez!" }
@@ -193,12 +434,10 @@ function Test-ZeroLeakFile([string]$repoRoot, [string]$relPath, [string]$statusX
         return @{ IsLeak = $true; Reason = "Ozel anahtar/gizli dosya ($leaf) tespit edildi!" }
     }
 
-    # Silinmis dosyalarin icerigini taramaya gerek yok
     if ($statusXy -match 'D') {
         return @{ IsLeak = $false; Reason = "" }
     }
 
-    # 2. Icerik tabanli API/Secret taramasi
     $fullPath = Join-Path $repoRoot ($norm.Replace('/', '\'))
     if (-not (Test-Path -LiteralPath $fullPath -PathType Leaf)) {
         return @{ IsLeak = $false; Reason = "" }
@@ -210,11 +449,8 @@ function Test-ZeroLeakFile([string]$repoRoot, [string]$relPath, [string]$statusX
             return @{ IsLeak = $false; Reason = "" }
         }
         $bytes = [System.IO.File]::ReadAllBytes($fullPath)
-        # Binary kontrolu (NUL byte iceriyorsa atla)
         foreach ($b in $bytes) {
-            if ($b -eq 0) {
-                return @{ IsLeak = $false; Reason = "" }
-            }
+            if ($b -eq 0) { return @{ IsLeak = $false; Reason = "" } }
         }
         $content = [System.Text.Encoding]::UTF8.GetString($bytes)
         $secretPatterns = @(
@@ -281,11 +517,9 @@ function Get-WorkingTreeEntries($ctx) {
     return ,@($entries.ToArray())
 }
 
-function Get-UnpushedCommits($ctx) {
+function Get-UnpushedCommits($ctx, $ledger) {
     $commits = [System.Collections.Generic.List[object]]::new()
-    if ($ctx.HeadSha -eq "UNBORN") {
-        return ,@()
-    }
+    if ($ctx.HeadSha -eq "UNBORN") { return ,@() }
 
     $hasUpstream = $false
     $upRes = Invoke-GitRaw -GitArgs @("rev-parse", "--abbrev-ref", '@{u}')
@@ -325,16 +559,69 @@ function Get-UnpushedCommits($ctx) {
             }
         }
 
+        $ownerCid = ""
+        $ownerTitle = ""
+        $isForeignCommit = $false
+        if ($ledger -and $ledger.commits -and $ledger.commits.PSObject.Properties[$sha]) {
+            $ownerCid = [string]$ledger.commits.$sha.conversationId
+            $ownerTitle = Resolve-ChatDisplayTitle $ledger $ownerCid
+            if (-not [string]::IsNullOrWhiteSpace($ctx.ConversationId) -and -not [string]::IsNullOrWhiteSpace($ownerCid) -and $ownerCid -ne $ctx.ConversationId) {
+                $isForeignCommit = $true
+            }
+        }
+
         $commits.Add([PSCustomObject]@{
-            sha     = $sha
-            short   = $shortSha
-            subject = $subject
-            files   = @($cFiles)
+            sha           = $sha
+            short         = $shortSha
+            subject       = $subject
+            files         = @($cFiles)
+            ownerCid      = $ownerCid
+            ownerTitle    = $ownerTitle
+            isForeignChat = $isForeignCommit
         })
     }
 
     return ,@($commits.ToArray())
 }
+
+function Get-FileOwnership($ctx, $ledger, [string]$relPath, [string]$origPath) {
+    if ([string]::IsNullOrWhiteSpace($ctx.ConversationId)) {
+        return @{
+            Ownership   = "CLI_UNSCOPED"
+            OtherCids   = @()
+            OtherTitles = @()
+        }
+    }
+
+    $editorSet = @{}
+    foreach ($probe in @($relPath, $origPath)) {
+        if ([string]::IsNullOrWhiteSpace($probe)) { continue }
+        if ($ledger -and $ledger.files -and $ledger.files.PSObject.Properties[$probe]) {
+            $edObj = $ledger.files.$probe.editors
+            if ($edObj) {
+                foreach ($p in $edObj.PSObject.Properties) {
+                    $editorSet[$p.Name] = $true
+                }
+            }
+        }
+    }
+
+    $hasSelf = $editorSet.ContainsKey($ctx.ConversationId)
+    $otherCids = @($editorSet.Keys | Where-Object { $_ -ne $ctx.ConversationId })
+    $otherTitles = @($otherCids | ForEach-Object { Resolve-ChatDisplayTitle $ledger $_ })
+
+    if ($hasSelf -and $otherCids.Count -eq 0) {
+        return @{ Ownership = "OWNED_THIS_CHAT"; OtherCids = @(); OtherTitles = @() }
+    } elseif ($hasSelf -and $otherCids.Count -gt 0) {
+        return @{ Ownership = "SHARED_MULTI_CHAT"; OtherCids = $otherCids; OtherTitles = $otherTitles }
+    } elseif (-not $hasSelf -and $otherCids.Count -gt 0) {
+        return @{ Ownership = "LOCKED_OTHER_CHAT"; OtherCids = $otherCids; OtherTitles = $otherTitles }
+    } else {
+        return @{ Ownership = "UNTRACKED_MANUAL"; OtherCids = @(); OtherTitles = @() }
+    }
+}
+
+# --- MANIFESTO OKUMA / YAZMA / SENKRONIZASYON ---
 
 function Read-Manifest($ctx) {
     if (-not (Test-Path -LiteralPath $ctx.ManifestPath)) { return $null }
@@ -343,17 +630,16 @@ function Read-Manifest($ctx) {
         if ([string]::IsNullOrWhiteSpace($raw)) { return $null }
         $obj = $raw | ConvertFrom-Json
         if (-not $obj) { return $null }
-        $items = @(ConvertTo-Array $obj.items)
-        $commits = @(ConvertTo-Array $obj.unpushedCommits)
         return [PSCustomObject]@{
             version         = $obj.version
+            conversationId  = [string]$obj.conversationId
             branch          = [string]$obj.branch
             remote          = [string]$obj.remote
             headSha         = [string]$obj.headSha
             createdAt       = [string]$obj.createdAt
             updatedAt       = [string]$obj.updatedAt
-            items           = $items
-            unpushedCommits = $commits
+            items           = @(ConvertTo-Array $obj.items)
+            unpushedCommits = @(ConvertTo-Array $obj.unpushedCommits)
         }
     } catch {
         return $null
@@ -361,25 +647,28 @@ function Read-Manifest($ctx) {
 }
 
 function Save-Manifest($ctx, $manifest, [switch]$NoSave) {
-    # Id'leri 1..N yeniden sirala
     $ordered = [System.Collections.Generic.List[object]]::new()
     $idx = 1
     foreach ($it in (ConvertTo-Array $manifest.items)) {
         $ordered.Add([PSCustomObject]@{
-            id            = $idx
-            path          = [string]$it.path
-            origPath      = $it.origPath
-            status        = [string]$it.status
-            statusLabel   = [string]$it.statusLabel
-            included      = [bool]$it.included
-            forcedIgnore  = [bool]$it.forcedIgnore
-            excludeReason = [string]$it.excludeReason
+            id             = $idx
+            path           = [string]$it.path
+            origPath       = $it.origPath
+            status         = [string]$it.status
+            statusLabel    = [string]$it.statusLabel
+            included       = [bool]$it.included
+            forcedIgnore   = [bool]$it.forcedIgnore
+            excludeReason  = [string]$it.excludeReason
+            ownership      = if ($it.ownership) { [string]$it.ownership } else { "CLI_UNSCOPED" }
+            otherOwners    = @(ConvertTo-Array $it.otherOwners)
+            sharedDecision = if ($it.sharedDecision) { [string]$it.sharedDecision } else { "" }
         })
         $idx++
     }
 
     $toSave = [PSCustomObject]@{
-        version         = 1
+        version         = 2
+        conversationId  = $ctx.ConversationId
         branch          = $ctx.Branch
         remote          = $ctx.Remote
         headSha         = $ctx.HeadSha
@@ -421,6 +710,8 @@ function Sync-Manifest($ctx, [switch]$ResetChoices, [switch]$MarkNewAsExcluded, 
     }
 
     $wtEntries = @(ConvertTo-Array (Get-WorkingTreeEntries $ctx))
+    $ledger = Import-HistoricalTranscriptEdits $ctx $wtEntries -NoSave:$NoSave
+
     $wtPathSet = @{}
     $merged = [System.Collections.Generic.List[object]]::new()
     $newlyDetected = [System.Collections.Generic.List[string]]::new()
@@ -428,59 +719,101 @@ function Sync-Manifest($ctx, [switch]$ResetChoices, [switch]$MarkNewAsExcluded, 
     foreach ($wt in $wtEntries) {
         $wtPathSet[$wt.path] = $true
         $prev = if ($prevByPath.ContainsKey($wt.path)) { $prevByPath[$wt.path] } else { $null }
+        $ownInfo = Get-FileOwnership $ctx $ledger $wt.path $wt.origPath
+        $own = $ownInfo.Ownership
 
         $included = $true
         $excludeReason = ""
         $forcedIgnore = $false
+        $sharedDecision = ""
 
         if ($wt.isLeak) {
             $included = $false
             $excludeReason = $wt.leakReason
-        } elseif ($null -ne $prev) {
-            $included = [bool]$prev.included
-            $excludeReason = [string]$prev.excludeReason
-            $forcedIgnore = [bool]$prev.forcedIgnore
-        } elseif ($existingValid -and $MarkNewAsExcluded) {
+        } elseif ($own -eq "LOCKED_OTHER_CHAT") {
+            # Katı Koruma: Baska sohbet dosyasi ASLA dahil olamaz
             $included = $false
-            $excludeReason = "new_since_prep"
-            $newlyDetected.Add($wt.path)
+            $excludeReason = "locked_other_chat"
+        } elseif ($own -eq "SHARED_MULTI_CHAT") {
+            if ($null -ne $prev -and $prev.sharedDecision -eq "approved" -and $prev.included) {
+                $included = $true
+                $sharedDecision = "approved"
+            } elseif ($null -ne $prev -and $prev.sharedDecision -eq "excluded") {
+                $included = $false
+                $sharedDecision = "excluded"
+                $excludeReason = if ($prev.excludeReason) { [string]$prev.excludeReason } else { "user_removed" }
+            } else {
+                $included = $false
+                $sharedDecision = "pending"
+                $excludeReason = "shared_requires_approval"
+            }
+        } elseif ($own -eq "UNTRACKED_MANUAL") {
+            if ($null -ne $prev -and $prev.included -and $prev.ownership -eq "UNTRACKED_MANUAL") {
+                $included = $true
+                $forcedIgnore = [bool]$prev.forcedIgnore
+            } else {
+                $included = $false
+                $excludeReason = "manual_edit"
+            }
+        } else {
+            # OWNED_THIS_CHAT veya CLI_UNSCOPED
+            if ($null -ne $prev) {
+                # Eger onceden manual/shared iken simdi kendi sohbetine gectiyse ve kullanici acikca remove etmediyse dahil et
+                if ($prev.excludeReason -in @("user_removed", "gitignored", "new_since_prep")) {
+                    $included = [bool]$prev.included
+                    $excludeReason = [string]$prev.excludeReason
+                } else {
+                    $included = $true
+                }
+                $forcedIgnore = [bool]$prev.forcedIgnore
+            } elseif ($existingValid -and $MarkNewAsExcluded) {
+                $included = $false
+                $excludeReason = "new_since_prep"
+                $newlyDetected.Add($wt.path)
+            }
         }
 
         $merged.Add([PSCustomObject]@{
-            id            = 0
-            path          = $wt.path
-            origPath      = $wt.origPath
-            status        = $wt.status
-            statusLabel   = $wt.statusLabel
-            included      = $included
-            forcedIgnore  = $forcedIgnore
-            excludeReason = $excludeReason
+            id             = 0
+            path           = $wt.path
+            origPath       = $wt.origPath
+            status         = $wt.status
+            statusLabel    = $wt.statusLabel
+            included       = $included
+            forcedIgnore   = $forcedIgnore
+            excludeReason  = $excludeReason
+            ownership      = $own
+            otherOwners    = @($ownInfo.OtherTitles)
+            sharedDecision = $sharedDecision
         })
     }
 
-    # Daha once /pushadd ile zorla eklenmis (.gitignore) dosyalar diskte hala varsa koru
     foreach ($fi in $forcedIgnorePrev) {
         if (-not $wtPathSet.ContainsKey($fi.path)) {
             $fullFi = Join-Path $ctx.RepoRoot ($fi.path.Replace('/', '\'))
             if (Test-Path -LiteralPath $fullFi -PathType Leaf) {
                 $leak = Test-ZeroLeakFile -repoRoot $ctx.RepoRoot -relPath $fi.path -statusXy "??"
-                if (-not $leak.IsLeak) {
+                $ownInfo = Get-FileOwnership $ctx $ledger $fi.path $null
+                if (-not $leak.IsLeak -and $ownInfo.Ownership -ne "LOCKED_OTHER_CHAT") {
                     $merged.Add([PSCustomObject]@{
-                        id            = 0
-                        path          = $fi.path
-                        origPath      = $null
-                        status        = "FI"
-                        statusLabel   = "Gitignore İstisnasi (/pushadd)"
-                        included      = $true
-                        forcedIgnore  = $true
-                        excludeReason = ""
+                        id             = 0
+                        path           = $fi.path
+                        origPath       = $null
+                        status         = "FI"
+                        statusLabel    = "Gitignore Istisnasi (/pushadd)"
+                        included       = $true
+                        forcedIgnore   = $true
+                        excludeReason  = ""
+                        ownership      = $ownInfo.Ownership
+                        otherOwners    = @($ownInfo.OtherTitles)
+                        sharedDecision = ""
                     })
                 }
             }
         }
     }
 
-    $commits = @(ConvertTo-Array (Get-UnpushedCommits $ctx))
+    $commits = @(ConvertTo-Array (Get-UnpushedCommits $ctx $ledger))
     $draft = [PSCustomObject]@{
         createdAt       = if ($existingValid) { $existing.createdAt } else { (Get-Date).ToString("o") }
         items           = @(ConvertTo-Array $merged)
@@ -492,38 +825,54 @@ function Sync-Manifest($ctx, [switch]$ResetChoices, [switch]$MarkNewAsExcluded, 
         Manifest      = $saved
         NewlyDetected = @(ConvertTo-Array $newlyDetected)
         HadManifest   = $existingValid
+        Ledger        = $ledger
     }
 }
 
 function Show-PushPrepSummary($ctx, $manifest, [string]$HeaderTitle = "PUSH ONIZLEME LISTESI (/pushprep)") {
     $items = @(ConvertTo-Array $manifest.items)
     $includedItems = @($items | Where-Object { $_.included })
-    $excludedItems = @($items | Where-Object { -not $_.included })
+    $sharedPending = @($items | Where-Object { -not $_.included -and $_.ownership -eq "SHARED_MULTI_CHAT" -and $_.sharedDecision -eq "pending" })
+    $lockedItems   = @($items | Where-Object { -not $_.included -and $_.ownership -eq "LOCKED_OTHER_CHAT" })
+    $otherExcluded = @($items | Where-Object { -not $_.included -and $_.ownership -ne "LOCKED_OTHER_CHAT" -and -not ($_.ownership -eq "SHARED_MULTI_CHAT" -and $_.sharedDecision -eq "pending") })
     $commits = @(ConvertTo-Array $manifest.unpushedCommits)
 
     Write-Host "`n==========================================================" -ForegroundColor Cyan
     Write-Host ">> $HeaderTitle" -ForegroundColor Yellow
     Write-Host "==========================================================" -ForegroundColor Cyan
     Write-Host "   Branch : $($ctx.Branch)  ->  $($ctx.Remote) ($($ctx.RemoteUrl))" -ForegroundColor Gray
+    if (-not [string]::IsNullOrWhiteSpace($ctx.ConversationId)) {
+        Write-Host "   Sohbet : $($ctx.ConversationId) [Sohbet Izolasyonu AKTIF]" -ForegroundColor Cyan
+    }
 
     Write-Host "`n[A] PUSHLANACAK DOSYALAR (Dahil: $($includedItems.Count) adet)" -ForegroundColor Green
     if ($includedItems.Count -eq 0) {
-        Write-Host "   (Push paketinde bekleyen degisiklik yok)" -ForegroundColor DarkGray
+        Write-Host "   (Bu sohbete ait push paketinde dosya yok)" -ForegroundColor DarkGray
     } else {
         foreach ($it in $includedItems) {
             $renameInfo = if ($it.origPath) { " (eski: $($it.origPath))" } else { "" }
             $fiTag = if ($it.forcedIgnore) { " [.gitignore istisnasi]" } else { "" }
-            Write-Host ("   [{0}] [{1}] {2}  ({3}){4}{5}" -f $it.id, $it.status.Trim(), $it.path, $it.statusLabel, $renameInfo, $fiTag) -ForegroundColor White
+            $sharedTag = if ($it.ownership -eq "SHARED_MULTI_CHAT") { " [Ortak - Onaylandi]" } else { "" }
+            Write-Host ("   [{0}] [{1}] {2}  ({3}){4}{5}{6}" -f $it.id, $it.status.Trim(), $it.path, $it.statusLabel, $renameInfo, $fiTag, $sharedTag) -ForegroundColor White
         }
     }
 
-    if ($excludedItems.Count -gt 0) {
-        Write-Host "`n[B] HARIC TUTULAN DOSYALAR (Gonderilmeyecek - Yerelde Korunur: $($excludedItems.Count) adet)" -ForegroundColor DarkYellow
-        foreach ($it in $excludedItems) {
+    if ($sharedPending.Count -gt 0) {
+        Write-Host "`n[B] ORTAK DOKUNULAN DOSYALAR (Onay Bekliyor: $($sharedPending.Count) adet)" -ForegroundColor Yellow
+        foreach ($it in $sharedPending) {
+            $others = ((ConvertTo-Array $it.otherOwners) -join ", ")
+            Write-Host ("   [{0}] [{1}] {2}  -> Diger sohbet: {3} (/pushadd veya onay ile eklenebilir)" -f $it.id, $it.status.Trim(), $it.path, $others) -ForegroundColor Yellow
+        }
+    }
+
+    if ($otherExcluded.Count -gt 0) {
+        Write-Host "`n[C] HARIC TUTULAN / SOHBET DISI DOSYALAR (Yerelde Korunur: $($otherExcluded.Count) adet)" -ForegroundColor DarkYellow
+        foreach ($it in $otherExcluded) {
             $reasonText = switch ($it.excludeReason) {
                 "user_removed"   { "Kullanici /pushremove ile cikardi" }
                 "gitignored"     { ".gitignore'a eklendi" }
                 "new_since_prep" { "/pushprep sonrasinda olustu (dahil etmek icin /pushadd)" }
+                "manual_edit"    { "Sohbet disi / Elle degistirildi (dahil etmek icin /pushadd)" }
                 default          { if ($it.excludeReason) { $it.excludeReason } else { "Haric tutuldu" } }
             }
             $col = if ($it.excludeReason -match "Zero-Leak|Ortam|Hassas|anahtar") { "Red" } else { "DarkYellow" }
@@ -531,10 +880,20 @@ function Show-PushPrepSummary($ctx, $manifest, [string]$HeaderTitle = "PUSH ONIZ
         }
     }
 
+    if ($lockedItems.Count -gt 0) {
+        Write-Host "`n[D] BASKA SOHBETE AIT KILITLI DOSYALAR (Eklenemez: $($lockedItems.Count) adet)" -ForegroundColor Red
+        foreach ($it in $lockedItems) {
+            $ownersStr = ((ConvertTo-Array $it.otherOwners) -join ", ")
+            Write-Host ("   [{0}] [KILITLI] {1}  -> Sahibi: {2} (yalnizca kendi sohbetinden pushlanabilir)" -f $it.id, $it.path, $ownersStr) -ForegroundColor Red
+        }
+    }
+
     if ($commits.Count -gt 0) {
-        Write-Host "`n[C] ONCEDEN COMMITLENMIS & PUSH BEKLEYEN COMMITLER ($($commits.Count) adet)" -ForegroundColor Cyan
+        Write-Host "`n[E] ONCEDEN COMMITLENMIS & PUSH BEKLEYEN COMMITLER ($($commits.Count) adet)" -ForegroundColor Cyan
         foreach ($c in $commits) {
-            Write-Host ("   -> {0} {1}" -f $c.short, $c.subject) -ForegroundColor White
+            $ownerBadge = if ($c.isForeignChat) { " [DIKKAT: Baska Sohbet -> $($c.ownerTitle)]" } elseif ($c.ownerTitle) { " [Sahibi: $($c.ownerTitle)]" } else { "" }
+            $cCol = if ($c.isForeignChat) { "Yellow" } else { "White" }
+            Write-Host ("   -> {0} {1}{2}" -f $c.short, $c.subject, $ownerBadge) -ForegroundColor $cCol
             foreach ($cf in (ConvertTo-Array $c.files)) {
                 Write-Host ("      - {0}" -f $cf) -ForegroundColor DarkGray
             }
@@ -576,18 +935,15 @@ function Expand-TargetTokens($rawTargets, $manifestItems) {
         $trimmed = $t.Trim()
         $normT = Normalize-RepoPath $trimmed
 
-        # Tam bilinen bir yol veya diskte tek basina bulunan dosya ise virgul/bosluga bolme
         if ($knownPaths.ContainsKey($normT) -or (Test-Path -LiteralPath $trimmed)) {
             $tokens.Add($trimmed)
             continue
         }
 
-        # Virgulleri ayir
         $commaParts = $trimmed -split ','
         foreach ($cp in $commaParts) {
             $c = $cp.Trim()
             if ([string]::IsNullOrWhiteSpace($c)) { continue }
-            # Eger birden fazla sayi veya aralik boslukla verilmissse ("2 3" veya "4-7")
             if ($c -match '^[\d\s\-]+$') {
                 foreach ($sub in ($c -split '\s+')) {
                     if ($sub -match '^(\d+)-(\d+)$') {
@@ -617,24 +973,17 @@ function Resolve-ManifestTargets($tokens, $manifestItems) {
         if ($tok -match '^\d+$') {
             $num = [int]$tok
             $hit = $items | Where-Object { [int]$_.id -eq $num }
-            if ($hit) {
-                $matched.Add($hit)
-            } else {
-                $unmatched.Add($tok)
-            }
+            if ($hit) { $matched.Add($hit) } else { $unmatched.Add($tok) }
             continue
         }
 
         $normTok = Normalize-RepoPath $tok
-
-        # 1. Tam yol eslesmesi
         $exact = @($items | Where-Object { $_.path -eq $normTok -or $_.path -ieq $normTok })
         if ($exact.Count -eq 1) {
             $matched.Add($exact[0])
             continue
         }
 
-        # 2. Wildcard veya klasor on eki
         if ($normTok -match '[\*\?]') {
             $wc = New-Object System.Management.Automation.WildcardPattern ($normTok, [System.Management.Automation.WildcardOptions]::IgnoreCase)
             $wcHits = @($items | Where-Object { $wc.IsMatch($_.path) -or $wc.IsMatch([System.IO.Path]::GetFileName($_.path)) })
@@ -644,14 +993,12 @@ function Resolve-ManifestTargets($tokens, $manifestItems) {
             }
         }
 
-        # Klasor yolu eslesmesi
         $dirHits = @($items | Where-Object { $_.path.StartsWith("$normTok/", [System.StringComparison]::OrdinalIgnoreCase) })
         if ($dirHits.Count -gt 0) {
             foreach ($d in $dirHits) { $matched.Add($d) }
             continue
         }
 
-        # 3. Dosya adi (leaf) eslesmesi
         $leafHits = @($items | Where-Object { [System.IO.Path]::GetFileName($_.path) -ieq $normTok })
         if ($leafHits.Count -eq 1) {
             $matched.Add($leafHits[0])
@@ -661,7 +1008,6 @@ function Resolve-ManifestTargets($tokens, $manifestItems) {
             continue
         }
 
-        # 4. Kismi sonek eslesmesi (orn: "scripts/foo.ps1")
         $suffixHits = @($items | Where-Object { $_.path.EndsWith("/$normTok", [System.StringComparison]::OrdinalIgnoreCase) })
         if ($suffixHits.Count -eq 1) {
             $matched.Add($suffixHits[0])
@@ -674,7 +1020,6 @@ function Resolve-ManifestTargets($tokens, $manifestItems) {
         $unmatched.Add($tok)
     }
 
-    # Tekrarlari ayikla (id bazinda)
     $seen = @{}
     $uniqueMatched = [System.Collections.Generic.List[object]]::new()
     foreach ($m in $matched) {
@@ -730,7 +1075,6 @@ function Add-PathsToGitIgnore($ctx, [string[]]$paths) {
     foreach ($p in $paths) {
         $norm = Normalize-RepoPath $p
         if (-not $existingSet.ContainsKey($norm)) {
-            # Sondaki bos satirlari sisirmemek icin kontrol
             if ($lines.Count -gt 0 -and [string]::IsNullOrEmpty($lines[$lines.Count - 1])) {
                 $lines[$lines.Count - 1] = $norm
             } else {
@@ -755,7 +1099,6 @@ function Resolve-DiskFileForAdd($ctx, [string]$tok) {
         return @($norm)
     }
 
-    # Wildcard veya dosya adi ile repo icinde ara (.git ve .worktrees haric)
     $allFiles = Get-ChildItem -Path $ctx.RepoRoot -Recurse -File -Force -ErrorAction SilentlyContinue |
         Where-Object { $_.FullName -notmatch '([\\/])(\.git|\.worktrees)([\\/]|$)' }
 
@@ -774,12 +1117,15 @@ function Resolve-DiskFileForAdd($ctx, [string]$tok) {
 # --- ANA AKIS ---
 
 Write-Host "==========================================================" -ForegroundColor Cyan
-Write-Host ">> VIGILES ENGINE - GUVENLI GIT PIPELINE (PUSHPREP / PUSH)" -ForegroundColor Yellow
+Write-Host ">> VIGILES ENGINE - SOHBET IZOLASYONLU GIT PIPELINE (v3.0)" -ForegroundColor Yellow
 Write-Host "==========================================================" -ForegroundColor Cyan
 
 $ctx = Get-RepoContext
 Write-Host "[*] Aktif Branch : $($ctx.Branch)" -ForegroundColor Gray
 Write-Host "[*] Hedef Remote : $($ctx.Remote) ($($ctx.RemoteUrl))" -ForegroundColor Gray
+if (-not [string]::IsNullOrWhiteSpace($ctx.ConversationId)) {
+    Write-Host "[*] Sohbet ID    : $($ctx.ConversationId)" -ForegroundColor Cyan
+}
 
 # 1. RESET veya PREP veya STATUS
 if ($Action -in @("Prep", "Reset", "Status")) {
@@ -835,8 +1181,12 @@ if ($Action -eq "Remove") {
         if ($matchedSet.ContainsKey($it.path)) {
             $it.included = $false
             $it.forcedIgnore = $false
+            if ($it.ownership -eq "SHARED_MULTI_CHAT") {
+                $it.sharedDecision = "excluded"
+            }
             $it.excludeReason = if ($Ignore) { "gitignored" } else { "user_removed" }
             $removedPaths.Add($it.path)
+            if ($it.origPath) { $removedPaths.Add($it.origPath) }
         }
     }
 
@@ -846,7 +1196,17 @@ if ($Action -eq "Remove") {
     if ($Ignore) {
         $giAdded = Add-PathsToGitIgnore $ctx ($removedPaths.ToArray())
         Write-Host "`n[GITIGNORE]: $($removedPaths.Count) dosya .gitignore'a islendi (yeni satir: $giAdded). Yerel dosyalar korundu." -ForegroundColor Cyan
-        # .gitignore dosyasini manifestoda guncel ve dahil goster
+        # .gitignore dosyasi bu sohbet tarafindan duzenlendi olarak zimmetlensin
+        if (-not [string]::IsNullOrWhiteSpace($ctx.ConversationId)) {
+            Invoke-WithLedgerLock $ctx {
+                param($l)
+                $nowIso = (Get-Date).ToString("o")
+                if (-not $l.files.PSObject.Properties[".gitignore"]) {
+                    Set-ObjProp $l.files ".gitignore" ([PSCustomObject]@{ editors = [PSCustomObject]@{}; lastKnownMtimeUtcTicks = 0; lastKnownExists = $true })
+                }
+                Set-ObjProp $l.files.".gitignore".editors $ctx.ConversationId ([PSCustomObject]@{ firstEditedAt = $nowIso; lastEditedAt = $nowIso; tool = "pushremove_ignore" })
+            } | Out-Null
+        }
         $syncAfter = Sync-Manifest $ctx
         $manifest = $syncAfter.Manifest
     }
@@ -873,6 +1233,7 @@ if ($Action -eq "Add") {
 
     $syncRes = Sync-Manifest $ctx
     $manifest = $syncRes.Manifest
+    $ledger = $syncRes.Ledger
     $items = [System.Collections.Generic.List[object]]::new()
     foreach ($x in (ConvertTo-Array $manifest.items)) { $items.Add($x) }
 
@@ -894,9 +1255,15 @@ if ($Action -eq "Add") {
     $matchedSet = @{}
     foreach ($m in $res.Matched) { $matchedSet[$m.path] = $true }
 
-    # Manifestoda zaten olanlari geri al
     foreach ($it in $items) {
         if ($matchedSet.ContainsKey($it.path)) {
+            if ($it.ownership -eq "LOCKED_OTHER_CHAT") {
+                $ownersStr = ((ConvertTo-Array $it.otherOwners) -join ", ")
+                Write-Host "[SOHBET IZOLASYON ENGELI]: '$($it.path)' dosyasi baska bir sohbete aittir ($ownersStr). Kati koruma geregi yalnizca kendi sohbetinden pushlanabilir!" -ForegroundColor Red
+                $blockedPaths.Add($it.path)
+                continue
+            }
+
             $leak = Test-ZeroLeakFile -repoRoot $ctx.RepoRoot -relPath $it.path -statusXy $it.status
             if ($leak.IsLeak) {
                 Write-Host "[ZERO-LEAK ENGELI]: '$($it.path)' guvenlik ihlali nedeniyle eklenemez! ($($leak.Reason))" -ForegroundColor Red
@@ -904,12 +1271,14 @@ if ($Action -eq "Add") {
             } else {
                 $it.included = $true
                 $it.excludeReason = ""
+                if ($it.ownership -eq "SHARED_MULTI_CHAT") {
+                    $it.sharedDecision = "approved"
+                }
                 $addedPaths.Add($it.path)
             }
         }
     }
 
-    # Manifestoda bulunamayanlar icin disk + gitignore kontrolu
     $stillMissing = [System.Collections.Generic.List[string]]::new()
     foreach ($uTok in $res.Unmatched) {
         if ($uTok -match '^\d+$') {
@@ -925,7 +1294,13 @@ if ($Action -eq "Add") {
 
         foreach ($dh in $diskHits) {
             $alreadyInManifest = $items | Where-Object { $_.path -eq $dh }
-            if ($alreadyInManifest) {
+            if ($alreadyInManifest) { continue }
+
+            $ownInfo = Get-FileOwnership $ctx $ledger $dh $null
+            if ($ownInfo.Ownership -eq "LOCKED_OTHER_CHAT") {
+                $ownersStr = ($ownInfo.OtherTitles -join ", ")
+                Write-Host "[SOHBET IZOLASYON ENGELI]: '$dh' dosyasi baska bir sohbete aittir ($ownersStr). Kati koruma geregi eklenemez!" -ForegroundColor Red
+                $blockedPaths.Add($dh)
                 continue
             }
 
@@ -940,14 +1315,17 @@ if ($Action -eq "Add") {
             if ($ignRes.ExitCode -eq 0) {
                 Write-Host "[BILGI]: '$dh' .gitignore icinde olmasina ragmen guvenli oldugu icin push paketine istisna olarak eklendi." -ForegroundColor Cyan
                 $items.Add([PSCustomObject]@{
-                    id            = 0
-                    path          = $dh
-                    origPath      = $null
-                    status        = "FI"
-                    statusLabel   = "Gitignore Istisnasi (/pushadd)"
-                    included      = $true
-                    forcedIgnore  = $true
-                    excludeReason = ""
+                    id             = 0
+                    path           = $dh
+                    origPath       = $null
+                    status         = "FI"
+                    statusLabel    = "Gitignore Istisnasi (/pushadd)"
+                    included       = $true
+                    forcedIgnore   = $true
+                    excludeReason  = ""
+                    ownership      = $ownInfo.Ownership
+                    otherOwners    = @($ownInfo.OtherTitles)
+                    sharedDecision = ""
                 })
                 $addedPaths.Add($dh)
             } else {
@@ -956,14 +1334,17 @@ if ($Action -eq "Add") {
                     Write-Host "[BILGI]: '$dh' dosyasinda degisiklik yok (uzak/yerel son commit ile zaten guncel)." -ForegroundColor DarkGray
                 } else {
                     $items.Add([PSCustomObject]@{
-                        id            = 0
-                        path          = $dh
-                        origPath      = $null
-                        status        = "??"
-                        statusLabel   = "Yeni (Takipsiz)"
-                        included      = $true
-                        forcedIgnore  = $false
-                        excludeReason = ""
+                        id             = 0
+                        path           = $dh
+                        origPath       = $null
+                        status         = "??"
+                        statusLabel    = "Yeni (Takipsiz)"
+                        included       = $true
+                        forcedIgnore   = $false
+                        excludeReason  = ""
+                        ownership      = $ownInfo.Ownership
+                        otherOwners    = @($ownInfo.OtherTitles)
+                        sharedDecision = ""
                     })
                     $addedPaths.Add($dh)
                 }
@@ -994,16 +1375,40 @@ if ($Action -eq "Add") {
     exit 0
 }
 
-# 4. PUSH (/push) — Zorunlu Onizleme Kapisi & Secici Sahneleme
+# 4. PUSH (/push) — Zorunlu Onizleme, Ortak Dosya Onayi & Katı Sohbet Izolasyonu
 $existingManifest = Read-Manifest $ctx
 $hasValidManifest = ($null -ne $existingManifest -and $existingManifest.branch -eq $ctx.Branch -and $existingManifest.remote -eq $ctx.Remote)
 
 $syncResult = Sync-Manifest $ctx -MarkNewAsExcluded:$hasValidManifest -NoSave:$DryRun
 $manifest = $syncResult.Manifest
 $items = @(ConvertTo-Array $manifest.items)
-$includedItems = @($items | Where-Object { $_.included })
-$excludedItems = @($items | Where-Object { -not $_.included })
-$commits = @(ConvertTo-Array $manifest.unpushedCommits)
+
+# Eger -IncludeShared verildiyse bekleyen ortak dosyalari onayla
+if ($IncludeShared) {
+    $changedShared = $false
+    foreach ($it in $items) {
+        if ($it.ownership -eq "SHARED_MULTI_CHAT" -and -not $it.included -and $it.sharedDecision -eq "pending") {
+            $leak = Test-ZeroLeakFile -repoRoot $ctx.RepoRoot -relPath $it.path -statusXy $it.status
+            if (-not $leak.IsLeak) {
+                $it.included = $true
+                $it.sharedDecision = "approved"
+                $it.excludeReason = ""
+                $changedShared = $true
+            }
+        }
+    }
+    if ($changedShared -and -not $DryRun) {
+        $manifest = Save-Manifest $ctx $manifest
+        $items = @(ConvertTo-Array $manifest.items)
+    }
+}
+
+$includedItems  = @($items | Where-Object { $_.included })
+$excludedItems  = @($items | Where-Object { -not $_.included })
+$sharedPending  = @($items | Where-Object { -not $_.included -and $_.ownership -eq "SHARED_MULTI_CHAT" -and $_.sharedDecision -eq "pending" })
+$lockedItems    = @($items | Where-Object { -not $_.included -and $_.ownership -eq "LOCKED_OTHER_CHAT" })
+$commits        = @(ConvertTo-Array $manifest.unpushedCommits)
+$foreignCommits = @($commits | Where-Object { $_.isForeignChat })
 
 # Hicbir degisiklik ve bekleyen commit yoksa temiz cik
 if ($includedItems.Count -eq 0 -and $excludedItems.Count -eq 0 -and $commits.Count -eq 0) {
@@ -1012,7 +1417,7 @@ if ($includedItems.Count -eq 0 -and $excludedItems.Count -eq 0 -and $commits.Cou
     exit 0
 }
 
-# ZORUNLU ONIZLEME KAPISI: Daha once /pushprep yapilmadiysa ve -Approved verilmediyse DUR!
+# KAPI 1: ZORUNLU ONIZLEME KAPISI
 if (-not $hasValidManifest -and -not $Approved) {
     Show-PushPrepSummary $ctx $manifest "ZORUNLU ONIZLEME (/pushprep yapilmadi)"
     if ($DryRun) {
@@ -1020,23 +1425,39 @@ if (-not $hasValidManifest -and -not $Approved) {
         exit 0
     }
     Write-Host "`n[ONIZLEME GEREKLI]: Oncesinde '/pushprep' calistirilmadigi icin dogrudan push engellendi." -ForegroundColor Yellow
-    Write-Host "   -> Listeyi duzenlemek icin '/pushremove <no|dosya>' veya '/pushadd <no|dosya>' kullanin." -ForegroundColor Gray
-    Write-Host "   -> Bu paketi onaylayip gondermek icin simdi '/push' veya onay komutu verin." -ForegroundColor Gray
     exit 2
 }
 
-# DRIFT KONTROLU: /pushprep sonrasinda yeni kirli dosya turediyse ve -Approved yoksa DUR!
+# KAPI 2: DRIFT KONTROLU (/pushprep sonrasinda yeni kirli dosya olustuysa)
 if ($hasValidManifest -and $syncResult.NewlyDetected.Count -gt 0 -and -not $Approved) {
     Show-PushPrepSummary $ctx $manifest "YENI DOSYA TESPITI (ONAY GEREKLI)"
     if ($DryRun) {
         Write-Host "`n[DRY-RUN]: Yeni tespit edilen dosyalar haric tutuldu. Gercek push yapilmadi." -ForegroundColor Yellow
         exit 0
     }
-    Write-Host "`n[YENI DOSYA TESPITI]: /pushprep sonrasinda $($syncResult.NewlyDetected.Count) yeni dosya algilandi ve guvenlik geregi haric tutuldu:" -ForegroundColor Yellow
-    foreach ($nd in $syncResult.NewlyDetected) {
-        Write-Host "   ? $nd" -ForegroundColor DarkYellow
+    Write-Host "`n[YENI DOSYA TESPITI]: /pushprep sonrasinda $($syncResult.NewlyDetected.Count) yeni dosya algilandi ve haric tutuldu." -ForegroundColor Yellow
+    exit 2
+}
+
+# KAPI 3: ORTAK DOKUNULAN DOSYA ONAY KAPISI (SHARED_MULTI_CHAT pending iken -IncludeShared ve -Approved yoksa)
+if ($sharedPending.Count -gt 0 -and -not $IncludeShared -and -not $Approved) {
+    Show-PushPrepSummary $ctx $manifest "ORTAK DOSYA ONAYI GEREKLI"
+    if ($DryRun) {
+        Write-Host "`n[DRY-RUN]: Ortak dosya onay kapisi aktif. Gercek push yapilmadi." -ForegroundColor Yellow
+        exit 0
     }
-    Write-Host "   -> Dahil etmek icin '/pushadd <dosya>', haric tutarak pushlamak icin onay verin." -ForegroundColor Gray
+    Write-Host "`n[ORTAK DOSYA ONAYI GEREKLI]: Baska sohbetlerle ortak dokunulan $($sharedPending.Count) dosya var. Dahil etmek icin onay verin veya /pushadd kullanin; haric tutarak devam etmek icin onaylayin." -ForegroundColor Yellow
+    exit 2
+}
+
+# KAPI 4: BASKA SOHBETIN BEKLEYEN YEREL COMMIT UYARISI
+if ($foreignCommits.Count -gt 0 -and -not $Approved) {
+    Show-PushPrepSummary $ctx $manifest "DIGER SOHBET COMMIT UYARISI"
+    if ($DryRun) {
+        Write-Host "`n[DRY-RUN]: Baska sohbete ait bekleyen commit uyarisi aktif." -ForegroundColor Yellow
+        exit 0
+    }
+    Write-Host "`n[DIGER SOHBET COMMIT UYARISI]: Bu branch'te baska sohbete ait $($foreignCommits.Count) bekleyen yerel commit var. 'git push' hepsini gonderecektir; devam etmek icin onay verin." -ForegroundColor Yellow
     exit 2
 }
 
@@ -1048,8 +1469,12 @@ if ($conflicts.Count -gt 0) {
     exit 1
 }
 
-# Final Zero-Leak guvenlik taramasi (dahil edilen dosyalar)
+# Final Zero-Leak & Kati Kilit guvenlik taramasi
 foreach ($it in $includedItems) {
+    if ($it.ownership -eq "LOCKED_OTHER_CHAT") {
+        Write-Host "[KRITIK SOHBET IZOLASYON ENGELI]: '$($it.path)' baska sohbete ait oldugu icin push iptal edildi!" -ForegroundColor Red
+        exit 1
+    }
     $leak = Test-ZeroLeakFile -repoRoot $ctx.RepoRoot -relPath $it.path -statusXy $it.status
     if ($leak.IsLeak) {
         Write-Host "[ZERO-LEAK ENGELI]: '$($it.path)' push oncesi taramada takildi: $($leak.Reason)" -ForegroundColor Red
@@ -1058,11 +1483,14 @@ foreach ($it in $includedItems) {
 }
 
 if ($includedItems.Count -eq 0 -and $commits.Count -eq 0) {
-    Write-Host "`n[BILGI]: Push paketinde onayli dosya veya bekleyen commit bulunmuyor (tum dosyalar /pushremove ile haric tutuldu)." -ForegroundColor DarkYellow
+    if ($lockedItems.Count -gt 0 -or $excludedItems.Count -gt 0) {
+        Write-Host "`n[BILGI]: Bu sohbete ait pushlanacak dosya bulunmuyor ($($lockedItems.Count) dosya baska sohbete kilitli, $($excludedItems.Count) dosya haric)." -ForegroundColor DarkYellow
+    } else {
+        Write-Host "`n[BILGI]: Push paketinde onayli dosya veya bekleyen commit bulunmuyor." -ForegroundColor DarkYellow
+    }
     exit 0
 }
 
-# Dry-Run modu
 if ($DryRun) {
     Show-PushPrepSummary $ctx $manifest "DRY-RUN SIMULASYONU (Gercek Push Yapilmadi)"
     Write-Host "`n[DRY-RUN]: Secici sahneleme ($($includedItems.Count) dosya) ve commit/push simule edildi." -ForegroundColor Yellow
@@ -1071,10 +1499,11 @@ if ($DryRun) {
 
 # ADIM 1 & 2: SECICI SAHNELEME VE COMMIT
 $committedNow = $false
-if ($includedItems.Count -gt 0) {
-    Write-Host "`n[ADIM 1 - SECICI SAHNELEME]: Yalnizca onayli $($includedItems.Count) dosya sahneye ekleniyor..." -ForegroundColor Cyan
+$pushedPathsList = [System.Collections.Generic.List[string]]::new()
 
-    # Once mevcut sahneyi tamamen sifirla (disaridan kalmis veya haric tutulan dosya sizmasin)
+if ($includedItems.Count -gt 0) {
+    Write-Host "`n[ADIM 1 - SECICI SAHNELEME]: Bu sohbete ait onayli $($includedItems.Count) dosya sahneye ekleniyor..." -ForegroundColor Cyan
+
     if ($ctx.HeadSha -eq "UNBORN") {
         $stagedRes = Invoke-GitRaw -GitArgs @("diff", "--cached", "--name-only", "-z") -UseQuotepathFalse
         if ($stagedRes.ExitCode -eq 0 -and -not [string]::IsNullOrEmpty($stagedRes.StdOut)) {
@@ -1095,8 +1524,9 @@ if ($includedItems.Count -gt 0) {
 
     foreach ($it in $includedItems) {
         $expectedStageSet[$it.path] = $true
+        $pushedPathsList.Add($it.path)
+        if ($it.origPath) { $pushedPathsList.Add($it.origPath) }
         if ($it.origPath -and ($it.status -match 'R')) {
-            # Rename islemi icin eski yolun da sahneden dusup yeniden sahnelenmesi gerekir
             $normalStagePaths.Add($it.origPath)
             $expectedStageSet[$it.origPath] = $true
         }
@@ -1134,7 +1564,7 @@ if ($includedItems.Count -gt 0) {
         if ($tmpForced) { Remove-Item -LiteralPath $tmpForced -Force -ErrorAction SilentlyContinue }
     }
 
-    # STAGE PARITY DOGRULAMASI: Gercekte sahneye giren dosyalar == Manifesto onaylilari mi?
+    # STAGE PARITY DOGRULAMASI
     $cachedRes = Invoke-GitRaw -GitArgs @("diff", "--cached", "--name-only", "-z") -UseQuotepathFalse
     $actualStaged = @()
     if ($cachedRes.ExitCode -eq 0 -and -not [string]::IsNullOrEmpty($cachedRes.StdOut)) {
@@ -1143,9 +1573,7 @@ if ($includedItems.Count -gt 0) {
 
     $unexpected = @()
     foreach ($as in $actualStaged) {
-        if (-not $expectedStageSet.ContainsKey($as)) {
-            $unexpected += $as
-        }
+        if (-not $expectedStageSet.ContainsKey($as)) { $unexpected += $as }
     }
     if ($unexpected.Count -gt 0) {
         Write-Host "[KRITIK GUVENLIK HATASI]: Manifesto disinda dosya(lar) sahneye sizdi: $($unexpected -join ', '). Islem iptal edildi!" -ForegroundColor Red
@@ -1157,7 +1585,7 @@ if ($includedItems.Count -gt 0) {
         Write-Host "`n[BILGI]: Sahneye alinan degisiklik bulunmuyor." -ForegroundColor DarkGray
     } else {
         if ([string]::IsNullOrWhiteSpace($CommitMessage)) {
-            $CommitMessage = "feat: update system improvements and verified changes"
+            $CommitMessage = "feat: update session changes and verified improvements"
         }
 
         Write-Host "`n[ADIM 2 - GIT COMMIT]: Commit olusturuluyor: '$CommitMessage'..." -ForegroundColor Cyan
@@ -1169,6 +1597,10 @@ if ($includedItems.Count -gt 0) {
             if ($cmtRes.ExitCode -eq 0) {
                 Write-Host "[OK] Commit basariyla kaydedildi." -ForegroundColor Green
                 $committedNow = $true
+                $newHeadRes = Invoke-GitRaw -GitArgs @("rev-parse", "HEAD")
+                if ($newHeadRes.ExitCode -eq 0) {
+                    Register-CommitOwner $ctx ($newHeadRes.StdOut.Trim()) $CommitMessage
+                }
             } else {
                 Write-Host "[HATA]: Commit olusturulamadi: $($cmtRes.StdErr)" -ForegroundColor Red
                 exit 1
@@ -1181,7 +1613,8 @@ if ($includedItems.Count -gt 0) {
 
 # ADIM 3: PUSH BEKLEYEN COMMITLER VE AKTARIM
 $ctxAfter = Get-RepoContext
-$finalCommits = @(ConvertTo-Array (Get-UnpushedCommits $ctxAfter))
+$ledgerAfter = Read-LedgerSnapshot $ctxAfter
+$finalCommits = @(ConvertTo-Array (Get-UnpushedCommits $ctxAfter $ledgerAfter))
 
 if ($finalCommits.Count -eq 0 -and -not $committedNow) {
     Clear-Manifest $ctxAfter
@@ -1208,13 +1641,14 @@ if (-not $hasUpstream) {
 
 if ($LASTEXITCODE -eq 0) {
     Clear-Manifest $ctxAfter
+    Cleanup-LedgerAfterPush $ctxAfter ($pushedPathsList.ToArray())
     Write-Host "`n==========================================================" -ForegroundColor Green
-    Write-Host "[BASARILI]: Pipeline tamamlandi! (prep -> add -> commit -> push)" -ForegroundColor Green
+    Write-Host "[BASARILI]: Pipeline tamamlandi! (prep -> selective add -> commit -> push)" -ForegroundColor Green
     Write-Host "   Branch         : $($ctxAfter.Branch)" -ForegroundColor White
     Write-Host "   Hedef          : $($ctxAfter.RemoteUrl)" -ForegroundColor White
     Write-Host "   Gonderilen     : $($includedItems.Count) dosya / $($finalCommits.Count) commit" -ForegroundColor White
     if ($excludedItems.Count -gt 0) {
-        Write-Host "   Haric Tutulan  : $($excludedItems.Count) dosya yerelde guvenle korundu" -ForegroundColor Yellow
+        Write-Host "   Haric/Kilitli  : $($excludedItems.Count) dosya yerelde guvenle korundu" -ForegroundColor Yellow
     }
     Write-Host "==========================================================" -ForegroundColor Green
     exit 0

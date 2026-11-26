@@ -16,7 +16,7 @@ Bu yetenek (skill), kullanıcının **/pushremove <hedef>** komutunu vermesiyle 
 
 1. **Yerel Dosya Dokunulmazlığı:**
    - `/pushremove` yerel dosyayı silmez (`rm`/`Remove-Item` yok) veya yapılan değişiklikleri geri almaz (`git checkout --` yok).
-   - Yalnızca `.git/vigiles/pushprep.json` içindeki durumu `included: false` yapar ve dosya Git index'indeyse sahneden (`stage`) indirir.
+   - Yalnızca bu sohbete özel `.git/vigiles/pushprep_<cid>.json` içindeki durumu `included: false` yapar ve dosya Git index'indeyse sahneden (`stage`) indirir.
 2. **İsteğe Bağlı Kalıcı Gizleme (`--ignore`):**
    - Kullanıcı `--ignore` (veya *"kalıcı çıkar / gitignore'a ekle"*) belirtirse `-Ignore` parametresi ile ilgili yol `.gitignore` dosyasına da güvenli biçimde işlenir.
 
@@ -37,4 +37,4 @@ powershell -NoProfile -ExecutionPolicy Bypass -File $mgr -Action Remove -Targets
 
 - Eğer hedef belirtilmemişse kullanıcıya hangi numara veya dosyayı çıkarmak istediğini sor.
 - Birden fazla dosya aynı isimle çakışıyorsa (`Ambiguous`) listedeki sıra numaralarını sunup netleştir.
-- İşlem sonrası güncellenmiş **Gönderilecekler / Hariç Tutulanlar** listesini göster.
+- İşlem sonrası güncellenmiş numaralı **Sohbet Push Listesini** göster.

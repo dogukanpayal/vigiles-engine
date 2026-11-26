@@ -227,9 +227,11 @@ function Test-IsBinary([byte[]]$bytes) {
 }
 
 function ConvertTo-LfBytes([byte[]]$bytes) {
-    if ($null -eq $bytes -or $bytes.Length -eq 0) { return $bytes }
+    if ($null -eq $bytes -or $bytes.Length -eq 0) { return ,([byte[]]::new(0)) }
     $str = [System.Text.Encoding]::UTF8.GetString($bytes).TrimStart([char]65279)
-    return $Utf8NoBom.GetBytes($str.Replace("`r`n", "`n"))
+    [byte[]]$out = $Utf8NoBom.GetBytes($str.Replace("`r`n", "`n"))
+    if ($null -eq $out) { $out = [byte[]]::new(0) }
+    return ,$out
 }
 
 function Test-HasCrlf([byte[]]$bytes) {
@@ -322,9 +324,9 @@ function Invoke-GitMergeFileBytes([byte[]]$mainBytes, [byte[]]$baseBytes, [byte[
         $fBase = Join-Path $dir "base.txt"
         $fWt   = Join-Path $dir "wt.txt"
 
-        [System.IO.File]::WriteAllBytes($fMain, $(if ($null -ne $mainBytes) { $mainBytes } else { [byte[]]@() }))
-        [System.IO.File]::WriteAllBytes($fBase, $(if ($null -ne $baseBytes) { $baseBytes } else { [byte[]]@() }))
-        [System.IO.File]::WriteAllBytes($fWt,   $(if ($null -ne $wtBytes)   { $wtBytes }   else { [byte[]]@() }))
+        if ($null -ne $mainBytes -and $mainBytes.Length -gt 0) { [System.IO.File]::WriteAllBytes($fMain, $mainBytes) } else { [System.IO.File]::Create($fMain).Dispose() }
+        if ($null -ne $baseBytes -and $baseBytes.Length -gt 0) { [System.IO.File]::WriteAllBytes($fBase, $baseBytes) } else { [System.IO.File]::Create($fBase).Dispose() }
+        if ($null -ne $wtBytes   -and $wtBytes.Length   -gt 0) { [System.IO.File]::WriteAllBytes($fWt,   $wtBytes)   } else { [System.IO.File]::Create($fWt).Dispose() }
 
         $psi = New-Object System.Diagnostics.ProcessStartInfo
         $psi.FileName = "git"
@@ -616,7 +618,8 @@ function Build-MergePlan($ctx, $session) {
 
         # Metin dosyasi -> LF normalize ederek git merge-file ile gercek 3-way birlestirme
         $lfMain = ConvertTo-LfBytes $mainBytes
-        $lfBase = if ($null -ne $baseBlob.Bytes) { ConvertTo-LfBytes $baseBlob.Bytes } else { [byte[]]@() }
+        $lfBase = [byte[]]::new(0)
+        if ($null -ne $baseBlob.Bytes -and $baseBlob.Bytes.Length -gt 0) { $lfBase = ConvertTo-LfBytes $baseBlob.Bytes }
         $lfWt   = ConvertTo-LfBytes $wtBytes
         $mf = Invoke-GitMergeFileBytes -mainBytes $lfMain -baseBytes $lfBase -wtBytes $lfWt -wtLabel $shortId
         if ($mf.ExitCode -eq 0) {
@@ -624,8 +627,8 @@ function Build-MergePlan($ctx, $session) {
             if (Test-HasCrlf $mainBytes) {
                 $mergedStr = $mergedStr.Replace("`r`n", "`n").Replace("`n", "`r`n")
             }
-            $hadBom = ($mainBytes.Length -ge 3 -and $mainBytes[0] -eq 0xEF -and $mainBytes[1] -eq 0xBB -and $mainBytes[2] -eq 0xBF) -or
-                      ($wtBytes.Length -ge 3 -and $wtBytes[0] -eq 0xEF -and $wtBytes[1] -eq 0xBB -and $wtBytes[2] -eq 0xBF)
+            $hadBom = ($null -ne $mainBytes -and $mainBytes.Length -ge 3 -and $mainBytes[0] -eq 0xEF -and $mainBytes[1] -eq 0xBB -and $mainBytes[2] -eq 0xBF) -or
+                      ($null -ne $wtBytes -and $wtBytes.Length -ge 3 -and $wtBytes[0] -eq 0xEF -and $wtBytes[1] -eq 0xBB -and $wtBytes[2] -eq 0xBF)
             $enc = if ($hadBom -or $rel -match '\.ps1$') { $Utf8Bom } else { $Utf8NoBom }
             $finalBytes = $enc.GetBytes($mergedStr)
             $planItems.Add([PSCustomObject]@{

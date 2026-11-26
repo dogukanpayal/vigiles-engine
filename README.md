@@ -1,7 +1,7 @@
 # 🏛️ Vigiles Engine
 ### Kurşungeçirmez 19 Elemanlı Otonom Yazılım Şirketi ve Canlı Telemetri Merkezi
 
-[![Tests](https://img.shields.io/badge/Tests-22%2F22%20Passing-brightgreen?style=flat-square&logo=powershell)](./Run-MasterVerification.ps1)
+[![Tests](https://img.shields.io/badge/Tests-23%2F23%20Passing-brightgreen?style=flat-square&logo=powershell)](./Run-MasterVerification.ps1)
 [![Platform](https://img.shields.io/badge/Antigravity-2.0%20Ready-blue?style=flat-square&logo=google)](https://antigravity.google)
 [![Architecture](https://img.shields.io/badge/Protocol-Vigiles%2019--Element-purple?style=flat-square)](#-sistem-mimarisi)
 [![Telemetry](https://img.shields.io/badge/Mission%20Control-SSE%20Port%209999-orange?style=flat-square)](#-canlı-operasyon-merkezi-mission-control)
@@ -157,10 +157,10 @@ Yalnızca sohbette `/live` (veya `/mission-control`, `/hud`) komutunu çalışt�
 │   │   └── design/                            # Anti-Slop UI Tasarım Disiplini & references/anti_slop_catalog.md
 │   ├── templates/                             # Tek Kaynak Web Arayüzleri (HUD, Playground) & Şablonlar
 │   │   └── DESIGN.template.md                 # Proje Bazlı Tasarım Sözleşmesi (DESIGN.md) Şablonu
-│   ├── scripts/                               # session/merge manager, command_watchdog, sentinel_guard, telemetry_server, git_push_manager
+│   ├── scripts/                               # session/merge/ledger, command_watchdog, sentinel_guard, telemetry_server, git_push_manager
 │   └── hooks.json                             # Taşınabilir Antigravity Engine Lifecycle Hooks
 │
-├── tests/                                     # Konsolide Sistem, İzolasyon & Kaos Test Paketi (22 Paket)
+├── tests/                                     # Konsolide Sistem, İzolasyon & Kaos Test Paketi (23 Paket)
 │   ├── Test-*.ps1                             # Birim, Entegrasyon & Mod Bütünlüğü Doğrulamaları
 │   ├── Scenario-*.ps1                         # Uçtan Uca Yaşam Döngüsü Senaryoları
 │   └── Chaos-*.ps1                            # Yüksek Yük, Deadlock ve Yarış Durumu Testleri
@@ -172,7 +172,7 @@ Yalnızca sohbette `/live` (veya `/mission-control`, `/hud`) komutunu çalışt�
 │
 ├── KURALLAR.md                                # Şirket Anayasası (KURAL-001 - KURAL-025)
 ├── install.ps1                                # Taşınabilir & Hook-Merge Destekli Kurulum Betiği
-└── Run-MasterVerification.ps1                 # Konsolide 22/22 Sistem Doğrulayıcı (Paket Başı OS Timeout Korumalı)
+└── Run-MasterVerification.ps1                 # Konsolide 23/23 Sistem Doğrulayıcı (Paket Başı OS Timeout Korumalı)
 ```
 
 ---
@@ -224,6 +224,7 @@ Baş Mimar anında `DURUM.md` ve `KURALLAR.md` sözleşmelerini açacak ve 19 el
 | Test Paketi | Test Edilen Alan | Sonuç |
 | :--- | :--- | :---: |
 | `tests/Test-GitPushManager.ps1` | İki Aşamalı Seçici Git Pipeline'ı (`/pushprep` -> `/pushremove` / `/pushadd` -> `/push`) | ✅ GEÇTİ |
+| `tests/Test-SessionPushIsolation.ps1` | Çoklu Sohbet Dosya Zimmeti, Katı Kilit & Mutex Kaos İzolasyonu | ✅ GEÇTİ |
 | `tests/Test-MultiSessionTelemetri.ps1` | Çoklu Chat SSE İzolasyonu ve Oturum Seçici Mekanizması | ✅ GEÇTİ |
 | `tests/Test-WorkersSubNodes.ps1` | Sınırsız Dinamik İşçi Ağacı ve CSS/DOM Render Kontrolü | ✅ GEÇTİ |
 | `tests/Test-AuxiliarySection.ps1` | Yardımcı & Standby Elemanlar İzolasyon Masası Kontrolü | ✅ GEÇTİ |
@@ -245,7 +246,7 @@ Baş Mimar anında `DURUM.md` ve `KURALLAR.md` sözleşmelerini açacak ve 19 el
 | `tests/Chaos-WorkersSubNodes.ps1` | 50-100 İşçili Yüksek Yük Altında Taşma ve Render Dayanıklılığı | ✅ PÜSKÜRTÜLDÜ |
 | `tests/Chaos-AuxiliarySection.ps1` | Yardımcı Elemanlar Fırtına & Anlık Tetikleme Dayanıklılığı | ✅ PÜSKÜRTÜLDÜ |
 | `tests/Chaos-ParallelProSessions.ps1` | Eşzamanlı Çift `/pro` Yarış Durumu, Ortak Dosya & `KURALLAR.md` Kural Çakışması Dayanıklılığı | ✅ PÜSKÜRTÜLDÜ |
-| **KONSOLİDE RAPOR** | **Tüm Sistem Bileşenleri (22/22 Paket, 0 Kusur)** | **✅ %100 BAŞARILI** |
+| **KONSOLİDE RAPOR** | **Tüm Sistem Bileşenleri (23/23 Paket, 0 Kusur)** | **✅ %100 BAŞARILI** |
 
 ---
 

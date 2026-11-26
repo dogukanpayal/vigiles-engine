@@ -1,5 +1,5 @@
 ﻿# Test-GitPushManager.ps1
-# Unit, Integration & Chaos Tests for git_push_manager.ps1 v2.0 (/pushprep -> /pushremove / /pushadd -> /push)
+# Unit, Integration & Chaos Tests for git_push_manager.ps1 (/pushprep -> /pushremove / /pushadd -> /push)
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $OutputEncoding = [System.Text.Encoding]::UTF8
@@ -32,7 +32,7 @@ function Assert-Step([string]$name, [bool]$cond, [string]$detail = "") {
 }
 
 function Invoke-Manager([string[]]$ManagerArgs) {
-    $allArgs = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $scriptPath) + $ManagerArgs
+    $allArgs = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $scriptPath, "-SkipTranscriptScan") + $ManagerArgs
     $out = (& powershell @allArgs 2>&1 | Out-String)
     return @{
         ExitCode = $LASTEXITCODE
@@ -54,7 +54,6 @@ function New-IsolatedRepoPair {
     & git config user.name "Vigiles Tester"
     & git config core.quotepath false
     & git remote add origin $bare
-    # Ilk temel commit (remote main branch hazir olsun)
     "initial" | Set-Content -Encoding UTF8 "README_INIT.md"
     & git add README_INIT.md | Out-Null
     & git commit -m "chore: initial commit" | Out-Null
@@ -70,13 +69,17 @@ function Remove-IsolatedRepoPair($pair) {
 }
 
 # Test 1: Mevcut Depoda -DryRun Testi (Manifesto dosyasina dokunmamali)
-$wsManifestPath = Join-Path $repoRoot ".git\vigiles\pushprep.json"
+$gdRes = (& git -C $repoRoot rev-parse --git-dir 2>$null).Trim()
+$absGd = if ([System.IO.Path]::IsPathRooted($gdRes)) { $gdRes } else { [System.IO.Path]::GetFullPath((Join-Path $repoRoot $gdRes)) }
+$wsManifestPath = Join-Path $absGd "vigiles\pushprep_cli.json"
 $hadManifestBefore = Test-Path $wsManifestPath
+Push-Location $repoRoot
 $r1 = Invoke-Manager @("-DryRun")
+Pop-Location
 $hasManifestAfter = Test-Path $wsManifestPath
 Assert-Step "Test 1: Mevcut Depoda -DryRun Onizleme / Guncel Kontrolu (Salt-Okunur)" `
     ($r1.ExitCode -eq 0 -and ($hadManifestBefore -eq $hasManifestAfter) -and ($r1.Output -match "Uzak depo zaten guncel|DRY-RUN|ZORUNLU ONIZLEME")) `
-    "Exit=$($r1.ExitCode) Before=$hadManifestBefore After=$hasManifestAfter Out=$($r1.Output)"
+    "Exit=$($r1.ExitCode) Before=$hadManifestBefore After=$hasManifestAfter"
 
 # Test 2: Git Olmayan Dizinde Guvenlik Engeli
 $tempNonGit = Join-Path $env:TEMP ("nongit_" + [System.Guid]::NewGuid().ToString().Substring(0, 8))
@@ -117,10 +120,10 @@ try {
     "d1" | Set-Content -Encoding UTF8 "yeni_klasor\bir.txt"
     "d2" | Set-Content -Encoding UTF8 "yeni_klasor\iki.txt"
     $r4 = Invoke-Manager @("-Action", "Prep")
-    $manifestExists = Test-Path (Join-Path $p4.Clone ".git\vigiles\pushprep.json")
+    $manifestExists = Test-Path (Join-Path $p4.Clone ".git\vigiles\pushprep_cli.json")
     $gitStatusRaw = (& git status --porcelain 2>&1 | Out-String)
     Assert-Step "Test 4: /pushprep -uall tekil numaralandirma & calisma agaci temizligi" `
-        ($r4.ExitCode -eq 0 -and $manifestExists -and $r4.Output -match "yeni_klasor/bir\.txt" -and $r4.Output -match "yeni_klasor/iki\.txt" -and $gitStatusRaw -notmatch "pushprep\.json") `
+        ($r4.ExitCode -eq 0 -and $manifestExists -and $r4.Output -match "yeni_klasor/bir\.txt" -and $r4.Output -match "yeni_klasor/iki\.txt" -and $gitStatusRaw -notmatch "pushprep") `
         "Manifest=$manifestExists Out=$($r4.Output)"
 } finally {
     Pop-Location
@@ -135,9 +138,8 @@ try {
     "bbb" | Set-Content -Encoding UTF8 "beta_keep_local.txt"
     "ccc" | Set-Content -Encoding UTF8 "gamma.txt"
 
-    $prep5 = Invoke-Manager @("-Action", "Prep")
-    # beta_keep_local.txt numarasini JSON'dan bul
-    $m5 = Get-Content -Raw -Encoding UTF8 ".git\vigiles\pushprep.json" | ConvertFrom-Json
+    Invoke-Manager @("-Action", "Prep") | Out-Null
+    $m5 = Get-Content -Raw -Encoding UTF8 ".git\vigiles\pushprep_cli.json" | ConvertFrom-Json
     $betaId = ($m5.items | Where-Object { $_.path -eq "beta_keep_local.txt" }).id
 
     $rem5 = Invoke-Manager @("-Action", "Remove", "-Targets", "$betaId")
@@ -201,7 +203,7 @@ try {
 
     Assert-Step "Test 7: /pushadd cikarilani geri alir ve guvenli .gitignore dosyasini pakete ekler" `
         ($addBack.ExitCode -eq 0 -and $addIgnored.ExitCode -eq 0 -and $push7.ExitCode -eq 0 -and ($bareTree7 -match "main\.ps1") -and ($bareTree7 -match "important\.bak")) `
-        "Bare=$bareTree7 AddIgnOut=$($addIgnored.Output)"
+        "Bare=$bareTree7"
 } finally {
     Pop-Location
     Remove-IsolatedRepoPair $p7
@@ -212,13 +214,12 @@ $p8 = New-IsolatedRepoPair
 try {
     Push-Location $p8.Clone
     "SECRET=123" | Set-Content -Encoding UTF8 ".env"
-    # Dinamik parca birlestirme ile test ici sahte AWS anahtari uret
     $fakeAws = "AKIA" + "IOSFODNN7EXAMPLE"
     "aws_key=$fakeAws" | Set-Content -Encoding UTF8 "leak_file.txt"
     "safe=1" | Set-Content -Encoding UTF8 "clean_file.txt"
 
-    $prep8 = Invoke-Manager @("-Action", "Prep")
-    $m8 = Get-Content -Raw -Encoding UTF8 ".git\vigiles\pushprep.json" | ConvertFrom-Json
+    Invoke-Manager @("-Action", "Prep") | Out-Null
+    $m8 = Get-Content -Raw -Encoding UTF8 ".git\vigiles\pushprep_cli.json" | ConvertFrom-Json
     $envItem = $m8.items | Where-Object { $_.path -eq ".env" }
     $leakItem = $m8.items | Where-Object { $_.path -eq "leak_file.txt" }
 
@@ -238,7 +239,7 @@ try {
     Remove-IsolatedRepoPair $p8
 }
 
-# Test 9: Aralik (1-2), Virgullu Liste (1,3) & Belirsiz Dosya Adi (Ambiguous) Kontrolu
+# Test 9: Aralik (1-2) & Belirsiz Dosya Adi (Ambiguous) Kontrolu
 $p9 = New-IsolatedRepoPair
 try {
     Push-Location $p9.Clone
@@ -251,7 +252,7 @@ try {
     Invoke-Manager @("-Action", "Prep") | Out-Null
     $ambRes = Invoke-Manager @("-Action", "Remove", "-Targets", "same.txt")
     $rangeRes = Invoke-Manager @("-Action", "Remove", "-Targets", "1-2")
-    $m9 = Get-Content -Raw -Encoding UTF8 ".git\vigiles\pushprep.json" | ConvertFrom-Json
+    $m9 = Get-Content -Raw -Encoding UTF8 ".git\vigiles\pushprep_cli.json" | ConvertFrom-Json
     $inc9 = @($m9.items | Where-Object { $_.included })
 
     Assert-Step "Test 9: Belirsiz dosya adi uyarisi & 1-2 aralikli toplu /pushremove" `
@@ -271,10 +272,8 @@ try {
     "merhaba dünya" | Set-Content -Encoding UTF8 "$trDir\türkçe şğüöçı not.txt"
 
     $prep10 = Invoke-Manager @("-Action", "Prep")
-    # Prep sonrasi yeni dosya olusursa Drift Gate (ExitCode 2) yakalamali!
     "drift" | Set-Content -Encoding UTF8 "sonradan_gelen.txt"
     $driftRes = Invoke-Manager @("-Action", "Push", "-CommitMessage", "feat: turkish path")
-    # Simdi -Approved ile devam edince sonradan_gelen.txt DISARIDA kalarak pushlanmali
     $push10 = Invoke-Manager @("-Action", "Push", "-Approved", "-CommitMessage", "feat: turkish path")
 
     Push-Location $p10.Bare
@@ -289,7 +288,7 @@ try {
     Remove-IsolatedRepoPair $p10
 }
 
-# Test 11: -Approved ile Tek Seferde Onayli Push + Silinmis Dosya Secici Push
+# Test 11: Silinmis (D) ve Degismis (M) Dosyalarin Secici Sahnelenmesi
 $p11 = New-IsolatedRepoPair
 try {
     Push-Location $p11.Clone
@@ -310,7 +309,7 @@ try {
 
     Assert-Step "Test 11: Silinmis (D) ve degismis (M) dosyalarin secici sahnelenmesi" `
         ($push11.ExitCode -eq 0 -and ($bareTree11 -notmatch "to_delete\.txt") -and ($bareTree11 -match "keep_modified\.txt")) `
-        "Bare=$bareTree11 Out=$($push11.Output)"
+        "Bare=$bareTree11"
 } finally {
     Pop-Location
     Remove-IsolatedRepoPair $p11
@@ -361,7 +360,7 @@ try {
     "key=$fakeProjKey" | Set-Content -Encoding UTF8 "proj_secret.txt"
 
     Invoke-Manager @("-Action", "Prep") | Out-Null
-    $m13 = Get-Content -Raw -Encoding UTF8 ".git\vigiles\pushprep.json" | ConvertFrom-Json
+    $m13 = Get-Content -Raw -Encoding UTF8 ".git\vigiles\pushprep_cli.json" | ConvertFrom-Json
     $exItem = $m13.items | Where-Object { $_.path -eq ".env.example" }
     $projItem = $m13.items | Where-Object { $_.path -eq "proj_secret.txt" }
     $push13 = Invoke-Manager @("-Action", "Push", "-CommitMessage", "docs: add env example")
@@ -372,7 +371,7 @@ try {
 
     Assert-Step "Test 13: Modern sk-proj-* anahtari engellenirken .env.example guvenle pushlanir" `
         ($exItem.included -and (-not $projItem.included) -and $push13.ExitCode -eq 0 -and ($bareTree13 -match "\.env\.example") -and ($bareTree13 -notmatch "proj_secret\.txt")) `
-        "ExInc=$($exItem.included) ProjInc=$($projItem.included) Bare=$bareTree13"
+        "ExInc=$($exItem.included) ProjInc=$($projItem.included)"
 } finally {
     Pop-Location
     Remove-IsolatedRepoPair $p13
@@ -397,7 +396,7 @@ try {
 
     Assert-Step "Test 14: Rename (git mv) Stage Parity dogrulamasi & basarili push" `
         ($push14.ExitCode -eq 0 -and ($bareTree14 -match "renamed_name\.txt") -and ($bareTree14 -notmatch "old_name\.txt")) `
-        "Bare=$bareTree14 Out=$($push14.Output)"
+        "Bare=$bareTree14"
 } finally {
     Pop-Location
     Remove-IsolatedRepoPair $p14

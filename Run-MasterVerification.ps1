@@ -16,6 +16,7 @@ $suiteTimeoutMs = $suiteTimeoutSec * 1000
 $suites = @(
     "tests\Test-CommandWatchdog.ps1",
     "tests\Test-GitPushManager.ps1",
+    "tests\Test-SessionPushIsolation.ps1",
     "tests\Test-MultiSessionTelemetri.ps1",
     "tests\Test-WorkersSubNodes.ps1",
     "tests\Test-AuxiliarySection.ps1",
